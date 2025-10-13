@@ -1,0 +1,196 @@
+<nav class="layout-navbar container-xxl navbar navbar-expand-xl navbar-detached align-items-center bg-navbar-theme" id="layout-navbar">
+    <!-- Mobile Menu Toggle -->
+    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+      <a class="nav-item nav-link px-0 me-xl-4" href="javascript:void(0)">
+        <i class="bx bx-menu bx-sm"></i>
+      </a>
+    </div>
+
+    <div class="navbar-nav-right d-flex align-items-center" id="navbar-collapse">
+      <!-- Search -->
+      <div class="navbar-nav align-items-center">
+        <div class="nav-item d-flex align-items-center">
+          <i class="bx bx-search fs-4 lh-0"></i>
+          <input
+            type="text"
+            class="form-control border-0 shadow-none ps-1 ps-sm-2"
+            placeholder="Search products, orders..."
+            aria-label="Search..." />
+        </div>
+      </div>
+      <!-- /Search -->
+
+      <ul class="navbar-nav flex-row align-items-center ms-auto">
+        <!-- Notifications -->
+        <li class="nav-item dropdown-notifications navbar-dropdown dropdown me-3 me-xl-2">
+          <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="bx bx-bell bx-sm"></i>
+            <span class="badge bg-danger rounded-pill badge-notifications">3</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end py-0">
+            <li class="dropdown-menu-header border-bottom">
+              <div class="dropdown-header d-flex align-items-center py-3">
+                <h5 class="text-body mb-0 me-auto">Notifications</h5>
+                <a href="javascript:void(0)" class="dropdown-notifications-all text-body" data-bs-toggle="tooltip" data-bs-placement="top" title="Mark all as read">
+                  <i class="bx fs-4 bx-envelope-open"></i>
+                </a>
+              </div>
+            </li>
+            <li class="dropdown-notifications-list scrollable-container">
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item list-group-item-action dropdown-notifications-item">
+                  <div class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                      <div class="avatar">
+                        <span class="avatar-initial rounded-circle bg-label-success"><i class="bx bx-cart"></i></span>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">New order received</h6>
+                      <p class="mb-0">Order #12345 from John Doe</p>
+                      <small class="text-muted">5 minutes ago</small>
+                    </div>
+                  </div>
+                </li>
+                <li class="list-group-item list-group-item-action dropdown-notifications-item">
+                  <div class="d-flex">
+                    <div class="flex-shrink-0 me-3">
+                      <div class="avatar">
+                        <span class="avatar-initial rounded-circle bg-label-warning"><i class="bx bx-error"></i></span>
+                      </div>
+                    </div>
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">Low stock alert</h6>
+                      <p class="mb-0">Product "Wireless Headphones" is low on stock</p>
+                      <small class="text-muted">2 hours ago</small>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown-menu-footer border-top">
+              <a href="/notifications" class="dropdown-item d-flex justify-content-center p-3">
+                View all notifications
+              </a>
+            </li>
+          </ul>
+        </li>
+
+        <!-- Quick Actions -->
+        <li class="nav-item dropdown-shortcuts navbar-dropdown dropdown me-2 me-xl-0">
+          <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="bx bx-grid-alt bx-sm"></i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-end py-0">
+            <div class="dropdown-menu-header border-bottom">
+              <div class="dropdown-header d-flex align-items-center py-3">
+                <h5 class="text-body mb-0 me-auto">Quick Actions</h5>
+              </div>
+            </div>
+            <div class="dropdown-shortcuts-list scrollable-container">
+              <div class="row row-bordered overflow-visible g-0">
+                <div class="dropdown-shortcuts-item col">
+                  <span class="dropdown-shortcuts-icon bg-label-primary rounded-circle mb-2">
+                    <i class="bx bx-plus fs-4"></i>
+                  </span>
+                  <a href="/products/add" class="stretched-link">Add Product</a>
+                  <small class="text-muted mb-0">Create new</small>
+                </div>
+                <div class="dropdown-shortcuts-item col">
+                  <span class="dropdown-shortcuts-icon bg-label-success rounded-circle mb-2">
+                    <i class="bx bx-shopping-bag fs-4"></i>
+                  </span>
+                  <a href="/orders" class="stretched-link">Orders</a>
+                  <small class="text-muted mb-0">View all</small>
+                </div>
+              </div>
+              <div class="row row-bordered overflow-visible g-0">
+                <div class="dropdown-shortcuts-item col">
+                  <span class="dropdown-shortcuts-icon bg-label-info rounded-circle mb-2">
+                    <i class="bx bx-bar-chart-alt-2 fs-4"></i>
+                  </span>
+                  <a href="/reports" class="stretched-link">Reports</a>
+                  <small class="text-muted mb-0">Analytics</small>
+                </div>
+                <div class="dropdown-shortcuts-item col">
+                  <span class="dropdown-shortcuts-icon bg-label-warning rounded-circle mb-2">
+                    <i class="bx bx-cog fs-4"></i>
+                  </span>
+                  <a href="/settings" class="stretched-link">Settings</a>
+                  <small class="text-muted mb-0">Configure</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <!-- User -->
+        <li class="nav-item navbar-dropdown dropdown-user dropdown">
+          <a class="nav-link dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown">
+            <div class="avatar avatar-online">
+              <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="{{ auth_user.get('firstname', 'User') }}" class="w-px-40 h-auto rounded-circle" />
+            </div>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <a class="dropdown-item" href="/profile">
+                <div class="d-flex">
+                  <div class="flex-shrink-0 me-3">
+                    <div class="avatar avatar-online">
+                      <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="{{ auth_user.get('firstname', 'User') }}" class="w-px-40 h-auto rounded-circle" />
+                    </div>
+                  </div>
+                  <div class="flex-grow-1">
+                    <span class="fw-semibold d-block text-capitalize">
+                      {{ auth_user.get('firstname', 'User') }} {{ auth_user.get('lastname', '') }}
+                    </span>
+                    <small class="text-muted">{{ 'Administrator' if auth_user.get('role_id') == 1 else 'Vendor' }}</small>
+                  </div>
+                </div>
+              </a>
+            </li>
+            <li>
+              <div class="dropdown-divider"></div>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/profile">
+                <i class="bx bx-user me-2"></i>
+                <span class="align-middle">My Profile</span>
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/settings">
+                <i class="bx bx-cog me-2"></i>
+                <span class="align-middle">Settings</span>
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/payments">
+                <i class="bx bx-credit-card me-2"></i>
+                <span class="align-middle">Payments</span>
+              </a>
+            </li>
+            <li>
+              <div class="dropdown-divider"></div>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/help">
+                <i class="bx bx-help-circle me-2"></i>
+                <span class="align-middle">Help Center</span>
+              </a>
+            </li>
+            <li>
+              <div class="dropdown-divider"></div>
+            </li>
+            <li>
+              <a class="dropdown-item" href="/logout">
+                <i class="bx bx-power-off me-2"></i>
+                <span class="align-middle">Log Out</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        <!--/ User -->
+      </ul>
+    </div>
+</nav>

@@ -1,0 +1,188 @@
+<nav class="zyn-navbar bg-white border-bottom sticky-top shadow-sm">
+  <div class="container-fluid px-3">
+    <!-- Main Navbar Row -->
+    <div class="d-flex align-items-center py-3 gap-4">
+      <!-- Logo -->
+      <a class="navbar-brand d-flex align-items-center me-auto" href="{{ url_for('home_page') }}">
+        <div class="zyn-logo-wrapper me-3">
+          <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Zyntra" height="40" class="zyn-logo">
+        </div>
+        <span class="fw-bold fs-4 text-primary zyn-brand-text">Zyntra</span>
+      </a>
+
+      <!-- Right Actions & Search -->
+      <div class="d-flex align-items-center gap-2 ms-auto">
+        <!-- Desktop Search Bar -->
+        <div class="zyn-search-wrapper d-none d-lg-flex">
+          <form role="search" method="get" action="{{ url_for('home_page') }}">
+            <div class="input-container">
+              <input type="text" name="query" class="input" placeholder="Search electronics, phones, laptops..." value="{{ request.args.get('query', '') }}">
+              <span class="icon"> 
+                <svg width="19px" height="19px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path opacity="1" d="M14 5H20" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> 
+                  <path opacity="1" d="M14 8H17" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path> 
+                  <path d="M21 11.5C21 16.75 16.75 21 11.5 21C6.25 21 2 16.75 2 11.5C2 6.25 6.25 2 11.5 2" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path> 
+                  <path opacity="1" d="M22 22L20 20" stroke="#6366f1" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </span>
+            </div>
+          </form>
+        </div>
+
+        <!-- Sell & Deliver Links (only show when not logged in) -->
+        {% if not g.authenticated %}
+        <div class="d-none d-lg-flex align-items-center gap-3 me-2">
+          <a class="zyn-nav-link text-decoration-none" href="{{ url_for('sell_page') }}">
+            <i class="bi bi-shop-window me-1"></i>Sell on Zyntra
+          </a>
+          <a class="zyn-nav-link text-decoration-none" href="{{ url_for('deliver_page') }}">
+            <i class="bi bi-truck me-1"></i>Deliver with Zyntra
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- User Actions -->
+        {% if g.authenticated %}
+          <div class="dropdown">
+            <button class="btn zyn-user-avatar" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="zyn-avatar-circle">
+                {{ g.authenticated.firstname[:1] }}
+              </div>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end zyn-dropdown">
+              <li class="dropdown-header">
+                <strong>{{ g.authenticated.firstname }} {{ g.authenticated.lastname }}</strong>
+                <div class="text-muted small">{{ g.authenticated.email }}</div>
+              </li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item zyn-dropdown-item" href="{{ url_for('dashboard_page') }}">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+              </a></li>
+              <li><a class="dropdown-item zyn-dropdown-item" href="{{ url_for('manage_profile') }}">
+                <i class="bi bi-person me-2"></i>Profile
+              </a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item zyn-dropdown-item text-danger" href="{{ url_for('logout') }}">
+                <i class="bi bi-box-arrow-right me-2"></i>Logout
+              </a></li>
+            </ul>
+          </div>
+        {% else %}
+          <a class="btn zyn-btn-secondary me-2" href="{{ url_for('login_page') }}">
+            <i class="bi bi-person me-1"></i>Login
+          </a>
+        {% endif %}
+
+        <!-- Cart (only show for buyers and public) -->
+        {% if not g.authenticated or (g.authenticated and g.authenticated.role_id == 2) %}
+        <a class="zyn-cart-btn position-relative" href="{{ url_for('cart_page') }}">
+          <i class="bi bi-cart3 fs-5"></i>
+          {% set cart_count = (cart_items|length) if cart_items else 0 %}
+          {% if cart_count > 0 %}
+          <span class="zyn-cart-badge">{{ cart_count }}</span>
+          {% endif %}
+        </a>
+        {% endif %}
+
+        <!-- Mobile Menu Toggle -->
+        <button class="btn zyn-mobile-toggle d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
+          <i class="bi bi-list fs-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Secondary Navbar Row -->
+    <div class="zyn-secondary-nav d-none d-lg-flex align-items-center py-2 border-top">
+      <div class="d-flex align-items-center gap-4 flex-wrap">
+        <!-- Categories Dropdown -->
+        <div class="dropdown">
+          <button class="btn zyn-category-btn" data-bs-toggle="dropdown">
+            <i class="bi bi-grid-3x3-gap me-2"></i>Categories
+          </button>
+          <ul class="dropdown-menu zyn-category-dropdown">
+            {% if cat_data %}
+              {% for c in cat_data %}
+                <li><a class="dropdown-item zyn-category-item" href="{{ url_for('category_page', category_id=c.category_id) }}">
+                  <i class="bi bi-{{ 'cpu' if 'computer' in c.category_name.lower() else 'phone' if 'phone' in c.category_name.lower() else 'headphones' if 'audio' in c.category_name.lower() else 'display' if 'screen' in c.category_name.lower() else 'gear' }} me-2"></i>
+                  {{ c.category_name }}
+                </a></li>
+              {% endfor %}
+            {% else %}
+              <li><span class="dropdown-item-text text-muted">No categories available</span></li>
+            {% endif %}
+          </ul>
+        </div>
+
+        <!-- Quick Links -->
+        <ul class="nav zyn-quick-links">
+          <li class="nav-item">
+            <a class="nav-link zyn-nav-link" href="{{ url_for('home_page') }}#featured">
+              <i class="bi bi-star me-1"></i>Featured
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link zyn-nav-link" href="{{ url_for('home_page') }}#bestsellers">
+              <i class="bi bi-trophy me-1"></i>Best Sellers
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link zyn-nav-link" href="{{ url_for('about_page') }}">
+              <i class="bi bi-headset me-1"></i>Support
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link zyn-nav-link" href="{{ url_for('home_page') }}#deals">
+              <i class="bi bi-tag me-1"></i>Deals
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="collapse d-lg-none" id="mobileMenu">
+      <div class="zyn-mobile-menu py-3">
+        <!-- Mobile Search -->
+        <form class="mb-3" role="search" method="get" action="{{ url_for('home_page') }}">
+          <div class="input-group">
+            <input name="query" class="form-control" type="search" placeholder="Search products..." value="{{ request.args.get('query', '') }}">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+          </div>
+        </form>
+
+        <!-- Mobile Categories -->
+        <div class="mb-3">
+          <h6 class="zyn-mobile-title mb-2">Categories</h6>
+          <div class="d-flex flex-wrap gap-2">
+            {% if cat_data %}
+              {% for c in cat_data %}
+                <a class="zyn-mobile-category" href="{{ url_for('category_page', category_id=c.category_id) }}">
+                  {{ c.category_name }}
+                </a>
+              {% endfor %}
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Mobile Links -->
+        <div class="zyn-mobile-links">
+          <a class="zyn-mobile-link" href="{{ url_for('home_page') }}#featured">
+            <i class="bi bi-star me-2"></i>Featured Products
+          </a>
+          <a class="zyn-mobile-link" href="{{ url_for('home_page') }}#bestsellers">
+            <i class="bi bi-trophy me-2"></i>Best Sellers
+          </a>
+          <a class="zyn-mobile-link" href="{{ url_for('about_page') }}">
+            <i class="bi bi-headset me-2"></i>Customer Support
+          </a>
+          <a class="zyn-mobile-link" href="{{ url_for('sell_page') }}">
+            <i class="bi bi-shop-window me-2"></i>Sell on Zyntra
+          </a>
+          <a class="zyn-mobile-link" href="{{ url_for('deliver_page') }}">
+            <i class="bi bi-truck me-2"></i>Deliver with Zyntra
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

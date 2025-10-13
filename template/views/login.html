@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<!-- Modern Login Page -->
+<section class="min-vh-100 d-flex align-items-center position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <!-- Animated Circuit Board Background -->
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M50 50c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm-35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container position-relative z-2">
+    <div class="row align-items-center g-5">
+      <!-- Left Content -->
+      <div class="col-12 col-lg-6 text-white">
+        <div class="mb-4">
+          <span class="badge bg-primary bg-opacity-25 text-primary border border-primary px-4 py-2 rounded-pill fs-6">
+            <i class="bi bi-cpu me-2"></i> Electronics Marketplace
+          </span>
+        </div>
+
+        <h1 class="display-3 fw-bold mb-4 lh-1">
+          Welcome Back to <span class="text-gradient-primary">Zyntra</span><br>
+          Tech Marketplace
+        </h1>
+
+        <p class="lead mb-4 text-white-50 fs-5">
+          Access your account to buy, sell, or deliver electronics across the Philippines.
+          Join thousands of tech enthusiasts in the ultimate marketplace.
+        </p>
+
+        <!-- Live Stats -->
+        <div class="row g-3 mb-5">
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-primary">500K+</div>
+              <small class="text-white-50">Active Users</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-success">50K+</div>
+              <small class="text-white-50">Products Listed</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-warning">24/7</div>
+              <small class="text-white-50">Support</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Type Benefits -->
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-primary rounded-circle p-2 me-3">
+                <i class="bi bi-shop text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">For Sellers</h6>
+                <small class="text-white-50">Manage your store</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-success rounded-circle p-2 me-3">
+                <i class="bi bi-cart text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">For Buyers</h6>
+                <small class="text-white-50">Shop electronics</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-warning rounded-circle p-2 me-3">
+                <i class="bi bi-truck text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">For Riders</h6>
+                <small class="text-white-50">Delivery partner</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Content - Login Form -->
+      <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-2xl" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);">
+          <div class="card-body p-5">
+            <div class="text-center mb-5">
+              <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                <i class="bi bi-box-arrow-in-right text-white fs-3"></i>
+              </div>
+              <h2 class="fw-bold mb-2">Sign In to Zyntra</h2>
+              <p class="text-muted">Access your personalized dashboard</p>
+            </div>
+
+            <form id="loginForm" method="POST">
+              <div class="mb-4">
+                <label class="form-label fw-semibold">Email Address</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-envelope text-muted"></i>
+                  </span>
+                  <input type="email" class="form-control border-start-0" name="email" placeholder="your@email.com" required>
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold">Password</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-key text-muted"></i>
+                  </span>
+                  <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Enter your password" required>
+                  <button class="btn btn-outline-secondary border-start-0 border-end-0 bg-transparent" type="button" id="togglePassword">
+                    <i class="bi bi-eye-slash text-muted" id="eyeIcon"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="rememberMe">
+                  <label class="form-check-label text-muted" for="rememberMe">
+                    Remember me
+                  </label>
+                </div>
+                <a href="#" class="text-primary text-decoration-none small">Forgot password?</a>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+              </button>
+
+              <!-- Social Login Options -->
+              <div class="text-center mb-4">
+                <small class="text-muted">Or continue with</small>
+              </div>
+
+              <div class="row g-2 mb-4">
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-secondary w-100 py-2">
+                    <i class="bi bi-google me-2"></i>Google
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-secondary w-100 py-2">
+                    <i class="bi bi-facebook me-2"></i>Facebook
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sign Up Links -->
+              <div class="text-center">
+                <small class="text-muted">
+                  Don't have an account?
+                  <a href="{{ url_for('signup_page') }}" class="text-primary text-decoration-none fw-semibold">Sign up here.</a>
+                </small>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold mb-3">Why Choose Zyntra?</h2>
+      <p class="text-muted fs-5">The ultimate platform for electronics commerce</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-shield-check text-primary fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Secure Transactions</h5>
+          <p class="text-muted">Bank-grade security for all your purchases and sales</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-truck text-success fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Fast Delivery</h5>
+          <p class="text-muted">Quick and reliable delivery across the Philippines</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-headset text-warning fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">24/7 Support</h5>
+          <p class="text-muted">Expert support team available round the clock</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-graph-up text-info fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Analytics Dashboard</h5>
+          <p class="text-muted">Track your sales and performance with detailed insights</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container text-center text-white position-relative">
+    <div class="mb-4">
+      <i class="bi bi-stars fs-1 mb-3"></i>
+      <h2 class="fw-bold mb-3">Join the Zyntra Community</h2>
+      <p class="lead mb-4 opacity-75">Start your journey in the Philippines' premier electronics marketplace</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <div class="col-auto">
+        <a href="{{ url_for('signup_page') }}" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-lg">
+          <i class="bi bi-person-plus me-2"></i>Join as Buyer
+        </a>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('sell_page') }}" class="btn btn-success btn-lg px-5 py-3 rounded-pill shadow-lg">
+          <i class="bi bi-shop me-2"></i>Start Selling
+        </a>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('deliver_page') }}" class="btn btn-warning btn-lg px-5 py-3 rounded-pill shadow-lg">
+          <i class="bi bi-truck me-2"></i>Deliver with Us
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <small class="opacity-75">✓ Free to join • ✓ No hidden fees • ✓ Secure platform</small>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block script %}
+<script>
+$(document).ready(function() {
+	$("#loginForm").submit(function(e) {
+		e.preventDefault(); // Prevent form from reloading the page
+
+		var data = new FormData(this);
+		let path = `/login`;
+
+		$.SystemScript.executePost(path, data).done((response) => {
+			console.log(response.data);
+			if (response.data.status == 'success') {
+				let role = response.data.data.role_id;
+				if (role == 1 || role == 3){
+					window.location.href = '/dashboard';
+				} else {
+					window.location.href = '/'
+				}
+			} else {
+				$.SystemScript.swalAlertMessage('Oops!', `${response.data.message}`, 'error');
+				$("#password").val('');
+			}
+		});
+	});
+
+	// Show/Hide Password with Eye Icon
+	$('#togglePassword').click(function() {
+		const passwordField = $('#password');
+		const eyeIcon = $('#eyeIcon');
+		if (passwordField.attr('type') === 'password') {
+			passwordField.attr('type', 'text');
+			eyeIcon.removeClass('bx-show').addClass('bx-hide');
+		} else {
+			passwordField.attr('type', 'password');
+			eyeIcon.removeClass('bx-hide').addClass('bx-show');
+		}
+	});
+})
+</script>
+{% endblock %}

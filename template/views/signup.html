@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<!-- Modern Signup Page -->
+<section class="min-vh-100 d-flex align-items-center position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <!-- Animated Circuit Board Background -->
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M50 50c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm-35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container position-relative z-2">
+    <div class="row align-items-center g-5">
+      <!-- Left Content -->
+      <div class="col-12 col-lg-6 text-white">
+        <div class="mb-4">
+          <span class="badge bg-primary bg-opacity-25 text-primary border border-primary px-4 py-2 rounded-pill fs-6">
+            <i class="bi bi-cpu me-2"></i> Electronics Marketplace
+          </span>
+        </div>
+
+        <h1 class="display-3 fw-bold mb-4 lh-1">
+          Join <span class="text-gradient-primary">Zyntra</span><br>
+          Today
+        </h1>
+
+        <p class="lead mb-4 text-white-50 fs-5">
+          Create your account to explore our vast selection of electronics, manage your listings,
+          and connect with tech enthusiasts across the Philippines.
+        </p>
+
+        <!-- Live Stats -->
+        <div class="row g-3 mb-5">
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-primary">500K+</div>
+              <small class="text-white-50">Active Users</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-success">50K+</div>
+              <small class="text-white-50">Products Listed</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-warning">24/7</div>
+              <small class="text-white-50">Support</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Type Options -->
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-primary rounded-circle p-2 me-3">
+                <i class="bi bi-shop text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">Sell Electronics</h6>
+                <small class="text-white-50">Start your store</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-success rounded-circle p-2 me-3">
+                <i class="bi bi-cart text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">Buy Electronics</h6>
+                <small class="text-white-50">Shop gadgets</small>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="d-flex align-items-center">
+              <div class="bg-warning rounded-circle p-2 me-3">
+                <i class="bi bi-truck text-white"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-white">Deliver</h6>
+                <small class="text-white-50">Join our team</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Content - Signup Form -->
+      <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-2xl" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);">
+          <div class="card-body p-5">
+            <div class="text-center mb-5">
+              <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                <i class="bi bi-person-plus text-white fs-3"></i>
+              </div>
+              <h2 class="fw-bold mb-2">Create Your Account</h2>
+              <p class="text-muted">Join thousands of tech enthusiasts</p>
+            </div>
+
+            <form id="signupForm">
+              <div class="row mb-3">
+                <div class="col">
+                  <label class="form-label fw-semibold">First Name</label>
+                  <input type="text" class="form-control form-control-lg" name="fname" id="fname" placeholder="Juan" required>
+                </div>
+                <div class="col">
+                  <label class="form-label fw-semibold">Last Name</label>
+                  <input type="text" class="form-control form-control-lg" name="lname" id="lname" placeholder="Dela Cruz" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Email Address</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-envelope text-muted"></i>
+                  </span>
+                  <input type="email" class="form-control border-start-0" name="email" id="email" placeholder="your@email.com" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Phone Number</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-phone text-muted"></i>
+                  </span>
+                  <input type="text" class="form-control border-start-0" name="phone" id="phone" placeholder="09171234567" maxlength="11" required>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Password</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-key text-muted"></i>
+                  </span>
+                  <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Min. 8 characters" oninput="checkPasswordStrength()" required>
+                </div>
+                <div id="passwordStrength" class="mt-2"></div>
+              </div>
+
+              <div class="mb-4">
+                <label class="form-label fw-semibold">Confirm Password</label>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text border-end-0 bg-transparent">
+                    <i class="bi bi-shield-check text-muted"></i>
+                  </span>
+                  <input type="password" class="form-control border-start-0" name="confirmPassword" id="confirmPassword" placeholder="Confirm your password" required>
+                </div>
+              </div>
+
+              <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="terms" required>
+                <label class="form-check-label text-muted" for="terms">
+                  I agree to the <a href="#" class="text-primary text-decoration-none">Terms & Conditions</a>
+                  and <a href="#" class="text-primary text-decoration-none">Privacy Policy</a>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3">
+                <i class="bi bi-person-plus me-2"></i>Create Account
+              </button>
+
+              <!-- Social Signup Options -->
+              <div class="text-center mb-4">
+                <small class="text-muted">Or sign up with</small>
+              </div>
+
+              <div class="row g-2 mb-4">
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-secondary w-100 py-2">
+                    <i class="bi bi-google me-2"></i>Google
+                  </button>
+                </div>
+                <div class="col-6">
+                  <button type="button" class="btn btn-outline-secondary w-100 py-2">
+                    <i class="bi bi-facebook me-2"></i>Facebook
+                  </button>
+                </div>
+              </div>
+
+              <!-- Login Link -->
+              <div class="text-center">
+                <small class="text-muted">
+                  Already have an account?
+                  <a href="{{ url_for('login_page') }}" class="text-primary text-decoration-none fw-semibold">Sign in here</a>
+                </small>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold mb-3">Why Join Zyntra?</h2>
+      <p class="text-muted fs-5">Everything you need for your electronics journey</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-lightning-charge text-primary fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Quick Setup</h5>
+          <p class="text-muted">Get started in minutes with our simple registration process</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-shield-check text-success fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Secure Platform</h5>
+          <p class="text-muted">Your data and transactions are protected with bank-grade security</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-people text-warning fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Community</h5>
+          <p class="text-muted">Join a community of tech enthusiasts and electronics experts</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="feature-card text-center h-100">
+          <div class="feature-icon mb-3">
+            <i class="bi bi-graph-up text-info fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Growth Tools</h5>
+          <p class="text-muted">Analytics and insights to help you succeed in the marketplace</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container text-center text-white position-relative">
+    <div class="mb-4">
+      <i class="bi bi-rocket-takeoff fs-1 mb-3"></i>
+      <h2 class="fw-bold mb-3">Ready to Start Your Journey?</h2>
+      <p class="lead mb-4 opacity-75">Join thousands of successful users on Zyntra</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <div class="col-auto">
+        <a href="{{ url_for('signup_page') }}" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-lg">
+          <i class="bi bi-person-plus me-2"></i>Get Started Now
+        </a>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('home_page') }}" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill">
+          <i class="bi bi-eye me-2"></i>Explore Marketplace
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <small class="opacity-75">✓ Free registration • ✓ No hidden fees • ✓ Start immediately</small>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block script %}
+<script>
+$(document).ready(function() {
+	$("#signupForm").submit(function(e) {
+		e.preventDefault(); // Prevent form from reloading the page
+
+		var password = $('#password').val();
+        var confirmPassword = $('#confirmPassword').val();
+
+        // Client-side validation for password length and matching
+        if (password.length < 8) {
+            $.SystemScript.swalAlertMessage('Oops!', 'Password must be at least 8 characters long.', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            $.SystemScript.swalAlertMessage('Oops!', 'Passwords do not match. Please try again.', 'error');
+            return;
+		}
+
+		var data = new FormData(this);
+		let path = `/signup`;
+
+		$.SystemScript.executePost(path, data).done((response) => {
+			console.log(response.data);
+			if (response.data.status == 'success') {
+				$.SystemScript.swalAlertMessage('Success!', `${response.data.message}`, 'success');
+				// Redirect to login after successful signup
+				setTimeout(() => {
+					window.location.href = '/login';
+				}, 2000);
+			} else {
+				$.SystemScript.swalAlertMessage('Oops!', `${response.data.message}`, 'error');
+			}
+		});
+	});
+
+    // Function to check password strength
+    window.checkPasswordStrength = function() {
+        var password = $('#password').val();
+        var strengthText = '';
+        var strengthClass = '';
+        var strengthScore = 0;
+        var phone = $('#phone').val();
+
+        // Validate Philippine phone number format
+        if (phone && !/^(09\d{9})$/.test(phone)) {
+            $('#phone').addClass('is-invalid');
+            return;
+        } else {
+            $('#phone').removeClass('is-invalid');
+        }
+
+        // Criteria checks
+        if (password.length >= 8) strengthScore++; // Length
+        if (/[A-Z]/.test(password)) strengthScore++; // Uppercase letter
+        if (/[a-z]/.test(password)) strengthScore++; // Lowercase letter
+        if (/[0-9]/.test(password)) strengthScore++; // Number
+        if (/[\W_]/.test(password)) strengthScore++; // Special character
+
+        // Determine strength based on score
+        switch (strengthScore) {
+            case 0:
+            case 1:
+                strengthText = 'Very Weak';
+                strengthClass = 'text-danger';
+                break;
+            case 2:
+                strengthText = 'Weak';
+                strengthClass = 'text-warning';
+                break;
+            case 3:
+                strengthText = 'Moderate';
+                strengthClass = 'text-info';
+                break;
+            case 4:
+                strengthText = 'Strong';
+                strengthClass = 'text-success';
+                break;
+            case 5:
+                strengthText = 'Very Strong';
+                strengthClass = 'text-success';
+                break;
+        }
+
+        // Update the text and color
+        $('#passwordStrength').html(`<small class="fw-semibold">Password Strength: <span class="${strengthClass}">${strengthText}</span></small>`);
+    };
+
+    // Real-time phone validation
+    $('#phone').on('input', function() {
+        var phone = $(this).val();
+        if (phone && !/^(09\d{9})$/.test(phone)) {
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+})
+</script>
+{% endblock %}

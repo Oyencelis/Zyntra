@@ -1,0 +1,580 @@
+{% extends 'base.html' %}
+{% block title %}Sell on Zyntra{% endblock %}
+
+{% block content %}
+<!-- Modern Tech Marketplace Hero -->
+<section class="min-vh-100 d-flex align-items-center position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <!-- Animated Circuit Board Background -->
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M50 50c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm-35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container position-relative z-2">
+    <div class="row align-items-center g-5">
+      <!-- Left Content -->
+      <div class="col-12 col-lg-6 text-white">
+        <div class="mb-4">
+          <span class="badge bg-primary bg-opacity-25 text-primary border border-primary px-4 py-2 rounded-pill fs-6">
+            <i class="bi bi-cpu me-2"></i> Electronics Marketplace
+          </span>
+        </div>
+
+        <h1 class="display-3 fw-bold mb-4 lh-1">
+          Launch Your <span class="text-gradient-primary">Tech Store</span><br>
+          Today
+        </h1>
+
+        <p class="lead mb-4 text-white-50 fs-5">
+          Join the Philippines' premier platform for selling electronics, gadgets, and tech accessories.
+          Connect with thousands of tech-savvy buyers ready to purchase.
+        </p>
+
+        <!-- Live Stats -->
+        <div class="row g-3 mb-5">
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-primary">500K+</div>
+              <small class="text-white-50">Monthly Buyers</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-success">50K+</div>
+              <small class="text-white-50">Weekly Sales</small>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="stats-card bg-white bg-opacity-10 backdrop-blur rounded-3 p-3 text-center">
+              <div class="fw-bold fs-3 text-warning">4.8★</div>
+              <small class="text-white-50">Avg Rating</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Content - Signup Form -->
+      <div class="col-12 col-lg-6">
+        <div class="card border-0 shadow-2xl" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);">
+          <div class="card-body p-5">
+            <div class="text-center mb-5">
+              <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                <i class="bi bi-shop-window text-white fs-3"></i>
+              </div>
+              <h2 class="fw-bold mb-2">Start Your Electronics Store</h2>
+              <p class="text-muted">Join thousands of successful tech sellers</p>
+
+              <!-- Compact Progress Indicator -->
+              <div class="progress-steps-compact mb-4">
+                <div class="step-indicator-compact">
+                  <div class="step-item-compact active" data-step="1">
+                    <div class="step-circle-compact">
+                      <span class="step-number-compact">1</span>
+                    </div>
+                    <div class="step-connector-compact"></div>
+                  </div>
+                  <div class="step-item-compact" data-step="2">
+                    <div class="step-circle-compact">
+                      <span class="step-number-compact">2</span>
+                    </div>
+                    <div class="step-connector-compact"></div>
+                  </div>
+                  <div class="step-item-compact" data-step="3">
+                    <div class="step-circle-compact">
+                      <span class="step-number-compact">3</span>
+                    </div>
+                    <div class="step-connector-compact"></div>
+                  </div>
+                  <div class="step-item-compact" data-step="4">
+                    <div class="step-circle-compact">
+                      <span class="step-number-compact">4</span>
+                    </div>
+                    <div class="step-connector-compact"></div>
+                  </div>
+                  <div class="step-item-compact" data-step="5">
+                    <div class="step-circle-compact">
+                      <span class="step-number-compact">5</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="step-labels-compact mt-2">
+                  <span class="step-label-compact active">Personal</span>
+                  <span class="step-label-compact">Business</span>
+                  <span class="step-label-compact">Password</span>
+                  <span class="step-label-compact">Address</span>
+                  <span class="step-label-compact">Documents</span>
+                </div>
+              </div>
+            </div>
+
+            <form id="sellerSignupForm" method="POST" action="{{ url_for('seller_signup_submit') }}" enctype="multipart/form-data">
+              <!-- Step 1: Personal Info -->
+              <div class="form-step active" data-step="1">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Full Name</label>
+                    <input type="text" class="form-control form-control-lg border-2" name="fullName" placeholder="Juan Dela Cruz" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Email</label>
+                    <input type="email" class="form-control form-control-lg border-2" name="email" placeholder="seller@zyntra.com" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Phone</label>
+                    <input type="tel" class="form-control form-control-lg border-2" name="phone" placeholder="+63 917 123 4567" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 2: Business Info -->
+              <div class="form-step" data-step="2">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Store Name</label>
+                    <input type="text" class="form-control form-control-lg border-2" name="storeName" placeholder="TechHub Philippines" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3: Password -->
+              <div class="form-step" data-step="3">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Password</label>
+                    <input type="password" class="form-control form-control-lg border-2" name="password" id="sellerPassword" placeholder="Min. 8 characters" required>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Confirm Password</label>
+                    <input type="password" class="form-control form-control-lg border-2" name="confirmPassword" id="sellerConfirmPassword" placeholder="Confirm your password" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 4: Address Info -->
+              <div class="form-step" data-step="4">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Region</label>
+                    <select class="form-select form-select-lg border-2" name="region" required></select>
+                    <input type="hidden" name="region_text">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Province</label>
+                    <select class="form-select form-select-lg border-2" name="province" required></select>
+                    <input type="hidden" name="province_text">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">City</label>
+                    <select class="form-select form-select-lg border-2" name="city" required></select>
+                    <input type="hidden" name="city_text">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">Barangay</label>
+                    <select class="form-select form-select-lg border-2" name="barangay" required></select>
+                    <input type="hidden" name="barangay_text">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Street Address</label>
+                    <input type="text" class="form-control form-control-lg border-2" name="street" placeholder="Bldg/Unit No., Street" required>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 5: Documents -->
+              <div class="form-step" data-step="5">
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Government ID <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control form-control-lg border-2" name="govId" accept="image/*,.pdf" required>
+                    <small class="text-muted">Driver's License, Passport, or National ID</small>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label fw-semibold">Business Permit <span class="text-muted">(Optional)</span></label>
+                    <input type="file" class="form-control form-control-lg border-2" name="businessPermit" accept="image/*,.pdf">
+                    <small class="text-muted">For registered businesses only</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Navigation -->
+              <div class="d-flex justify-content-between mb-4">
+                <button type="button" class="btn btn-outline-secondary prev-btn" style="display: none;">
+                  <i class="bi bi-arrow-left me-2"></i>Previous
+                </button>
+                <div></div>
+                <button type="button" class="btn btn-primary next-btn">
+                  Next <i class="bi bi-arrow-right ms-2"></i>
+                </button>
+              </div>
+
+              <!-- Terms -->
+              <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" id="terms" required>
+                <label class="form-check-label text-muted" for="terms">
+                  I agree to the <a href="#" class="text-primary text-decoration-none">Seller Terms & Conditions</a>
+                </label>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold submit-btn" style="display: none;">
+                <i class="bi bi-rocket-takeoff me-2"></i>Launch My Store
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modern Benefits Section -->
+<section class="py-5 bg-white">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold mb-3">Why Electronics Sellers Choose Zyntra</h2>
+      <p class="text-muted fs-5">Everything you need to scale your tech business</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="benefit-card text-center h-100">
+          <div class="benefit-icon mb-3">
+            <i class="bi bi-graph-up-arrow text-primary fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">3% Commission</h5>
+          <p class="text-muted">Industry-lowest fees. Keep more of your earnings.</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="benefit-card text-center h-100">
+          <div class="benefit-icon mb-3">
+            <i class="bi bi-tags text-success fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Zero Listing Fees</h5>
+          <p class="text-muted">List unlimited products at no extra cost.</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="benefit-card text-center h-100">
+          <div class="benefit-icon mb-3">
+            <i class="bi bi-bullseye text-warning fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Targeted Reach</h5>
+          <p class="text-muted">Reach tech enthusiasts actively looking for gadgets.</p>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="benefit-card text-center h-100">
+          <div class="benefit-icon mb-3">
+            <i class="bi bi-shield-check text-info fs-1"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Secure Platform</h5>
+          <p class="text-muted">Bank-grade security for all transactions.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Seller Success Stories -->
+<section class="py-5 bg-gradient-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold mb-3">Success Stories from Electronics Sellers</h2>
+      <p class="text-muted fs-5">Real sellers, real results, real growth</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="story-card position-relative">
+          <div class="story-avatar">
+            <div class="bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 mx-auto" style="width: 60px; height: 60px;">R</div>
+          </div>
+          <div class="story-content">
+            <h6 class="fw-bold mb-1">Robert Chen</h6>
+            <small class="text-muted">Phone Accessories • Manila</small>
+            <p class="mt-2 mb-0">"Started with phone cases, now selling ₱500K/month worth of accessories. Zyntra's platform is incredible."</p>
+            <div class="story-stats mt-3">
+              <span class="badge bg-success">₱500K/month</span>
+              <span class="badge bg-primary ms-2">4.9★ Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="story-card position-relative">
+          <div class="story-avatar">
+            <div class="bg-gradient-success rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 mx-auto" style="width: 60px; height: 60px;">M</div>
+          </div>
+          <div class="story-content">
+            <h6 class="fw-bold mb-1">Maria Santos</h6>
+            <small class="text-muted">Laptop Store • Cebu</small>
+            <p class="mt-2 mb-0">"Specializing in gaming laptops. Zyntra helped me reach customers nationwide. Sales grew 300% in 6 months."</p>
+            <div class="story-stats mt-3">
+              <span class="badge bg-success">₱800K/month</span>
+              <span class="badge bg-primary ms-2">4.8★ Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <div class="story-card position-relative">
+          <div class="story-avatar">
+            <div class="bg-gradient-warning rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 mx-auto" style="width: 60px; height: 60px;">A</div>
+          </div>
+          <div class="story-content">
+            <h6 class="fw-bold mb-1">Alex Rivera</h6>
+            <small class="text-muted">Smart Home • Davao</small>
+            <p class="mt-2 mb-0">"From small smart plugs to full home automation. Zyntra's tech-savvy audience is perfect for my products."</p>
+            <div class="story-stats mt-3">
+              <span class="badge bg-success">₱350K/month</span>
+              <span class="badge bg-primary ms-2">4.9★ Rating</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modern CTA -->
+<section class="py-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
+
+  <div class="container text-center text-white position-relative">
+    <div class="mb-4">
+      <i class="bi bi-lightning-charge-fill fs-1 mb-3"></i>
+      <h2 class="fw-bold mb-3">Ready to Start Your Tech Empire?</h2>
+      <p class="lead mb-4 opacity-75">Join thousands of successful electronics sellers</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <div class="col-auto">
+        <a href="#sellerSignupForm" class="btn btn-primary btn-lg px-5 py-3 rounded-pill shadow-lg">
+          <i class="bi bi-shop me-2"></i>Launch My Store
+        </a>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('home_page') }}" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill">
+          <i class="bi bi-eye me-2"></i>Explore Marketplace
+        </a>
+      </div>
+    </div>
+
+    <div class="mt-4">
+      <small class="opacity-75">✓ No setup fees • ✓ 48-hour approval • ✓ 24/7 support</small>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block script %}
+<script>
+// Multi-step form functionality
+let currentStep = 1;
+const totalSteps = 5;
+
+function showStep(step) {
+  $('.form-step').removeClass('active');
+  $(`.form-step[data-step="${step}"]`).addClass('active');
+
+  // Update compact step indicators
+  $('.step-item-compact').removeClass('active completed');
+  $(`.step-item-compact[data-step="${step}"]`).addClass('active');
+  $(`.step-item-compact[data-step="${step}"]`).prevAll('.step-item-compact').addClass('completed');
+
+  // Update compact step labels
+  $('.step-label-compact').removeClass('active completed');
+  $(`.step-label-compact:nth-child(${step})`).addClass('active');
+  $(`.step-label-compact:nth-child(${step})`).prevAll('.step-label-compact').addClass('completed');
+
+  // Show/hide navigation buttons
+  if (step === 1) {
+    $('.prev-btn').hide();
+  } else {
+    $('.prev-btn').show();
+  }
+
+  if (step === totalSteps) {
+    $('.next-btn').hide();
+    $('.submit-btn').show();
+  } else {
+    $('.next-btn').show();
+    $('.submit-btn').hide();
+  }
+}
+
+$('.next-btn').on('click', function() {
+  if (validateStep(currentStep)) {
+    currentStep++;
+    showStep(currentStep);
+  }
+});
+
+$('.prev-btn').on('click', function() {
+  currentStep--;
+  showStep(currentStep);
+});
+
+function validateStep(step) {
+  const stepElement = $(`.form-step[data-step="${step}"]`);
+  const inputs = stepElement.find('input[required], select[required]');
+  let isValid = true;
+
+  inputs.each(function() {
+    if (!$(this).val()) {
+      $(this).addClass('is-invalid');
+      isValid = false;
+    } else {
+      $(this).removeClass('is-invalid');
+    }
+  });
+
+  return isValid;
+}
+
+// Philippine Address Selector
+$(function() {
+  // Load regions
+  let regionDropdown = $('select[name="region"]');
+  regionDropdown.empty();
+  regionDropdown.append('<option selected="true" disabled>Choose Region</option>');
+  regionDropdown.prop('selectedIndex', 0);
+
+  const url = '/static/ph-json/region.json';
+  $.getJSON(url, function(data) {
+    $.each(data, function(key, entry) {
+      regionDropdown.append($('<option></option>').attr('value', entry.region_code).text(entry.region_name));
+    });
+  });
+
+  // Region change handler
+  $('select[name="region"]').on('change', function() {
+    var region_code = $(this).val();
+    var region_text = $(this).find("option:selected").text();
+    $('input[name="region_text"]').val(region_text);
+    $('input[name="province_text"], input[name="city_text"], input[name="barangay_text"]').val('');
+
+    let provinceDropdown = $('select[name="province"]');
+    provinceDropdown.empty();
+    provinceDropdown.append('<option selected="true" disabled>Choose Province</option>');
+    provinceDropdown.prop('selectedIndex', 0);
+
+    $('select[name="city"]').empty().append('<option selected="true" disabled></option>').prop('selectedIndex', 0);
+    $('select[name="barangay"]').empty().append('<option selected="true" disabled></option>').prop('selectedIndex', 0);
+
+    $.getJSON('/static/ph-json/province.json', function(data) {
+      var result = data.filter(value => value.region_code == region_code);
+      result.sort((a, b) => a.province_name.localeCompare(b.province_name));
+      $.each(result, function(key, entry) {
+        provinceDropdown.append($('<option></option>').attr('value', entry.province_code).text(entry.province_name));
+      });
+    });
+  });
+
+  // Province change handler
+  $('select[name="province"]').on('change', function() {
+    var province_code = $(this).val();
+    var province_text = $(this).find("option:selected").text();
+    $('input[name="province_text"]').val(province_text);
+    $('input[name="city_text"], input[name="barangay_text"]').val('');
+
+    let cityDropdown = $('select[name="city"]');
+    cityDropdown.empty();
+    cityDropdown.append('<option selected="true" disabled>Choose City/Municipality</option>');
+    cityDropdown.prop('selectedIndex', 0);
+
+    $('select[name="barangay"]').empty().append('<option selected="true" disabled></option>').prop('selectedIndex', 0);
+
+    $.getJSON('/static/ph-json/city.json', function(data) {
+      var result = data.filter(value => value.province_code == province_code);
+      result.sort((a, b) => a.city_name.localeCompare(b.city_name));
+      $.each(result, function(key, entry) {
+        cityDropdown.append($('<option></option>').attr('value', entry.city_code).text(entry.city_name));
+      });
+    });
+  });
+
+  // City change handler
+  $('select[name="city"]').on('change', function() {
+    var city_code = $(this).val();
+    var city_text = $(this).find("option:selected").text();
+    $('input[name="city_text"]').val(city_text);
+    $('input[name="barangay_text"]').val('');
+
+    let barangayDropdown = $('select[name="barangay"]');
+    barangayDropdown.empty();
+    barangayDropdown.append('<option selected="true" disabled>Choose Barangay</option>');
+    barangayDropdown.prop('selectedIndex', 0);
+
+    $.getJSON('/static/ph-json/barangay.json', function(data) {
+      var result = data.filter(value => value.city_code == city_code);
+      result.sort((a, b) => a.brgy_name.localeCompare(b.brgy_name));
+      $.each(result, function(key, entry) {
+        barangayDropdown.append($('<option></option>').attr('value', entry.brgy_code).text(entry.brgy_name));
+      });
+    });
+  });
+
+  // Barangay change handler
+  $('select[name="barangay"]').on('change', function() {
+    var barangay_text = $(this).find("option:selected").text();
+    $('input[name="barangay_text"]').val(barangay_text);
+  });
+});
+
+// Form submission with axios using system-script.js
+document.getElementById('sellerSignupForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  // Validate passwords match
+  const password = document.getElementById('sellerPassword').value;
+  const confirmPassword = document.getElementById('sellerConfirmPassword').value;
+  
+  if (password !== confirmPassword) {
+    $.SystemScript.swalAlertMessage('Oops!', 'Passwords do not match. Please try again.', 'error');
+    return;
+  }
+  
+  if (password.length < 8) {
+    $.SystemScript.swalAlertMessage('Oops!', 'Password must be at least 8 characters long.', 'error');
+    return;
+  }
+
+  const submitBtn = this.querySelector('.submit-btn');
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Launching Store...';
+  submitBtn.disabled = true;
+
+  var data = new FormData(this);
+  let path = `/sell`;
+
+  $.SystemScript.executePost(path, data).done((response) => {
+    console.log(response.data);
+    if (response.data.status == 'success') {
+      $.SystemScript.swalAlertMessage('Success!', `${response.data.message}`, 'success');
+      // Reset form and step indicator after successful submission
+      setTimeout(() => {
+        this.reset();
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        currentStep = 1;
+        showStep(1);
+        // Redirect to login page after success
+        window.location.href = '/login';
+      }, 2000);
+    } else {
+      $.SystemScript.swalAlertMessage('Oops!', `${response.data.message}`, 'error');
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    }
+  }).fail(() => {
+    $.SystemScript.swalAlertMessage('Error!', 'Something went wrong. Please try again.', 'error');
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  });
+});
+</script>
+{% endblock %}

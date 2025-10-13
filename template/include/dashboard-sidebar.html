@@ -1,0 +1,548 @@
+<aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
+    <!-- Brand -->
+    <div class="app-brand demo">
+      <a href="/" class="app-brand-link d-flex align-items-center gap-2">
+        <span class="app-brand-logo">
+          <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Zyntra" width="36" height="36">
+        </span>
+        <span class="app-brand-text fw-bold" style="font-size: 1.5rem; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: transparent;">Zyntra</span>
+      </a>
+      <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-block d-xl-none">
+        <i class="bx bx-chevron-left bx-sm"></i>
+      </a>
+    </div>
+
+    <div class="menu-inner-shadow"></div>
+
+    <!-- User Role Badge -->
+    <div class="px-4 py-3">
+      <div class="badge bg-gradient-primary w-100 py-2">
+        <i class="bx bx-shield-quarter me-1"></i>
+        <span>{{ 'Administrator' if auth_user.get('role_id') == 1 else 'Vendor' }}</span>
+      </div>
+    </div>
+
+    <ul class="menu-inner py-1">
+      <!-- Dashboard -->
+      <li class="menu-item {% if 'dashboard' in menu %} active {% endif %}">
+        <a href="/dashboard" class="menu-link">
+          <i class="menu-icon bx bx-home-circle"></i>
+          <div>Dashboard</div>
+        </a>
+      </li>
+
+      {% if auth_user.get('role_id') == 1 %}
+      <!-- ============================================ -->
+      <!-- ADMIN SIDEBAR -->
+      <!-- ============================================ -->
+      
+      <!-- Accounts Management -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Accounts Management</span>
+      </li>
+
+      <!-- Sellers -->
+      <li class="menu-item {% if 'seller' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-store"></i>
+          <div>Sellers</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'seller-list' in menu %} active {% endif %}">
+            <a href="/sellers" class="menu-link">
+              <div>All Sellers</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'seller-pending' in menu %} active {% endif %}">
+            <a href="/sellers/pending" class="menu-link">
+              <div>Pending Approval</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'seller-approved' in menu %} active {% endif %}">
+            <a href="/sellers/approved" class="menu-link">
+              <div>Approved Sellers</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Buyers/Customers -->
+      <li class="menu-item {% if 'buyer' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-group"></i>
+          <div>Buyers</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'buyer-list' in menu %} active {% endif %}">
+            <a href="/buyers" class="menu-link">
+              <div>All Buyers</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'buyer-active' in menu %} active {% endif %}">
+            <a href="/buyers/active" class="menu-link">
+              <div>Active Buyers</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'buyer-blocked' in menu %} active {% endif %}">
+            <a href="/buyers/blocked" class="menu-link">
+              <div>Blocked Buyers</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Riders/Delivery -->
+      <li class="menu-item {% if 'rider' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-cycling"></i>
+          <div>Riders</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'rider-list' in menu %} active {% endif %}">
+            <a href="/riders" class="menu-link">
+              <div>All Riders</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'rider-active' in menu %} active {% endif %}">
+            <a href="/riders/active" class="menu-link">
+              <div>Active Riders</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'rider-add' in menu %} active {% endif %}">
+            <a href="/riders/add" class="menu-link">
+              <div>Add Rider</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- E-Commerce Management -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">E-Commerce</span>
+      </li>
+
+      <!-- Products -->
+      <li class="menu-item {% if 'product' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-package"></i>
+          <div>Products</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'product-list' in menu %} active {% endif %}">
+            <a href="/products" class="menu-link">
+              <div>All Products</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-categories' in menu %} active {% endif %}">
+            <a href="/products/categories" class="menu-link">
+              <div>Categories</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-pending' in menu %} active {% endif %}">
+            <a href="/products/pending" class="menu-link">
+              <div>Pending Approval</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-reported' in menu %} active {% endif %}">
+            <a href="/products/reported" class="menu-link">
+              <div>Reported Products</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Orders -->
+      <li class="menu-item {% if 'order' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-shopping-bag"></i>
+          <div>Orders</div>
+          <span class="badge badge-center rounded-pill bg-danger ms-auto">5</span>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'order-list' in menu %} active {% endif %}">
+            <a href="/orders" class="menu-link">
+              <div>All Orders</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-pending' in menu %} active {% endif %}">
+            <a href="/orders/pending" class="menu-link">
+              <div>Pending</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-processing' in menu %} active {% endif %}">
+            <a href="/orders/processing" class="menu-link">
+              <div>Processing</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-completed' in menu %} active {% endif %}">
+            <a href="/orders/completed" class="menu-link">
+              <div>Completed</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-cancelled' in menu %} active {% endif %}">
+            <a href="/orders/cancelled" class="menu-link">
+              <div>Cancelled</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Financial -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Financial</span>
+      </li>
+
+      <!-- Transactions -->
+      <li class="menu-item {% if 'transaction' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-credit-card"></i>
+          <div>Transactions</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'transaction-list' in menu %} active {% endif %}">
+            <a href="/transactions" class="menu-link">
+              <div>All Transactions</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'transaction-pending' in menu %} active {% endif %}">
+            <a href="/transactions/pending" class="menu-link">
+              <div>Pending Payouts</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'transaction-completed' in menu %} active {% endif %}">
+            <a href="/transactions/completed" class="menu-link">
+              <div>Completed</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Revenue & Analytics -->
+      <li class="menu-item {% if 'revenue' in menu %} active {% endif %}">
+        <a href="/revenue" class="menu-link">
+          <i class="menu-icon bx bx-line-chart"></i>
+          <div>Revenue Analytics</div>
+        </a>
+      </li>
+
+      <!-- Commission Settings -->
+      <li class="menu-item {% if 'commission' in menu %} active {% endif %}">
+        <a href="/commission" class="menu-link">
+          <i class="menu-icon bx bx-dollar-circle"></i>
+          <div>Commission Settings</div>
+        </a>
+      </li>
+
+      <!-- System Management -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">System</span>
+      </li>
+
+      <!-- Reports -->
+      <li class="menu-item {% if 'report' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-bar-chart-alt-2"></i>
+          <div>Reports</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'report-sales' in menu %} active {% endif %}">
+            <a href="/reports/sales" class="menu-link">
+              <div>Sales Report</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'report-seller' in menu %} active {% endif %}">
+            <a href="/reports/sellers" class="menu-link">
+              <div>Seller Performance</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'report-product' in menu %} active {% endif %}">
+            <a href="/reports/products" class="menu-link">
+              <div>Product Analytics</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Settings -->
+      <li class="menu-item {% if 'settings' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-cog"></i>
+          <div>Settings</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'settings-general' in menu %} active {% endif %}">
+            <a href="/settings/general" class="menu-link">
+              <div>General</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'settings-payment' in menu %} active {% endif %}">
+            <a href="/settings/payment" class="menu-link">
+              <div>Payment Methods</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'settings-shipping' in menu %} active {% endif %}">
+            <a href="/settings/shipping" class="menu-link">
+              <div>Shipping Options</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'settings-email' in menu %} active {% endif %}">
+            <a href="/settings/email" class="menu-link">
+              <div>Email Templates</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Support & Disputes -->
+      <li class="menu-item {% if 'support' in menu %} active {% endif %}">
+        <a href="/support" class="menu-link">
+          <i class="menu-icon bx bx-support"></i>
+          <div>Support Tickets</div>
+          <span class="badge badge-center rounded-pill bg-warning ms-auto">2</span>
+        </a>
+      </li>
+
+      {% else %}
+      <!-- ============================================ -->
+      <!-- SELLER SIDEBAR -->
+      <!-- ============================================ -->
+
+      <!-- My Store -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">My Store</span>
+      </li>
+
+      <!-- Products -->
+      <li class="menu-item {% if 'product' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-package"></i>
+          <div>My Products</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'product-list' in menu %} active {% endif %}">
+            <a href="/products" class="menu-link">
+              <div>All Products</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-add' in menu %} active {% endif %}">
+            <a href="/products/add" class="menu-link">
+              <div>Add New Product</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-draft' in menu %} active {% endif %}">
+            <a href="/products/drafts" class="menu-link">
+              <div>Drafts</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'product-out-stock' in menu %} active {% endif %}">
+            <a href="/products/out-of-stock" class="menu-link">
+              <div>Out of Stock</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Inventory -->
+      <li class="menu-item {% if 'inventory' in menu %} active {% endif %}">
+        <a href="/inventory" class="menu-link">
+          <i class="menu-icon bx bx-box"></i>
+          <div>Inventory</div>
+        </a>
+      </li>
+
+      <!-- Sales -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Sales</span>
+      </li>
+
+      <!-- Orders -->
+      <li class="menu-item {% if 'order' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-shopping-bag"></i>
+          <div>Orders</div>
+          <span class="badge badge-center rounded-pill bg-danger ms-auto">3</span>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'order-list' in menu %} active {% endif %}">
+            <a href="/orders" class="menu-link">
+              <div>All Orders</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-pending' in menu %} active {% endif %}">
+            <a href="/orders/pending" class="menu-link">
+              <div>Pending</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-processing' in menu %} active {% endif %}">
+            <a href="/orders/processing" class="menu-link">
+              <div>Processing</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-shipped' in menu %} active {% endif %}">
+            <a href="/orders/shipped" class="menu-link">
+              <div>Shipped</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-completed' in menu %} active {% endif %}">
+            <a href="/orders/completed" class="menu-link">
+              <div>Completed</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'order-returns' in menu %} active {% endif %}">
+            <a href="/orders/returns" class="menu-link">
+              <div>Returns/Refunds</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Reviews -->
+      <li class="menu-item {% if 'review' in menu %} active {% endif %}">
+        <a href="/reviews" class="menu-link">
+          <i class="menu-icon bx bx-star"></i>
+          <div>Customer Reviews</div>
+        </a>
+      </li>
+
+      <!-- Financial -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Financial</span>
+      </li>
+
+      <!-- Earnings -->
+      <li class="menu-item {% if 'earning' in menu %} active {% endif %}">
+        <a href="/earnings" class="menu-link">
+          <i class="menu-icon bx bx-wallet"></i>
+          <div>My Earnings</div>
+        </a>
+      </li>
+
+      <!-- Payouts -->
+      <li class="menu-item {% if 'payout' in menu %} active open {% endif %}">
+        <a href="javascript:void(0);" class="menu-link menu-toggle">
+          <i class="menu-icon bx bx-credit-card"></i>
+          <div>Payouts</div>
+        </a>
+        <ul class="menu-sub">
+          <li class="menu-item {% if 'payout-history' in menu %} active {% endif %}">
+            <a href="/payouts" class="menu-link">
+              <div>Payout History</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'payout-request' in menu %} active {% endif %}">
+            <a href="/payouts/request" class="menu-link">
+              <div>Request Payout</div>
+            </a>
+          </li>
+          <li class="menu-item {% if 'payout-settings' in menu %} active {% endif %}">
+            <a href="/payouts/settings" class="menu-link">
+              <div>Payout Settings</div>
+            </a>
+          </li>
+        </ul>
+      </li>
+
+      <!-- Analytics -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Analytics</span>
+      </li>
+
+      <!-- Sales Analytics -->
+      <li class="menu-item {% if 'analytics' in menu %} active {% endif %}">
+        <a href="/analytics" class="menu-link">
+          <i class="menu-icon bx bx-line-chart"></i>
+          <div>Sales Analytics</div>
+        </a>
+      </li>
+
+      <!-- Store Performance -->
+      <li class="menu-item {% if 'performance' in menu %} active {% endif %}">
+        <a href="/performance" class="menu-link">
+          <i class="menu-icon bx bx-trending-up"></i>
+          <div>Store Performance</div>
+        </a>
+      </li>
+
+      <!-- Support -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Support</span>
+      </li>
+
+      <!-- Messages -->
+      <li class="menu-item {% if 'message' in menu %} active {% endif %}">
+        <a href="/messages" class="menu-link">
+          <i class="menu-icon bx bx-message-dots"></i>
+          <div>Messages</div>
+          <span class="badge badge-center rounded-pill bg-info ms-auto">5</span>
+        </a>
+      </li>
+
+      <!-- Help Center -->
+      <li class="menu-item {% if 'help' in menu %} active {% endif %}">
+        <a href="/help" class="menu-link">
+          <i class="menu-icon bx bx-help-circle"></i>
+          <div>Help Center</div>
+        </a>
+      </li>
+
+      {% endif %}
+
+      <!-- Account (Common for both) -->
+      <li class="menu-header small text-uppercase">
+        <span class="menu-header-text">Account</span>
+      </li>
+
+      <!-- Profile -->
+      <li class="menu-item {% if 'profile' in menu %} active {% endif %}">
+        <a href="/profile" class="menu-link">
+          <i class="menu-icon bx bx-user"></i>
+          <div>My Profile</div>
+        </a>
+      </li>
+
+      <!-- Logout -->
+      <li class="menu-item">
+        <a href="/logout" class="menu-link">
+          <i class="menu-icon bx bx-power-off"></i>
+          <div>Logout</div>
+        </a>
+      </li>
+    </ul>
+</aside>
+
+<script>
+  // Menu toggle functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const menuToggles = document.querySelectorAll('.menu-toggle');
+    
+    menuToggles.forEach(function(toggle) {
+      toggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        const menuItem = this.closest('.menu-item');
+        const subMenu = menuItem.querySelector('.menu-sub');
+        
+        // Toggle open class
+        menuItem.classList.toggle('open');
+        
+        // Slide toggle submenu
+        if (subMenu) {
+          if (menuItem.classList.contains('open')) {
+            subMenu.style.display = 'block';
+          } else {
+            subMenu.style.display = 'none';
+          }
+        }
+      });
+    });
+
+    // Close menu on mobile when clicking a link
+    const menuLinks = document.querySelectorAll('.menu-link:not(.menu-toggle)');
+    menuLinks.forEach(function(link) {
+      link.addEventListener('click', function() {
+        if (window.innerWidth < 1200) {
+          document.querySelector('.layout-wrapper').classList.remove('layout-menu-expanded');
+        }
+      });
+    });
+  });
+</script>
