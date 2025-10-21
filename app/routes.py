@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Flask, session, redirect, url_for, g, render_template
+from flask import Flask, session, redirect, url_for, g, render_template, request
 #Middleware
 from middleware.auth import login_required
 #Helpers
@@ -116,13 +116,25 @@ def setup_routes(app: Flask):
     def update_categories():
         return updateCategories()
     
-    @app.route('/product')
+    @app.route('/seller/products')
     @login_required
-    def product_page():
+    def seller_products():
         return products()
     
-    @app.route('/add-product', methods=['POST'])
+    @app.route('/products/add', methods=['GET', 'POST'])
+    @app.route('/seller/products/add', methods=['GET', 'POST'])
+    @login_required
     def add_product():
+        print("Debug: Entering add_product route")  # Debug log
+        print(f"Debug: Request method: {request.method}")  # Debug log
+        if request.method == 'GET':
+            print("Debug: Handling GET request")  # Debug log
+            from controller.ProductController import getCategories
+            categories = getCategories("")
+            print(f"Debug: Found {len(categories)} categories")  # Debug log
+            print(f"Debug: Template path: {app.template_folder}")  # Debug log
+            return render_template('seller/add_product.html', categories=categories)
+        print("Debug: Handling POST request")  # Debug log
         return addProduct()
     
     @app.route('/change-product-status', methods=['GET', 'POST'])

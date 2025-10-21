@@ -1,0 +1,420 @@
+{% extends "dashboard-base.html" %}
+
+{% block content %}
+<!-- Content Wrapper. Contains page content -->
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Add New Product</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{ url_for('seller_dashboard') }}">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('seller_products') }}">Products</a></li>
+                        <li class="breadcrumb-item active">Add New</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- /.content-header -->
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+                <div class="card-body">
+                    <form id="addProductForm" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group mb-3">
+                                    <label for="productName">Product Name <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="productName" name="productName" required>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="category_menu">Category <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="category_menu" name="category_menu" required>
+                                        <option value="">Select Category</option>
+                                        {% for category in categories %}
+                                        <option value="{{ category.category_id }}">{{ category.category_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="description">Description <span class="text-danger">*</span></label>
+                                    <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="price">Price (₱) <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label for="quantity">Quantity <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label>Product Images <span class="text-danger">*</span> <small class="text-muted">(Max 5 images, first image will be the main image)</small></label>
+                                    <div class="border rounded p-3 text-center" style="border-style: dashed !important; cursor: pointer;" id="imageUploadArea">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-2"></i>
+                                        <p class="mb-1">Click to upload or drag and drop</p>
+                                        <p class="small text-muted mb-0">PNG, JPG, JPEG (Max. 5MB each)</p>
+                                        <input type="file" id="productImages" name="productImages" class="d-none" multiple accept="image/*">
+                                    </div>
+                                    <div id="imagePreview" class="mt-3 d-flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="/dashboard" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <span class="spinner-border spinner-border-sm d-none" id="spinner" role="status" aria-hidden="true"></span>
+                                Save Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to show notification using SweetAlert2 with modern design
+function showNotification(type, message) {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        width: '400px',
+        padding: '1rem',
+        color: '#1a1a1a',
+        background: '#ffffff',
+        backdrop: false,
+        showClass: {
+            popup: 'animate__animated animate__fadeInRight animate__faster'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutRight animate__faster'
+        },
+        customClass: {
+            container: 'custom-swal-container',
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            closeButton: 'custom-swal-close',
+            icon: 'custom-swal-icon',
+            timerProgressBar: 'custom-swal-progress'
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+            // Add shadow and border
+            toast.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)';
+            toast.style.border = '1px solid rgba(0, 0, 0, 0.05)';
+            toast.style.borderRadius = '12px';
+        }
+    });
+
+    // Custom colors based on notification type
+    const styles = {
+        success: {
+            iconColor: '#10b981',
+            progressColor: '#10b981',
+            icon: 'success',
+            title: 'Success!',
+            titleColor: '#065f46'
+        },
+        error: {
+            iconColor: '#ef4444',
+            progressColor: '#ef4444',
+            icon: 'error',
+            title: 'Error!',
+            titleColor: '#991b1b'
+        }
+    };
+
+    const style = styles[type] || styles['success'];
+
+    Toast.fire({
+        icon: style.icon,
+        title: message,
+        iconColor: style.iconColor,
+        color: '#1a1a1a',
+        background: '#ffffff',
+        timerProgressBar: true,
+        timer: 4000,
+        showConfirmButton: false,
+        customClass: {
+            popup: 'custom-swal-popup',
+            title: 'custom-swal-title',
+            closeButton: 'custom-swal-close',
+            icon: 'custom-swal-icon',
+            timerProgressBar: `custom-swal-progress bg-${style.progressColor}`
+        },
+        didOpen: (toast) => {
+            const title = toast.querySelector('.swal2-title');
+            if (title) {
+                title.style.color = style.titleColor;
+                title.style.fontWeight = '600';
+                title.style.fontSize = '1rem';
+                title.style.margin = '0.5rem 0 0 0';
+            }
+            
+            const progressBar = toast.querySelector('.swal2-timer-progress-bar');
+            if (progressBar) {
+                progressBar.style.background = style.progressColor;
+            }
+        }
+    });
+}
+
+// Add custom styles for SweetAlert2
+const style = document.createElement('style');
+style.textContent = `
+    .swal2-toast {
+        padding: 1.25rem !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+        border: 1px solid rgba(0, 0, 0, 0.05) !important;
+        background: #ffffff !important;
+    }
+    .swal2-icon {
+        width: 2.5em !important;
+        height: 2.5em !important;
+        margin: 0 0.75em 0 0 !important;
+    }
+    .swal2-title {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        margin: 0.5rem 0 0 0 !important;
+        padding: 0 !important;
+        text-align: left !important;
+    }
+    .swal2-html-container {
+        margin: 0.5rem 0 0 0 !important;
+        padding: 0 !important;
+        text-align: left !important;
+    }
+    .swal2-timer-progress-bar {
+        height: 3px !important;
+        border-radius: 0 0 12px 12px !important;
+    }
+`;
+document.head.appendChild(style);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addProductForm');
+    const imageUploadArea = document.getElementById('imageUploadArea');
+    const fileInput = document.getElementById('productImages');
+    const imagePreview = document.getElementById('imagePreview');
+    const submitBtn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    
+    // Handle drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        imageUploadArea.classList.add('bg-light');
+    }
+    
+    function unhighlight() {
+        imageUploadArea.classList.remove('bg-light');
+    }
+    
+    // Handle dropped files
+    imageUploadArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+    
+    // Handle file selection
+    imageUploadArea.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    // Process selected files
+    function handleFiles(files) {
+        // Clear existing previews if needed
+        if (imagePreview.children.length + files.length > 5) {
+            alert('You can upload a maximum of 5 images');
+            return;
+        }
+        
+        Array.from(files).forEach(file => {
+            if (!file.type.startsWith('image/')) {
+                alert(`File ${file.name} is not an image`);
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) { // 5MB
+                alert(`File ${file.name} is too large. Max size is 5MB`);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.createElement('div');
+                preview.className = 'position-relative';
+                preview.style.width = '100px';
+                preview.style.height = '100px';
+                preview.style.flex = '0 0 auto';
+                
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-thumbnail w-100 h-100';
+                img.style.objectFit = 'cover';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle';
+                removeBtn.style.width = '24px';
+                removeBtn.style.height = '24px';
+                removeBtn.style.padding = '0';
+                removeBtn.style.display = 'flex';
+                removeBtn.style.alignItems = 'center';
+                removeBtn.style.justifyContent = 'center';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.onclick = function() {
+                    preview.remove();
+                    // You might want to handle the file removal from the file input as well
+                    // This is a simplified version
+                };
+                
+                preview.appendChild(img);
+                preview.appendChild(removeBtn);
+                imagePreview.appendChild(preview);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validate form
+        if (imagePreview.children.length === 0) {
+            alert('Please upload at least one product image');
+            return;
+        }
+        
+        const formData = new FormData(form);
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        
+        // Submit form via AJAX
+        fetch('{{ url_for("add_product") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Show success notification
+                showNotification('success', 'Product added successfully!');
+                // Reset the form
+                document.getElementById('addProductForm').reset();
+                // Clear image preview
+                document.getElementById('imagePreview').innerHTML = '';
+            } else {
+                alert(data.message || 'An error occurred. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+        });
+    });
+});
+</script>
+
+<style>
+/* Notification styles */
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.alert-dismissible .close {
+    padding: 0.75rem 1.25rem;
+    color: inherit;
+}
+
+#imageUploadArea {
+    transition: all 0.3s ease;
+}
+
+#imageUploadArea:hover {
+    background-color: #f8f9fa !important;
+    border-color: #80bdff !important;
+}
+
+#imagePreview {
+    min-height: 100px;
+}
+
+#imagePreview img {
+    object-fit: cover;
+}
+</style>
+        </div><!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
+</div>
+<!-- /.content-wrapper -->
+{% endblock %}

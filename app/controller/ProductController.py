@@ -41,61 +41,120 @@ def getProducts(condition):
 
 
 def addProduct():
-    product_name = request.form.get('productName')
-    user_id = g.authenticated.get('user_id')
-    category_id = request.form.get('category_menu')
-    description = request.form.get('description')
-    price = request.form.get('price')
-    quantity = request.form.get('quantity')
-    images = request.files.getlist('productImages[]')
-    image_names = []
-
-    if product_name is None or product_name == "":
-        return responseData("error", "Product name is required", "", 200)
-    if category_id is None or category_id == "":
-        return responseData("error", "Please select a category", "", 200)
-    if description is None or description.strip() == "" or description.strip() == "<p><br></p>":
-        # Check for empty or default Quill editor content
-        return responseData("error", "Please provide a description", "", 200)
-    if price is None or price == "":
-        return responseData("error", "Enter the price", "", 200)
-    if quantity is None or quantity == "":
-        return responseData("error", "Enter the quantity", "", 200)
-    if not images or images[0].filename == '':
-        return responseData("error", "Please select image", "", 200)
-
-    #insert attacthment
-    for image in images:
-        if image and allowed_image_file(image.filename):  # Check if it's a valid file type
-            file_extension = os.path.splitext(secure_filename(image.filename))[1]  # Get the file extension
-            random_filename = generate_random_filename(file_extension)  # Generate random filename with extension
-            image.save(os.path.join(UPLOAD_FOLDER, random_filename))  # Save the file
-            image_names.append(random_filename)  # Store the random filename
-            print(f"gooodsss {image_names}")
-        else:
-            print(f"heellooo {image_names}")
-            return responseData("error", "Invalid file type", "", 200)   
+    try:
+        # Get form data
+        product_name = request.form.get('productName')
+        user_id = g.authenticated.get('user_id')
+        category_id = request.form.get('category_menu')
+        description = request.form.get('description')
+        price = request.form.get('price')
+        quantity = request.form.get('quantity')
         
+        # Get uploaded files
+        if 'productImages' not in request.files:
+            return responseData("error", "No file part", "", 400)
+            
+        files = request.files.getlist('productImages')
         
-    
+        # Validate inputs
+        if not all([product_name, category_id, description, price, quantity]):
+            return responseData("error", "All fields are required", "", 400)
+            
+        try:
+            price = float(price)
+            quantity = int(quantity)
+            if price <= 0 or quantity < 0:
+                raise ValueError("Price and quantity must be positive numbers")
+        except ValueError as e:
+            return responseData("error", "Invalid price or quantity", "", 400)
         
-    #Insert product
-    
-    insert_query = "INSERT INTO products (category_id, user_id, product_name, description, price, qty) VALUES (%s, %s, %s, %s, %s, %s)"
-    result = executePost(insert_query, (category_id, user_id, product_name, description, price, quantity))
+        # Validate at least one image is uploaded
+        if not files or not any(file.filename for file in files):
+            return responseData("error", "Please upload at least one product image", "", 400)
         
-    if "last_inserted_id" in result: 
-        # Loop through the image_names array and insert each filename into the database
-        for name in image_names:
-            attachment_query = "INSERT INTO product_attachments (product_id, attachment) VALUES (%s, %s)"
+        # Create upload directory if it doesn't exist
+        upload_dir = os.path.join(os.getcwd(), 'static', 'uploads', 'products')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Process and save images
+        saved_files = []
+        for i, file in enumerate(files):
+            if file.filename == '':
+                continue
+                
+            if not allowed_image_file(file.filename):
+                # Clean up any already saved files
+                for saved_file in saved_files:
+                    try:
+                        os.remove(os.path.join(upload_dir, saved_file['filename']))
+                    except:
+                        pass
+                return responseData("error", "Invalid file type. Only JPG, JPEG, PNG & GIF are allowed.", "", 400)
+            
+            # Generate unique filename
+            file_ext = os.path.splitext(secure_filename(file.filename))[1].lower()
+            filename = f"{uuid.uuid4().hex}{file_ext}"
+            filepath = os.path.join(upload_dir, filename)
+            
             try:
-                executePost(attachment_query, (result['last_inserted_id'], name))  # Insert product_id and filename
+                file.save(filepath)
+                saved_files.append({
+                    'filename': filename,
+                    'is_primary': i == 0  # First image is primary
+                })
             except Exception as e:
-                print(f"Error inserting {name} into database: {str(e)}") 
-
-        return responseData("success", "New product added", "", 200)
-    else:
-        return responseData("error", "Something went wrong!.", "", 200)
+                # Clean up any already saved files
+                for saved_file in saved_files:
+                    try:
+                        os.remove(os.path.join(upload_dir, saved_file['filename']))
+                    except:
+                        pass
+                return responseData("error", f"Error saving file: {str(e)}", "", 500)
+        
+        # Insert product into database
+        insert_query = """
+            INSERT INTO products 
+            (user_id, category_id, product_name, description, price, qty, status)
+            VALUES (%s, %s, %s, %s, %s, %s, 1)
+        """
+        
+        result = executePost(
+            insert_query, 
+            (user_id, category_id, product_name, description, price, quantity)
+        )
+        
+        if "last_inserted_id" not in result:
+            # Clean up uploaded files if database insert fails
+            for saved_file in saved_files:
+                try:
+                    os.remove(os.path.join(upload_dir, saved_file['filename']))
+                except:
+                    pass
+            return responseData("error", "Failed to save product to database", "", 500)
+        
+        # Save image records to database
+        product_id = result['last_inserted_id']
+        for saved_file in saved_files:
+            attachment_query = """
+                INSERT INTO product_attachments 
+                (product_id, attachment, status)
+                VALUES (%s, %s, 1)
+            """
+            try:
+                relative_path = f"uploads/products/{saved_file['filename']}"
+                executePost(
+                    attachment_query,
+                    (product_id, relative_path)
+                )
+            except Exception as e:
+                print(f"Error saving image record: {str(e)}")
+                # Continue with other images even if one fails
+        
+        return responseData("success", "Product added successfully", {"product_id": product_id}, 200)
+        
+    except Exception as e:
+        print(f"Error in addProduct: {str(e)}")
+        return responseData("error", "An unexpected error occurred. Please try again.", str(e), 500)
     
 
 
