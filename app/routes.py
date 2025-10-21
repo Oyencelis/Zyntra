@@ -116,6 +116,11 @@ def setup_routes(app: Flask):
     def update_categories():
         return updateCategories()
     
+    @app.route('/products')
+    @login_required
+    def products_page():
+        return redirect(url_for('seller_products'))
+        
     @app.route('/seller/products')
     @login_required
     def seller_products():

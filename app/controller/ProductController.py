@@ -20,8 +20,20 @@ def products():
         
     else:
         products = getProducts("AND p.user_id = %s")
-    return render_template('views/products/index.html', menu=active_menu, cat_data=categories, prod_data=products)
-
+    
+    # Add product images to each product
+    for product in products:
+        product_id = product['product_id']
+        # Get product images
+        query = "SELECT attachment FROM product_attachments WHERE product_id = %s AND status = 1"
+        images = executeGet(query, (product_id,))
+        product['images'] = [img['attachment'] for img in images]
+    
+    return render_template('seller/all_products.html', 
+                         menu=active_menu, 
+                         categories=categories, 
+                         products=products,
+                         current_user_id=g.authenticated.get('user_id'))
 
 def getProducts(condition):
     # query = f"SELECT p.product_id, p.category_id, p.product_name, c.category_name, p.description, p.price, p.qty, p.created_at, p.status FROM products p LEFT JOIN categories c ON p.category_id = c.category_id  {prod}"
@@ -31,10 +43,35 @@ def getProducts(condition):
     else:
         results = executeGet(query)
     
-     # Format the price for each product
+    # Convert and format price and quantity for each product
     for product in results:
-        product['price'] = "{:,.2f}".format(product['price'])
-        product['qty'] = "{:,.2f}".format(product['qty'])  
+        try:
+            # Ensure price is a float
+            if product['price'] is not None:
+                if isinstance(product['price'], str):
+                    # Remove any non-numeric characters except decimal point
+                    price_str = ''.join(c for c in product['price'] if c.isdigit() or c == '.')
+                    product['price'] = float(price_str) if price_str else 0.0
+                else:
+                    product['price'] = float(product['price'])
+            else:
+                product['price'] = 0.0
+                
+            # Ensure quantity is an integer
+            if product['qty'] is not None:
+                if isinstance(product['qty'], str):
+                    # Remove any non-numeric characters
+                    qty_str = ''.join(c for c in product['qty'] if c.isdigit())
+                    product['qty'] = int(qty_str) if qty_str else 0
+                else:
+                    product['qty'] = int(product['qty'])
+            else:
+                product['qty'] = 0
+                
+        except (ValueError, TypeError) as e:
+            print(f"Error formatting product data: {e}")
+            product['price'] = 0.0
+            product['qty'] = 0
 
     return results
 
