@@ -45,10 +45,28 @@ def updateSeller():
         return responseData("error", str(e), "", 200)
 
 def buyer():
-    active_menu = ['users', 'customer']
-    condition = ""
-    buyer_data = getBuyers(condition)
-    return render_template('views/users/customer.html', menu=active_menu, buyer_data=buyer_data)
+    # Get user's first name for greeting
+    user_greeting = f"Welcome back, {g.authenticated.get('firstname', 'there')}!"
+    
+    # Get buyer's recent orders (placeholder data for now)
+    recent_orders = [
+        {'id': 'ORD-001', 'date': '2025-10-20', 'status': 'Processing', 'total': '₱1,250.00'},
+        {'id': 'ORD-002', 'date': '2025-10-18', 'status': 'Delivered', 'total': '₱899.00'},
+    ]
+    
+    # Get recommended products (placeholder data for now)
+    recommended_products = [
+        {'name': 'Wireless Earbuds', 'price': '₱2,499.00', 'rating': 4.5},
+        {'name': 'Smart Watch', 'price': '₱3,999.00', 'rating': 4.8},
+        {'name': 'Bluetooth Speaker', 'price': '₱1,799.00', 'rating': 4.2},
+    ]
+    
+    # Render the buyer dashboard template
+    return render_template('views/dashboard/buyer/index.html',
+                         user_greeting=user_greeting,
+                         recent_orders=recent_orders,
+                         recommended_products=recommended_products,
+                         current_user=g.authenticated)
 
 def getBuyers(condition, params=None):
     user_id = g.authenticated['user_id']

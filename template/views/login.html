@@ -272,10 +272,12 @@ $(document).ready(function() {
 			console.log(response.data);
 			if (response.data.status == 'success') {
 				let role = response.data.data.role_id;
-				if (role == 1 || role == 3){
+				if (role == 1 || role == 3) {
 					window.location.href = '/dashboard';
+				} else if (role == 2) {
+					window.location.href = '/buyer';
 				} else {
-					window.location.href = '/'
+					window.location.href = '/';
 				}
 			} else {
 				$.SystemScript.swalAlertMessage('Oops!', `${response.data.message}`, 'error');
