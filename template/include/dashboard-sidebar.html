@@ -49,17 +49,17 @@
         </a>
         <ul class="menu-sub">
           <li class="menu-item {% if 'seller-list' in menu %} active {% endif %}">
-            <a href="/sellers" class="menu-link">
+            <a href="{{ url_for('all_sellers') }}" class="menu-link">
               <div>All Sellers</div>
             </a>
           </li>
           <li class="menu-item {% if 'seller-pending' in menu %} active {% endif %}">
-            <a href="/sellers/pending" class="menu-link">
+            <a href="{{ url_for('pending_sellers') }}" class="menu-link">
               <div>Pending Approval</div>
             </a>
           </li>
           <li class="menu-item {% if 'seller-approved' in menu %} active {% endif %}">
-            <a href="/sellers/approved" class="menu-link">
+            <a href="{{ url_for('approved_sellers') }}" class="menu-link">
               <div>Approved Sellers</div>
             </a>
           </li>
