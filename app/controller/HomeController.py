@@ -117,7 +117,9 @@ def getProductsInHome(condition="", page=1, per_page=10, params=None):
     for product in results:
         product['formatted_price'] = locale.format_string("%0.2f", float(product['price']), grouping=True)
         if product['attachment'] is not None:
-            product['attachment'] = url_for('static', filename='images/uploads/' + product['attachment'])
+            # Remove any leading slashes or backslashes from the attachment path
+            attachment_path = product['attachment'].lstrip('/\\')
+            product['attachment'] = url_for('static', filename=attachment_path)
         else:
             product['attachment'] = None
     return results
