@@ -7,29 +7,75 @@
     .product-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         height: 100%;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
     }
     .product-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 20px rgba(0,0,0,0.1);
     }
     .product-img-container {
-        height: 200px;
+        height: 220px;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #f8f9fa;
+        background-color: #ffffff;
+        padding: 15px;
+        border-bottom: 1px solid #f0f0f0;
     }
     .product-img {
         max-height: 100%;
         max-width: 100%;
         object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+    .product-card:hover .product-img {
+        transform: scale(1.05);
     }
     .category-badge {
         position: absolute;
         top: 10px;
         right: 10px;
         z-index: 2;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .price {
+        font-weight: 700;
+        color: #0d6efd;
+        font-size: 1.1rem;
+    }
+    .original-price {
+        text-decoration: line-through;
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+    }
+    .discount-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-left: 0.5rem;
+    }
+    .category-sidebar {
+        position: sticky;
+        top: 20px;
+    }
+    .category-link {
+        color: #495057;
+        text-decoration: none;
+        display: block;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .category-link:hover, .category-link.active {
+        background-color: #e9ecef;
+        color: #0d6efd;
     }
     .price {
         font-weight: bold;
@@ -54,30 +100,51 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4">
     <!-- Hero Section -->
-    <div class="bg-light p-5 rounded-3 mb-5">
-        <div class="container-fluid py-5 text-center">
-            <h1 class="display-5 fw-bold">Find Everything You Need</h1>
-            <p class="fs-4">Shop from thousands of products across various categories</p>
+    <div class="bg-primary bg-gradient text-white p-5 rounded-3 mb-4">
+        <div class="container-fluid py-3 text-center">
+            <h1 class="display-5 fw-bold">Discover Amazing Tech Deals</h1>
+            <p class="fs-5">Shop the latest in technology across our curated categories</p>
+            
+            <!-- Search Bar -->
+            <div class="row justify-content-center mt-4">
+                <div class="col-md-8">
+                    <form action="{{ url_for('shop_page') }}" method="get" class="d-flex">
+                        <input type="text" name="q" class="form-control form-control-lg" placeholder="Search products..." value="{{ search_query or '' }}">
+                        <button type="submit" class="btn btn-light ms-2">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="row">
         <!-- Sidebar Filters -->
-        <div class="col-lg-3">
-            <div class="card mb-4">
+        <div class="col-lg-3 mb-4">
+            <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">Categories</h5>
                 </div>
                 <div class="list-group list-group-flush">
-                    <a href="#" class="list-group-item list-group-item-action active">All Categories</a>
-                    <a href="#" class="list-group-item list-group-item-action">Electronics</a>
-                    <a href="#" class="list-group-item list-group-item-action">Fashion</a>
-                    <a href="#" class="list-group-item list-group-item-action">Home & Garden</a>
-                    <a href="#" class="list-group-item list-group-item-action">Beauty & Personal Care</a>
-                    <a href="#" class="list-group-item list-group-item-action">Sports & Outdoors</a>
-                    <a href="#" class="list-group-item list-group-item-action">Books & Media</a>
+                    <a href="{{ url_for('shop_page') }}" class="list-group-item list-group-item-action {% if not current_category %}active{% endif %}">
+                        <i class="bi bi-grid me-2"></i>All Categories
+                    </a>
+                    {% for category in categories %}
+                    <a href="{{ url_for('shop_page', category=category.category_id) }}" 
+                       class="list-group-item list-group-item-action {% if current_category == category.category_id|string %}active{% endif %}">
+                        {% if loop.index == 1 %}<i class="bi bi-phone me-2"></i>
+                        {% elif loop.index == 2 %}<i class="bi bi-laptop me-2"></i>
+                        {% elif loop.index == 3 %}<i class="bi bi-speaker me-2"></i>
+                        {% elif loop.index == 4 %}<i class="bi bi-house-gear me-2"></i>
+                        {% elif loop.index == 5 %}<i class="bi bi-camera me-2"></i>
+                        {% elif loop.index == 6 %}<i class="bi bi-smartwatch me-2"></i>
+                        {% endif %}
+                        {{ category.category_name }}
+                    </a>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -152,141 +219,69 @@
 
             <!-- Products Grid -->
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-                <!-- Product Card 1 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                            <span class="badge bg-danger category-badge">-20%</span>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-primary mb-2">Electronics</span>
-                            <h5 class="card-title">Wireless Earbuds Pro</h5>
-                            <p class="card-text text-muted">High-quality sound with noise cancellation</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="price">₱3,999</span>
-                                    <span class="original-price">₱4,999</span>
-                                    <span class="discount-badge">20% off</span>
+                {% if products %}
+                    {% for product in products %}
+                    <div class="col mb-4">
+                        <div class="card h-100 product-card">
+                            <div class="position-relative">
+                                <div class="product-img-container">
+                                    {% if product.attachment %}
+                                        <img src="{{ product.attachment }}" class="card-img-top product-img" alt="{{ product.product_name }}">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='images/placeholder-product.png') }}" class="card-img-top product-img" alt="No image available">
+                                    {% endif %}
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                                {% if product.discount %}
+                                <span class="badge bg-danger category-badge">-{{ product.discount }}%</span>
+                                {% endif %}
                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Card 2 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-success mb-2">Fashion</span>
-                            <h5 class="card-title">Classic Denim Jeans</h5>
-                            <p class="card-text text-muted">Comfortable and stylish denim for everyday wear</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price">₱1,499</span>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Card 3 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                            <span class="badge bg-danger category-badge">-15%</span>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-warning text-dark mb-2">Home & Garden</span>
-                            <h5 class="card-title">Smart LED Bulb</h5>
-                            <p class="card-text text-muted">WiFi enabled, works with voice assistants</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="price">₱899</span>
-                                    <span class="original-price">₱1,059</span>
-                                    <span class="discount-badge">15% off</span>
+                            <div class="card-body d-flex flex-column">
+                                <div class="mb-2">
+                                    <span class="badge bg-primary">{{ product.category_name }}</span>
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Card 4 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-info mb-2">Beauty</span>
-                            <h5 class="card-title">Vitamin C Serum</h5>
-                            <p class="card-text text-muted">Brightening and anti-aging facial serum</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price">₱1,299</span>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Card 5 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                            <span class="badge bg-danger category-badge">-30%</span>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-danger mb-2">Sports</span>
-                            <h5 class="card-title">Running Shoes</h5>
-                            <p class="card-text text-muted">Lightweight and comfortable for long runs</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="price">₱2,799</span>
-                                    <span class="original-price">₱3,999</span>
-                                    <span class="discount-badge">30% off</span>
+                                <h5 class="card-title">{{ product.product_name }}</h5>
+                                <p class="card-text text-muted small flex-grow-1">
+                                    {{ product.description|truncate(100) if product.description else 'No description available' }}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div>
+                                        <span class="price">₱{{ "%0.2f"|format(product.price|float) }}</span>
+                                        {% if product.original_price %}
+                                        <span class="original-price">₱{{ "%0.2f"|format(product.original_price|float) }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary add-to-cart" 
+                                            data-product-id="{{ product.product_id }}"
+                                            data-product-name="{{ product.product_name }}">
+                                        <i class="bi bi-cart-plus"></i> Add
+                                    </button>
                                 </div>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                                {% if product.qty and product.qty > 0 %}
+                                <div class="mt-2 text-success small">
+                                    <i class="bi bi-check-circle-fill"></i> In Stock ({{ product.qty }} available)
+                                </div>
+                                {% else %}
+                                <div class="mt-2 text-danger small">
+                                    <i class="bi bi-x-circle-fill"></i> Out of Stock
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
-                </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12 text-center py-5">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            No products found matching your criteria.
+                        </div>
+                        <a href="{{ url_for('shop_page') }}" class="btn btn-primary mt-3">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Shop
+                        </a>
+                    </div>
+                {% endif %}
 
-                <!-- Product Card 6 -->
-                <div class="col">
-                    <div class="card h-100 product-card">
-                        <div class="position-relative">
-                            <div class="product-img-container">
-                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <span class="badge bg-secondary mb-2">Books</span>
-                            <h5 class="card-title">The Psychology of Money</h5>
-                            <p class="card-text text-muted">Timeless lessons on wealth, greed, and happiness</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price">₱899</span>
-                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- Pagination -->
             <nav aria-label="Page navigation" class="mt-5">
@@ -313,22 +308,87 @@
     const priceRange = document.getElementById('priceRange');
     const priceValue = document.getElementById('priceValue');
     
-    priceRange.addEventListener('input', function() {
-        priceValue.textContent = this.value.toLocaleString('en-PH');
-    });
+    if (priceRange && priceValue) {
+        priceRange.addEventListener('input', function() {
+            priceValue.textContent = this.value.toLocaleString('en-PH');
+        });
+    }
 
     // Add to cart functionality
-    document.querySelectorAll('.btn-outline-primary').forEach(button => {
-        button.addEventListener('click', function() {
-            const productName = this.closest('.card').querySelector('.card-title').textContent;
-            // Here you would typically add the product to the cart
-            alert(`Added ${productName} to your cart!`);
-            
-            // Optional: Change button style when added
-            this.classList.remove('btn-outline-primary');
-            this.classList.add('btn-success');
-            this.innerHTML = '<i class="bi bi-check-lg"></i> Added';
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Add to cart functionality
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product-id');
+                const productName = this.getAttribute('data-product-name');
+                
+                // Show loading state
+                const originalContent = this.innerHTML;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+                this.disabled = true;
+                
+                // Simulate API call (replace with actual API call)
+                fetch('{{ url_for("add_to_cart") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity: 1
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Update cart count in navbar if it exists
+                        const cartCount = document.getElementById('cart-count');
+                        if (cartCount) {
+                            const currentCount = parseInt(cartCount.textContent) || 0;
+                            cartCount.textContent = currentCount + 1;
+                        }
+                        
+                        // Update button state
+                        this.innerHTML = '<i class="bi bi-check-lg"></i> Added';
+                        this.classList.remove('btn-outline-primary');
+                        this.classList.add('btn-success');
+                        
+                        // Show success message
+                        const toast = new bootstrap.Toast(document.getElementById('addedToCartToast'));
+                        document.getElementById('toastMessage').textContent = `Added ${productName} to your cart!`;
+                        toast.show();
+                    } else {
+                        throw new Error(data.message || 'Failed to add to cart');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to add item to cart. Please try again.');
+                    this.innerHTML = originalContent;
+                    this.disabled = false;
+                });
+            });
         });
     });
 </script>
+
+<!-- Toast Notification -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="addedToCartToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header bg-success text-white">
+            <strong class="me-auto">Success</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            <span id="toastMessage">Item added to cart!</span>
+        </div>
+    </div>
+</div>
 {% endblock %}
