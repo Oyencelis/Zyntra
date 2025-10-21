@@ -100,6 +100,15 @@ def setup_routes(app: Flask):
     @login_required 
     def dashboard_page():
         return dashboardIndex()
+        
+    @app.route('/buyer/dashboard')
+    @login_required 
+    def buyer_dashboard_page():
+        # Access firstname from the authenticated user dictionary
+        firstname = g.authenticated.get('firstname', 'User')
+        return render_template('views/dashboard/buyer/index.html', 
+                            user_greeting=f"Hello, {firstname}", 
+                            recent_orders=[])
     
 
     @app.route('/product/categories')
