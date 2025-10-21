@@ -20,6 +20,56 @@ def home():
     cart_items = session.get('cart', {})
     return render_template('views/home.html', cat_data=categories, prod_data=products, page=page, per_page=10, cart_items=cart_items)
 
+def shop():
+    # Get all products with pagination
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # 12 products per page for the shop grid
+    
+    # Get filter parameters
+    category_id = request.args.get('category', None)
+    search_query = request.args.get('q', '')
+    min_price = request.args.get('min_price', 0, type=float)
+    max_price = request.args.get('max_price', 100000, type=float)
+    
+    # Base query
+    condition = "WHERE p.status = 1"
+    params = []
+    
+    # Add category filter if specified
+    if category_id and category_id != 'all':
+        condition += " AND p.category_id = %s"
+        params.append(category_id)
+    
+    # Add search query filter
+    if search_query:
+        condition += " AND (p.product_name LIKE %s OR p.description LIKE %s)"
+        search_term = f"%{search_query}%"
+        params.extend([search_term, search_term])
+    
+    # Add price range filter
+    condition += " AND p.price BETWEEN %s AND %s"
+    params.extend([min_price, max_price])
+    
+    # Get products with filters
+    products = getProductsInHome(condition, page, per_page, params)
+    
+    # Get all categories for the sidebar
+    categories = getCategoriesInHome("WHERE status = 1")
+    
+    # Get cart items
+    cart_items = session.get('cart', {})
+    
+    return render_template('buyer/shop.html', 
+                         products=products, 
+                         categories=categories, 
+                         current_category=category_id,
+                         search_query=search_query,
+                         min_price=min_price,
+                         max_price=max_price,
+                         page=page,
+                         per_page=per_page,
+                         cart_items=cart_items)
+
 def getProductsBySearch(query):
     query = f"%{query}%"
     sql_query = "SELECT p.product_id, p.category_id, p.product_name, c.category_name, pa.attachment, p.description, p.price, p.qty, p.created_at, p.status FROM products p LEFT JOIN categories c ON p.category_id = c.category_id LEFT JOIN product_attachments pa ON p.product_id = pa.product_id WHERE p.product_name LIKE %s AND p.status = 1"
@@ -31,16 +81,41 @@ def getCategoriesInHome(condition=""):
     results = executeGet(query)
     return results
 
-def getProductsInHome(condition="", page=1, per_page=10):
+def getProductsInHome(condition="", page=1, per_page=10, params=None):
     offset = (page - 1) * per_page
-    query = f"SELECT p.product_id, p.category_id, p.product_name, c.category_name, pa.attachment, p.description, p.price, p.qty, p.created_at, p.status FROM products p LEFT JOIN categories c ON p.category_id = c.category_id left JOIN product_attachments pa ON p.product_id = pa.product_id {condition} AND c.status != 2 GROUP BY p.product_id, p.category_id, p.product_name, c.category_name, p.price, p.qty, p.created_at, p.status LIMIT {offset}, {per_page}"
-    results = executeGet(query)
+    
+    # Base query with proper parameterization
+    base_query = """
+    SELECT p.product_id, p.category_id, p.product_name, c.category_name, 
+           pa.attachment, p.description, p.price, p.qty, p.created_at, p.status 
+    FROM products p 
+    LEFT JOIN categories c ON p.category_id = c.category_id 
+    LEFT JOIN product_attachments pa ON p.product_id = pa.product_id 
+    {condition} 
+    AND c.status != 2 
+    GROUP BY p.product_id, p.category_id, p.product_name, c.category_name, 
+             p.price, p.qty, p.created_at, p.status 
+    LIMIT %s, %s
+    """
+    
+    # Format the condition (remove WHERE if it's empty to avoid SQL syntax error)
+    if not condition.strip():
+        condition = "WHERE 1=1"
+    
+    # Add LIMIT parameters to params if they exist, otherwise create new params
+    if params is None:
+        params = []
+    
+    # Execute the query with parameters
+    query = base_query.format(condition=condition)
+    results = executeGet(query, params + [offset, per_page])
     
     if not results:  # Check if results is empty
-        return []  # Return an empty list or handle as needed
+        return []
 
+    # Format the results
     for product in results:
-        product['formatted_price'] = locale.format_string("%0.2f", product['price'], grouping=True)
+        product['formatted_price'] = locale.format_string("%0.2f", float(product['price']), grouping=True)
         if product['attachment'] is not None:
             product['attachment'] = url_for('static', filename='images/uploads/' + product['attachment'])
         else:

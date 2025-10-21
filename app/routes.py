@@ -7,7 +7,7 @@ from helpers.Session import sessionRemove
 from helpers.HelperFunction import responseData
 
 # Controllers
-from controller.HomeController import home, loadMoreProducts, categoryPage, getCategoriesInHome, cart, checkout, submitCheckout
+from controller.HomeController import home, loadMoreProducts, categoryPage, getCategoriesInHome, cart, checkout, submitCheckout, shop
 
 from controller.LoginController import login, LoginSubmit, signup, signupSubmit, sellerSignup, sellerSignupSubmit, deliveryPartnerSignup, deliveryPartnerSignupSubmit
 # Authenticate controllers
@@ -36,6 +36,10 @@ def setup_routes(app: Flask):
         cart_items = session.get('cart', {})
         categories = getCategoriesInHome("WHERE status = 1")
         return render_template('views/about.html', cat_data=categories, cart_items=cart_items)
+        
+    @app.route('/shop')
+    def shop_page():
+        return shop()
     
     #Login Controller
     @app.route('/login')

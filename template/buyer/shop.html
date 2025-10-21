@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Shop All Products - Zyntra{% endblock %}
+
+{% block style %}
+<style>
+    .product-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    .product-img-container {
+        height: 200px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+    }
+    .product-img {
+        max-height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+    }
+    .category-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 2;
+    }
+    .price {
+        font-weight: bold;
+        color: #0d6efd;
+        font-size: 1.1rem;
+    }
+    .original-price {
+        text-decoration: line-through;
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-left: 5px;
+    }
+    .discount-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="bg-light p-5 rounded-3 mb-5">
+        <div class="container-fluid py-5 text-center">
+            <h1 class="display-5 fw-bold">Find Everything You Need</h1>
+            <p class="fs-4">Shop from thousands of products across various categories</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sidebar Filters -->
+        <div class="col-lg-3">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Categories</h5>
+                </div>
+                <div class="list-group list-group-flush">
+                    <a href="#" class="list-group-item list-group-item-action active">All Categories</a>
+                    <a href="#" class="list-group-item list-group-item-action">Electronics</a>
+                    <a href="#" class="list-group-item list-group-item-action">Fashion</a>
+                    <a href="#" class="list-group-item list-group-item-action">Home & Garden</a>
+                    <a href="#" class="list-group-item list-group-item-action">Beauty & Personal Care</a>
+                    <a href="#" class="list-group-item list-group-item-action">Sports & Outdoors</a>
+                    <a href="#" class="list-group-item list-group-item-action">Books & Media</a>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Price Range</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="priceRange" class="form-label">Max Price: ₱<span id="priceValue">10000</span></label>
+                        <input type="range" class="form-range" min="100" max="10000" step="100" id="priceRange" value="10000">
+                    </div>
+                    <div class="d-flex">
+                        <input type="number" class="form-control me-2" placeholder="Min" value="0">
+                        <input type="number" class="form-control" placeholder="Max" value="10000">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Brands</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="brand1" checked>
+                        <label class="form-check-label" for="brand1">All Brands</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="brand2">
+                        <label class="form-check-label" for="brand2">Samsung</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="brand3">
+                        <label class="form-check-label" for="brand3">Nike</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="" id="brand4">
+                        <label class="form-check-label" for="brand4">Apple</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="brand5">
+                        <label class="form-check-label" for="brand5">Adidas</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Sorting and View Options -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex align-items-center">
+                    <span class="me-2">Sort by:</span>
+                    <select class="form-select form-select-sm" style="width: auto;">
+                        <option selected>Featured</option>
+                        <option value="price_asc">Price: Low to High</option>
+                        <option value="price_desc">Price: High to Low</option>
+                        <option value="newest">Newest Arrivals</option>
+                        <option value="bestselling">Best Selling</option>
+                        <option value="rating">Customer Rating</option>
+                    </select>
+                </div>
+                <div>
+                    <span class="me-2">View:</span>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary active"><i class="bi bi-grid"></i></button>
+                        <button type="button" class="btn btn-outline-secondary"><i class="bi bi-list-ul"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Grid -->
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                <!-- Product Card 1 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                            <span class="badge bg-danger category-badge">-20%</span>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-primary mb-2">Electronics</span>
+                            <h5 class="card-title">Wireless Earbuds Pro</h5>
+                            <p class="card-text text-muted">High-quality sound with noise cancellation</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="price">₱3,999</span>
+                                    <span class="original-price">₱4,999</span>
+                                    <span class="discount-badge">20% off</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 2 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-success mb-2">Fashion</span>
+                            <h5 class="card-title">Classic Denim Jeans</h5>
+                            <p class="card-text text-muted">Comfortable and stylish denim for everyday wear</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price">₱1,499</span>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 3 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                            <span class="badge bg-danger category-badge">-15%</span>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-warning text-dark mb-2">Home & Garden</span>
+                            <h5 class="card-title">Smart LED Bulb</h5>
+                            <p class="card-text text-muted">WiFi enabled, works with voice assistants</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="price">₱899</span>
+                                    <span class="original-price">₱1,059</span>
+                                    <span class="discount-badge">15% off</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 4 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-info mb-2">Beauty</span>
+                            <h5 class="card-title">Vitamin C Serum</h5>
+                            <p class="card-text text-muted">Brightening and anti-aging facial serum</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price">₱1,299</span>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 5 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                            <span class="badge bg-danger category-badge">-30%</span>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-danger mb-2">Sports</span>
+                            <h5 class="card-title">Running Shoes</h5>
+                            <p class="card-text text-muted">Lightweight and comfortable for long runs</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="price">₱2,799</span>
+                                    <span class="original-price">₱3,999</span>
+                                    <span class="discount-badge">30% off</span>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Card 6 -->
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="position-relative">
+                            <div class="product-img-container">
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top product-img" alt="Product Image">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <span class="badge bg-secondary mb-2">Books</span>
+                            <h5 class="card-title">The Psychology of Money</h5>
+                            <p class="card-text text-muted">Timeless lessons on wealth, greed, and happiness</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price">₱899</span>
+                                <button class="btn btn-sm btn-outline-primary"><i class="bi bi-cart-plus"></i> Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Page navigation" class="mt-5">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                    </li>
+                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="#">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Price range slider
+    const priceRange = document.getElementById('priceRange');
+    const priceValue = document.getElementById('priceValue');
+    
+    priceRange.addEventListener('input', function() {
+        priceValue.textContent = this.value.toLocaleString('en-PH');
+    });
+
+    // Add to cart functionality
+    document.querySelectorAll('.btn-outline-primary').forEach(button => {
+        button.addEventListener('click', function() {
+            const productName = this.closest('.card').querySelector('.card-title').textContent;
+            // Here you would typically add the product to the cart
+            alert(`Added ${productName} to your cart!`);
+            
+            // Optional: Change button style when added
+            this.classList.remove('btn-outline-primary');
+            this.classList.add('btn-success');
+            this.innerHTML = '<i class="bi bi-check-lg"></i> Added';
+        });
+    });
+</script>
+{% endblock %}
