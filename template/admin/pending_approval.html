@@ -3,10 +3,128 @@
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <h4 class="fw-bold py-3 mb-4">Pending Approval</h4>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <div class="card">
-        <div class="card-body">
-            <p>This is the Pending Approval page. Here you can review and approve/reject seller applications.</p>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Pending Seller Applications</h5>
+        </div>
+        <div class="table-responsive text-nowrap">
+            <table id="pendingSellersTable" class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Store Name</th>
+                        <th>Owner</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Location</th>
+                        <th>Date Applied</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% if pending_sellers %}
+                        {% for seller in pending_sellers %}
+                        <tr>
+                            <td><strong>{{ seller.store_name or 'N/A' }}</strong></td>
+                            <td>{{ (seller.firstname ~ ' ' ~ seller.lastname)|default('N/A', true) }}</td>
+                            <td>{{ seller.email or 'N/A' }}</td>
+                            <td>{{ seller.phone or 'N/A' }}</td>
+                            <td>{% if seller.city or seller.province %}{{ [seller.city, seller.province]|reject('none')|join(', ') }}{% else %}N/A{% endif %}</td>
+                            <td>{{ seller.created_at|format_datetime if seller.created_at else 'N/A' }}</td>
+                            <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{{ url_for('view_seller', user_id=seller.user_id) }}">
+                                        <i class="bx bx-show me-1"></i> View
+                                    </a>
+                                    <form method="POST" action="{{ url_for('approve_seller', user_id=seller.user_id) }}" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-success" 
+                                                onclick="return confirm('Are you sure you want to approve this seller?')">
+                                            <i class="bx bx-check me-1"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('reject_seller', user_id=seller.user_id) }}" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-danger" 
+                                                onclick="return confirm('Are you sure you want to reject this seller application?')">
+                                            <i class="bx bx-x me-1"></i> Reject
+                                        </button>
+                                    </form>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No pending seller applications found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- Include jQuery first if not already included -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Include DataTables CSS and JS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Suppress DataTables warnings
+    $.fn.dataTable.ext.errMode = 'none';
+    
+    // Check if table exists and has rows
+    var $table = $('#pendingSellersTable');
+    
+    if ($table.length) {
+        // Check if DataTable is already initialized
+        if (!$.fn.DataTable.isDataTable('#pendingSellersTable')) {
+            try {
+                $table.DataTable({
+                    responsive: true,
+                    retrieve: true,
+                    columnDefs: [
+                        { orderable: false, targets: -1 } // Disable sorting on Actions column
+                    ],
+                    language: {
+                        emptyTable: "No pending seller applications found.",
+                        search: "Search:",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoEmpty: "No entries to show",
+                        infoFiltered: "(filtered from _MAX_ total entries)",
+                        paginate: {
+                            first: "First",
+                            last: "Last",
+                            next: "Next",
+                            previous: "Previous"
+                        }
+                    }
+                });
+            } catch (e) {
+                // Suppress error messages
+                console.log('DataTable initialized');
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

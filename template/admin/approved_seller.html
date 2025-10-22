@@ -3,10 +3,115 @@
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
     <h4 class="fw-bold py-3 mb-4">Approved Sellers</h4>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <div class="card">
-        <div class="card-body">
-            <p>This is the Approved Sellers page. Here you can view all approved sellers in the system.</p>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Active Sellers</h5>
+            <div class="d-flex">
+                <input type="text" id="searchInput" class="form-control me-2" placeholder="Search sellers...">
+            </div>
+        </div>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Store Name</th>
+                        <th>Owner</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for seller in approved_sellers %}
+                    <tr>
+                        <td><strong>{{ seller.store_name }}</strong></td>
+                        <td>{{ seller.firstname }} {{ seller.lastname }}</td>
+                        <td>{{ seller.email }}</td>
+                        <td>{{ seller.phone }}</td>
+                        <td>{{ seller.city }}, {{ seller.province }}</td>
+                        <td>
+                            {% if seller.status == 1 %}
+                                <span class="badge bg-label-success">Active</span>
+                            {% elif seller.status == 4 %}
+                                <span class="badge bg-label-danger">Blocked</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{{ url_for('view_seller', user_id=seller.user_id) }}">
+                                        <i class="bx bx-show me-1"></i> View Details
+                                    </a>
+                                    {% if seller.status == 1 %}
+                                    <form method="POST" action="{{ url_for('block_seller', user_id=seller.user_id) }}" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-warning"
+                                                onclick="return confirm('Are you sure you want to block this seller?')">
+                                            <i class="bx bx-block me-1"></i> Block
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('unblock_seller', user_id=seller.user_id) }}" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-success"
+                                                onclick="return confirm('Are you sure you want to unblock this seller?')">
+                                            <i class="bx bx-check-circle me-1"></i> Unblock
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('delete_seller', user_id=seller.user_id) }}" style="display: inline;">
+                                        <button type="submit" class="dropdown-item text-danger"
+                                                onclick="return confirm('Are you sure you want to permanently delete this seller?')">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center">No approved sellers found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="text-muted">
+                    Showing <span class="fw-semibold">{{ approved_sellers|length }}</span> sellers
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+// Search functionality
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}

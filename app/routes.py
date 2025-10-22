@@ -1,5 +1,6 @@
 from functools import wraps
-from flask import Flask, session, redirect, url_for, g, render_template, request
+from flask import Flask, session, redirect, url_for, g, render_template, request, flash
+from flask_login import current_user
 #Middleware
 from middleware.auth import login_required
 #Helpers
@@ -15,25 +16,112 @@ from controller.DashboardController import dashboardIndex
 from controller.ProductController import productCategories, addCategories, changeCategoryStatus, updateCategories, products, addProduct, changeProductStatus, updateProducts, viewProduct, addToCart, removeFromCart, updateCart, details, checkout, detailsSubmit
 from controller.ManageProfileController import sellerRequestSubmit, sellerRequest, manageProfile
 from controller.UserController import seller, updateSeller, buyer, updateBuyer
+from controller.SellerManagementController import (
+    get_all_sellers, get_pending_sellers, get_approved_sellers,
+    update_seller_status, delete_seller, get_seller_details
+)
 
 # Seller Management routes
 def seller_management_routes(app):
     @app.route('/admin/sellers')
     @login_required
     def all_sellers():
-        return render_template('admin/all_seller.html', menu='seller-list')
+        sellers = get_all_sellers()
+        return render_template('admin/all_seller.html', 
+                            menu='seller-list',
+                            all_sellers=sellers)
 
     @app.route('/admin/sellers/pending')
     @login_required
     def pending_sellers():
-        return render_template('admin/pending_approval.html', menu='seller-pending')
+        pending = get_pending_sellers()
+        return render_template('admin/pending_approval.html', 
+                            menu='seller-pending',
+                            pending_sellers=pending)
 
     @app.route('/admin/sellers/approved')
     @login_required
     def approved_sellers():
-        return render_template('admin/approved_seller.html', menu='seller-approved')
-
-
+        approved = get_approved_sellers()
+        return render_template('admin/approved_seller.html', 
+                            menu='seller-approved',
+                            approved_sellers=approved)
+    
+    @app.route('/admin/sellers/<int:user_id>/view')
+    @login_required
+    def view_seller(user_id):
+        seller = get_seller_details(user_id)
+        if not seller:
+            flash('Seller not found', 'error')
+            return redirect(url_for('all_sellers'))
+        return render_template('admin/view_seller.html', 
+                            seller=seller,
+                            menu='seller-list')
+    
+    @app.route('/admin/sellers/<int:user_id>/approve', methods=['POST'])
+    @login_required
+    def approve_seller(user_id):
+        from controller.SellerManagementController import update_seller_status
+        try:
+            # Status 1 = Approved/Active
+            result = update_seller_status(user_id, 1, session.get('user_id'))
+            flash('Seller approved successfully', 'success')
+        except Exception as e:
+            current_app.logger.error(f'Error approving seller: {str(e)}')
+            flash('Error approving seller', 'error')
+        # Redirect back to the referring page or all_sellers if no referrer
+        return redirect(request.referrer or url_for('all_sellers'))
+    
+    @app.route('/admin/sellers/<int:user_id>/reject', methods=['POST'])
+    @login_required
+    def reject_seller(user_id):
+        from controller.SellerManagementController import update_seller_status
+        try:
+            # Status 3 = Rejected
+            result = update_seller_status(user_id, 3, session.get('user_id'))
+            flash('Seller rejected successfully', 'success')
+        except Exception as e:
+            current_app.logger.error(f'Error rejecting seller: {str(e)}')
+            flash('Error rejecting seller', 'error')
+        # Redirect back to the referring page or all_sellers if no referrer
+        return redirect(request.referrer or url_for('all_sellers'))
+    
+    @app.route('/admin/sellers/<int:user_id>/block', methods=['POST'])
+    @login_required
+    def block_seller(user_id):
+        from controller.SellerManagementController import update_seller_status
+        try:
+            # Status 4 = Blocked
+            result = update_seller_status(user_id, 4, session.get('user_id'))
+            flash('Seller blocked successfully', 'success')
+        except Exception as e:
+            current_app.logger.error(f'Error blocking seller: {str(e)}')
+            flash('Error blocking seller', 'error')
+        return redirect(request.referrer or url_for('all_sellers'))
+    
+    @app.route('/admin/sellers/<int:user_id>/unblock', methods=['POST'])
+    @login_required
+    def unblock_seller(user_id):
+        from controller.SellerManagementController import update_seller_status
+        try:
+            # Status 1 = Active
+            result = update_seller_status(user_id, 1, session.get('user_id'))
+            flash('Seller unblocked successfully', 'success')
+        except Exception as e:
+            current_app.logger.error(f'Error unblocking seller: {str(e)}')
+            flash('Error unblocking seller', 'error')
+        return redirect(request.referrer or url_for('all_sellers'))
+    
+    @app.route('/admin/sellers/<int:user_id>/delete', methods=['POST'])
+    @login_required
+    def delete_seller(user_id):
+        try:
+            delete_seller(user_id, current_user.user_id)
+            flash('Seller deleted successfully', 'success')
+        except Exception as e:
+            app.logger.error(f'Error deleting seller: {str(e)}')
+            flash('Error deleting seller', 'error')
+        return redirect(url_for('all_sellers'))
 
 
 
