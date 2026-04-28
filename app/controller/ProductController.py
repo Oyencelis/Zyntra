@@ -1,6 +1,7 @@
 from flask import render_template, session, g, request, redirect, url_for
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename
+from helpers.SupabaseStorage import upload_file_to_supabase
 import os
 from werkzeug.utils import secure_filename
 import uuid
@@ -25,30 +26,29 @@ def _variant_columns_available():
     Check if variant_type and variant_values columns exist in products table.
     We query every time to avoid stale cache when migrations run while the app stays alive.
     """
-    variant_type_col = executeGet("SHOW COLUMNS FROM products LIKE 'variant_type'")
+    variant_type_col = executeGet(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'products'
+          AND column_name = 'variant_type'
+        """
+    )
     if isinstance(variant_type_col, tuple) or not variant_type_col:
         return False
-    variant_values_col = executeGet("SHOW COLUMNS FROM products LIKE 'variant_values'")
+    variant_values_col = executeGet(
+        """
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'products'
+          AND column_name = 'variant_values'
+        """
+    )
     if isinstance(variant_values_col, tuple) or not variant_values_col:
         return False
     return True
-
-# Get the base directory of the project
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'products')
-
-# Debug information
-print("Current working directory:", os.getcwd())
-print("Base directory:", BASE_DIR)
-print("Upload folder:", UPLOAD_FOLDER)
-
-# Create the directory if it doesn't exist
-try:
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    print(f"Successfully created or verified directory: {UPLOAD_FOLDER}")
-except Exception as e:
-    print(f"Error creating directory {UPLOAD_FOLDER}: {str(e)}")
-    raise
 
 def _get_product_id_from_request():
     payload = request.get_json(silent=True)
@@ -100,6 +100,9 @@ def _get_cart_count(user_id):
 def build_product_image_url(attachment):
     if not attachment or attachment in ('no-image.jpg', ''):
         return '/static/images/no-image.jpg'
+
+    if isinstance(attachment, str) and attachment.startswith(('http://', 'https://')):
+        return attachment
 
     clean_path = attachment.replace('\\', '/').lstrip('/')
 
@@ -238,34 +241,20 @@ def addProduct():
                 if not normalized_variant_values:
                     return responseData("error", "Please provide at least one variant option.", "", 200)
 
-        # Ensure upload directory exists
-        try:
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-            print(f"Upload directory: {UPLOAD_FOLDER}")
-        except Exception as e:
-            print(f"Error creating upload directory: {str(e)}")
-            return responseData("error", "Error setting up file storage", "", 500)
-
         # Process each image
         image_names = []
         for image in images:
             if not image or not allowed_image_file(image.filename):
                 continue  # Skip invalid files instead of failing the entire upload
-                
-            # Generate secure filename with a more unique pattern
-            file_ext = os.path.splitext(secure_filename(image.filename))[1].lower()
-            random_filename = f"{uuid.uuid4().hex}{file_ext}"  # Use UUID for better uniqueness
-            file_path = os.path.join(UPLOAD_FOLDER, random_filename)
-            
+
             try:
-                # Save the file
-                image.save(file_path)
-                print(f"Saved file: {file_path}")
-                # Store relative path in the format that matches the working product
-                relative_path = f"uploads/products/{random_filename}"
-                image_names.append(relative_path)
+                public_url, upload_error = upload_file_to_supabase(image, 'products')
+                if upload_error or not public_url:
+                    print(f"Error uploading file {image.filename} to Supabase: {upload_error}")
+                    continue
+                image_names.append(public_url)
             except Exception as e:
-                print(f"Error saving file {image.filename}: {str(e)}")
+                print(f"Error uploading file {image.filename}: {str(e)}")
                 continue
         
         if not image_names:
@@ -290,13 +279,6 @@ def addProduct():
         result = executePost(insert_query, insert_params)
         
         if not result or 'last_inserted_id' not in result:
-            # Clean up uploaded files if product insertion failed
-            for img_path in image_names:
-                try:
-                    filename = img_path.split('/')[-1]  # Get just the filename
-                    os.remove(os.path.join(UPLOAD_FOLDER, filename))
-                except Exception as e:
-                    print(f"Error cleaning up file {img_path}: {str(e)}")
             return responseData("error", "Failed to save product information", "", 500)
         
         # Save image references to database
@@ -314,12 +296,6 @@ def addProduct():
                 success_count += 1
             except Exception as e:
                 print(f"Error saving attachment {img_path}: {str(e)}")
-                # Try to clean up the file if database insertion failed
-                try:
-                    filename = img_path.split('/')[-1]
-                    os.remove(os.path.join(UPLOAD_FOLDER, filename))
-                except Exception as file_error:
-                    print(f"Error cleaning up file {img_path}: {str(file_error)}")
         
         if success_count == 0:
             # If no attachments were saved, clean up the product record
@@ -330,14 +306,6 @@ def addProduct():
         
     except Exception as e:
         print(f"Unexpected error in addProduct: {str(e)}")
-        # Clean up any uploaded files if there was an error
-        if 'image_names' in locals():
-            for img_path in image_names:
-                try:
-                    filename = img_path.split('/')[-1]
-                    os.remove(os.path.join(UPLOAD_FOLDER, filename))
-                except Exception as file_error:
-                    print(f"Error cleaning up file {img_path}: {str(file_error)}")
         return responseData("error", "An unexpected error occurred: " + str(e), "", 500)
 
 def productCategories():

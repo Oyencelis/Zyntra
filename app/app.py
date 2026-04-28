@@ -2,8 +2,13 @@
 from flask import Flask, session
 import os
 from flask_session import Session
+from dotenv import load_dotenv
 from extensions import mail
 from helpers.template_filters import register_template_filters
+
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+load_dotenv(os.path.join(BASE_DIR, '.env'), override=True)
 
 def str_to_bool(value: str, default: bool = True) -> bool:
     if value is None:

@@ -1,6 +1,7 @@
 from flask import render_template, request, jsonify, session, redirect, url_for, current_app
 from helpers.HelperFunction import responseData, hashing, allowed_image_file, generate_random_filename
 from helpers.QueryHelpers import executeGet, executePost
+from helpers.SupabaseStorage import upload_file_to_supabase
 from helpers.Session import setSession, sessionRemove
 from helpers.VerificationHelper import (
     generate_otp,
@@ -191,6 +192,14 @@ def sellerSignup():
     return render_template('views/sell.html', cat_data=categories, cart_items=cart_items)
 
 
+def deliveryPartnerSignup():
+    """Public delivery partner signup page - no login required"""
+    from controller.HomeController import getCategoriesInHome
+    cart_items = session.get('cart', {})
+    categories = getCategoriesInHome("WHERE status = 1")
+    return render_template('views/deliver.html', cat_data=categories, cart_items=cart_items)
+
+
 def sellerSignupSubmit():
     """Handle seller signup form submission with file uploads"""
     try:
@@ -243,17 +252,13 @@ def sellerSignupSubmit():
         gov_id_path = None
         business_permit_path = None
         
-        # Upload directory
-        upload_dir = 'static/uploads/seller_documents'
-        os.makedirs(upload_dir, exist_ok=True)
-        
         # Save government ID (required)
         if gov_id and gov_id.filename:
-            if allowed_image_file(gov_id.filename) or gov_id.filename.endswith('.pdf'):
-                file_ext = os.path.splitext(gov_id.filename)[1]
-                filename = generate_random_filename(file_ext)
-                gov_id_path = os.path.join(upload_dir, filename)
-                gov_id.save(gov_id_path)
+            if allowed_image_file(gov_id.filename) or gov_id.filename.lower().endswith('.pdf'):
+                uploaded_url, upload_error = upload_file_to_supabase(gov_id, 'seller_documents')
+                if upload_error or not uploaded_url:
+                    return responseData("error", f"Unable to upload government ID to Supabase storage: {upload_error}", "", 200)
+                gov_id_path = uploaded_url
             else:
                 return responseData("error", "Invalid government ID file format", "", 200)
         else:
@@ -261,11 +266,11 @@ def sellerSignupSubmit():
         
         # Save business permit (optional)
         if business_permit and business_permit.filename:
-            if allowed_image_file(business_permit.filename) or business_permit.filename.endswith('.pdf'):
-                file_ext = os.path.splitext(business_permit.filename)[1]
-                filename = generate_random_filename(file_ext)
-                business_permit_path = os.path.join(upload_dir, filename)
-                business_permit.save(business_permit_path)
+            if allowed_image_file(business_permit.filename) or business_permit.filename.lower().endswith('.pdf'):
+                uploaded_url, upload_error = upload_file_to_supabase(business_permit, 'seller_documents')
+                if upload_error or not uploaded_url:
+                    return responseData("error", f"Unable to upload business permit to Supabase storage: {upload_error}", "", 200)
+                business_permit_path = uploaded_url
         
         # Hash password
         hashed_password = hashing(password)
@@ -302,14 +307,6 @@ def sellerSignupSubmit():
             
     except Exception as e:
         return responseData("error", f"An error occurred: {str(e)}", "", 200)
-
-
-def deliveryPartnerSignup():
-    """Public delivery partner signup page"""
-    from controller.HomeController import getCategoriesInHome
-    cart_items = session.get('cart', {})
-    categories = getCategoriesInHome("WHERE status = 1")
-    return render_template('views/deliver.html', cat_data=categories, cart_items=cart_items)
 
 
 def deliveryPartnerSignupSubmit():
@@ -370,17 +367,13 @@ def deliveryPartnerSignupSubmit():
         drivers_license_path = None
         gov_id_path = None
 
-        # Upload directory
-        upload_dir = 'static/uploads/delivery_documents'
-        os.makedirs(upload_dir, exist_ok=True)
-
         # Save driver's license (required)
         if drivers_license and drivers_license.filename:
-            if allowed_image_file(drivers_license.filename) or drivers_license.filename.endswith('.pdf'):
-                file_ext = os.path.splitext(drivers_license.filename)[1]
-                filename = generate_random_filename(file_ext)
-                drivers_license_path = os.path.join(upload_dir, filename)
-                drivers_license.save(drivers_license_path)
+            if allowed_image_file(drivers_license.filename) or drivers_license.filename.lower().endswith('.pdf'):
+                uploaded_url, upload_error = upload_file_to_supabase(drivers_license, 'delivery_documents')
+                if upload_error or not uploaded_url:
+                    return responseData("error", f"Unable to upload driver's license to Supabase storage: {upload_error}", "", 200)
+                drivers_license_path = uploaded_url
             else:
                 return responseData("error", "Invalid driver's license file format", "", 200)
         else:
@@ -388,11 +381,11 @@ def deliveryPartnerSignupSubmit():
 
         # Save government ID (required)
         if gov_id and gov_id.filename:
-            if allowed_image_file(gov_id.filename) or gov_id.filename.endswith('.pdf'):
-                file_ext = os.path.splitext(gov_id.filename)[1]
-                filename = generate_random_filename(file_ext)
-                gov_id_path = os.path.join(upload_dir, filename)
-                gov_id.save(gov_id_path)
+            if allowed_image_file(gov_id.filename) or gov_id.filename.lower().endswith('.pdf'):
+                uploaded_url, upload_error = upload_file_to_supabase(gov_id, 'delivery_documents')
+                if upload_error or not uploaded_url:
+                    return responseData("error", f"Unable to upload government ID to Supabase storage: {upload_error}", "", 200)
+                gov_id_path = uploaded_url
             else:
                 return responseData("error", "Invalid government ID file format", "", 200)
         else:
@@ -440,6 +433,10 @@ def deliveryPartnerSignupSubmit():
 def _format_document_path(path):
     if not path:
         return None
+
+    if isinstance(path, str) and path.startswith(('http://', 'https://')):
+        return path
+
     normalized = path.replace('\\', '/').lstrip('/')
     if normalized.startswith('static/'):
         normalized = normalized[len('static/'):]

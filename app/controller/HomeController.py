@@ -56,18 +56,16 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PH_JSON_DIR = os.path.join(BASE_DIR, 'static', 'ph-json')
 LOCATION_CACHE = {}
 
-
 def build_product_image_url(attachment):
     if not attachment or attachment in ('no-image.jpg', ''):
         return '/static/images/no-image.jpg'
 
-    clean_path = attachment.replace('\\', '/').lstrip('/')
+    if isinstance(attachment, str) and attachment.startswith(('http://', 'https://')):
+        return attachment
 
+    clean_path = attachment.replace('\\', '/').lstrip('/')
     if clean_path.startswith('static/'):
         return '/' + clean_path if not clean_path.startswith('/') else clean_path
-
-    if clean_path.startswith('images/'):
-        return f"/static/{clean_path}"
 
     if clean_path.startswith('uploads/'):
         return f"/static/{clean_path}"
@@ -76,7 +74,6 @@ def build_product_image_url(attachment):
         return f"/static/uploads/{clean_path}"
 
     return f"/static/uploads/products/{clean_path}"
-
 
 def load_location_cache(filename, code_key, name_key):
     cache_key = filename
@@ -95,13 +92,11 @@ def load_location_cache(filename, code_key, name_key):
             LOCATION_CACHE[cache_key] = {}
     return LOCATION_CACHE[cache_key]
 
-
 def resolve_location_name(value, filename, code_key, name_key):
     if not value:
         return value
     cache = load_location_cache(filename, code_key, name_key)
     return cache.get(str(value), value)
-
 
 def get_user_address_details(user_id):
     address_query = """
@@ -140,299 +135,65 @@ def get_user_address_details(user_id):
 
     return user_address, formatted_address, address_texts
 
-
-def calculate_order_totals(cart_items):
-    subtotal = 0
-    for item in cart_items:
-        price = float(item.get('price', 0) or 0)
-        quantity = float(item.get('quantity', 0) or 0)
-        subtotal += price * quantity
-
-    shipping_fee = 0 if subtotal >= 2000 or subtotal == 0 else 79
-    tax_amount = 0
-    total_amount = subtotal + shipping_fee
-
-    return subtotal, shipping_fee, tax_amount, total_amount
-
-
-def build_product_image_url(attachment):
-    if not attachment or attachment in ('no-image.jpg', ''):
-        return '/static/images/no-image.jpg'
-
-    clean_path = attachment.replace('\\', '/').lstrip('/')
-
-    if clean_path.startswith('static/'):
-        return '/' + clean_path if not clean_path.startswith('/') else clean_path
-
-    if clean_path.startswith('images/'):
-        return f"/static/{clean_path}"
-
-    if clean_path.startswith('uploads/'):
-        return f"/static/{clean_path}"
-
-    if clean_path.startswith('products/'):
-        return f"/static/uploads/{clean_path}"
-
-    return f"/static/uploads/products/{clean_path}"
-
-
-def get_order_items_by_reference(reference):
-    items_query = """
-        SELECT 
-            oi.order_items_id,
-            oi.product_id,
-            oi.suborder_id,
-            oi.quantity,
-            oi.status AS item_status,
-            oi.reference,
-            p.product_name,
-            p.price,
-            p.user_id AS seller_id,
-            os.reference AS sub_reference,
-            os.status AS sub_status,
-            os.shipping_fee AS sub_shipping_fee,
-            sd.store_name,
-            seller.firstname AS seller_firstname,
-            seller.lastname AS seller_lastname,
-            (
-                SELECT pa.attachment 
-                FROM product_attachments pa 
-                WHERE pa.product_id = p.product_id 
-                LIMIT 1
-            ) AS attachment
-        FROM order_items oi
-        LEFT JOIN products p ON oi.product_id = p.product_id
-        LEFT JOIN order_suborders os ON oi.suborder_id = os.suborder_id
-        LEFT JOIN users seller ON os.seller_id = seller.user_id
-        LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
-        WHERE oi.reference = %s
-        ORDER BY oi.order_items_id ASC
-    """
-    order_items = executeGet(items_query, (reference,)) or []
-
-    status_labels = {
-        1: 'Order Placed',
-        2: 'Shipped',
-        3: 'Out for Delivery',
-        4: 'Delivered',
-        6: 'Completed',
-    }
-
-    for item in order_items:
-        price = float(item.get('price', 0) or 0)
-        quantity = float(item.get('quantity', 0) or 0)
-        item['quantity'] = int(quantity)
-        item['formatted_price'] = locale.format_string("%0.2f", price, grouping=True)
-        total_price = price * quantity
-        item['line_total_raw'] = total_price
-        item['formatted_total'] = locale.format_string("%0.2f", total_price, grouping=True)
-        shipping_fee = float(item.get('sub_shipping_fee', 0) or 0)
-        item['shipping_fee_raw'] = shipping_fee
-        item['shipping_fee_formatted'] = locale.format_string("%0.2f", shipping_fee, grouping=True)
-        seller_name = item.get('store_name') or f"{item.get('seller_firstname', '')} {item.get('seller_lastname', '')}".strip()
-        item['store_name'] = seller_name or 'Seller'
-        attachment = item.get('attachment')
-        if attachment:
-            item['attachment'] = attachment.lstrip('/\\')
-
-        status = int(item.get('item_status') or item.get('sub_status') or 1)
-        item['status'] = status
-        item['status_text'] = status_labels.get(status, 'Processing')
-        item['sub_reference'] = item.get('sub_reference') or item.get('reference')
-
-    return order_items
-
-
-def build_order_summary(order_row):
-    shipping_fee_raw = float(order_row.get('shipping_fee', 0) or 0)
-    subtotal_value = float(order_row.get('subtotal', 0) or 0)
-    tax_value = float(order_row.get('tax_amount', 0) or 0)
-    total_value = float(order_row.get('total_amount', 0) or 0)
-    status = order_row.get('status_override') or order_row.get('status', 1) or 1
-
-    status_labels = ['', 'Order Placed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled', 'Completed']
-
-    status_text = status_labels[status] if status < len(status_labels) else 'Processing'
-
-    created_at = order_row.get('created_at')
-    try:
-        if isinstance(created_at, str):
-            created_at_dt = datetime.strptime(created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
-        else:
-            created_at_dt = created_at or datetime.utcnow()
-    except Exception:
-        created_at_dt = datetime.utcnow()
-
-    estimated_delivery = (created_at_dt + timedelta(days=5)).strftime("%B %d, %Y")
-
-    return {
-        'order_id': order_row.get('order_id'),
-        'reference': order_row.get('reference'),
-        'subtotal': locale.format_string("%0.2f", subtotal_value, grouping=True),
-        'shipping_fee': locale.format_string("%0.2f", shipping_fee_raw, grouping=True),
-        'shipping_fee_raw': shipping_fee_raw,
-        'tax_amount': locale.format_string("%0.2f", tax_value, grouping=True),
-        'tax_amount_raw': tax_value,
-        'total_amount': locale.format_string("%0.2f", total_value, grouping=True),
-        'payment_method': order_row.get('cash_type', '').upper(),
-        'status': status,
-        'status_text': status_text,
-        'created_at': order_row.get('created_at'),
-        'estimated_delivery': estimated_delivery
-    }
-
-
-def get_cart_items_for_user(user_id):
-    query = """
-        SELECT
-            oi.order_items_id,
-            oi.product_id,
-            oi.user_id,
-            oi.quantity,
-            oi.reference,
-            oi.status,
-            p.product_name,
-            p.price,
-            p.qty AS stock,
-            sd.store_name,
-            (
-                SELECT pa.attachment
-                FROM product_attachments pa
-                WHERE pa.product_id = p.product_id AND pa.status = 1
-                ORDER BY pa.updated_at DESC, pa.product_attachment_id DESC
-                LIMIT 1
-            ) AS attachment,
-            p.user_id AS seller_id,
-            oi.variant_type,
-            oi.variant_value
-        FROM order_items oi
-        LEFT JOIN products p ON oi.product_id = p.product_id
-        LEFT JOIN seller_details sd ON sd.user_id = p.user_id
-        WHERE oi.user_id = %s
-          AND oi.status = 1
-          AND (oi.reference = '' OR oi.reference IS NULL)
-    """
-    return executeGet(query, (user_id,)) or []
-
-
-def group_cart_items_by_seller(cart_items):
-    grouped = {}
-    for item in cart_items or []:
-        seller_id = item.get('seller_id')
-        if not seller_id:
-            continue
-        grouped.setdefault(seller_id, []).append(item)
-    return grouped
-
-
-def get_wishlist_items_for_user(user_id):
-    query = """
-        SELECT
-            w.wishlist_id,
-            w.product_id,
-            p.product_name,
-            p.price,
-            sd.store_name,
-            (
-                SELECT pa.attachment
-                FROM product_attachments pa
-                WHERE pa.product_id = p.product_id AND pa.status = 1
-                ORDER BY pa.updated_at DESC, pa.product_attachment_id DESC
-                LIMIT 1
-            ) AS attachment
-        FROM wishlists w
-        LEFT JOIN products p ON w.product_id = p.product_id
-        LEFT JOIN seller_details sd ON sd.user_id = p.user_id
-        WHERE w.user_id = %s
-        ORDER BY w.wishlist_id DESC
-    """
-    return executeGet(query, (user_id,)) or []
-
-
-def get_user_wishlist_ids(user_id):
-    items = get_wishlist_items_for_user(user_id)
-    return {item.get('product_id') for item in items}
-
-
-def create_order_notifications(order_id, reference, buyer_name, suborders_payload):
-    if not suborders_payload or not order_id:
-        return 0
-
-    notifications_created = 0
-    for entry in suborders_payload:
-        seller_id = entry.get('seller_id')
-        item_names = entry.get('item_names', [])
-        sub_reference = entry.get('sub_reference') or reference
-        if not seller_id:
-            continue
-
-        preview_names = ", ".join(item_names[:3])
-        if len(item_names) > 3:
-            preview_names += "…"
-
-        message = (
-            f"{buyer_name} placed order {reference} (Sub-order {sub_reference}) "
-            f"containing {len(item_names)} item(s): {preview_names}"
-        )
-
-        insert_query = """
-            INSERT INTO notifications (user_id, order_id, title, message, notification_type)
-            VALUES (%s, %s, %s, %s, %s)
-        """
-
-        executePost(
-            insert_query,
-            (
-                seller_id,
-                order_id,
-                "New order placed",
-                message,
-                'order'
-            )
-        )
-        notifications_created += 1
-
-    return notifications_created
-
-
-def get_user_notifications(user_id, limit=10):
+def getNotifications():
+    user_id = g.authenticated.get('user_id') if g.authenticated else None
     if not user_id:
-        return []
+        return responseData("error", "Unauthorized", "", 401)
 
     query = """
         SELECT n.notification_id,
+               n.order_id,
                n.title,
                n.message,
+               n.notification_type,
                n.is_read,
                n.created_at,
-               n.order_id,
-               o.reference AS order_reference
+               o.reference
         FROM notifications n
         LEFT JOIN orders o ON n.order_id = o.order_id
         WHERE n.user_id = %s
         ORDER BY n.created_at DESC
-        LIMIT %s
+        LIMIT 50
     """
+    results = executeGet(query, (user_id,)) or []
 
-    notifications = executeGet(query, (user_id, limit)) or []
+    if isinstance(results, tuple):
+        return results
 
-    for notif in notifications:
-        created_at = notif.get('created_at')
-        try:
-            if isinstance(created_at, str):
-                created_dt = datetime.strptime(created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
-            else:
-                created_dt = created_at
-            notif['created_at_display'] = created_dt.strftime("%b %d, %Y %I:%M %p") if created_dt else ''
-            if created_dt:
-                notif['created_at'] = created_dt.strftime("%Y-%m-%d %H:%M:%S")
-        except Exception:
-            notif['created_at_display'] = created_at
+    items = []
+    unread_count = 0
+    for row in results:
+        is_read = bool(row.get('is_read'))
+        if not is_read:
+            unread_count += 1
 
-        notif['reference'] = notif.get('order_reference')
+        created_at = row.get('created_at')
+        if hasattr(created_at, 'strftime'):
+            created_at_display = created_at.strftime("%b %d, %Y %I:%M %p")
+        else:
+            created_at_display = str(created_at) if created_at else ''
 
-    return notifications
+        items.append({
+            'notification_id': row.get('notification_id'),
+            'order_id': row.get('order_id'),
+            'reference': row.get('reference'),
+            'title': row.get('title') or 'Notification',
+            'message': row.get('message') or '',
+            'notification_type': row.get('notification_type') or 'system',
+            'is_read': is_read,
+            'created_at': created_at,
+            'created_at_display': created_at_display,
+        })
 
+    return responseData(
+        "success",
+        "Notifications fetched successfully.",
+        {
+            'items': items,
+            'unread_count': unread_count,
+        },
+        200,
+    )
 
 def markNotificationRead(notification_id):
     user_id = g.authenticated.get('user_id') if g.authenticated else None
@@ -442,7 +203,8 @@ def markNotificationRead(notification_id):
 
     update_query = """
         UPDATE notifications
-        SET is_read = 1, read_at = NOW()
+        SET is_read = 1,
+            read_at = COALESCE(read_at, NOW())
         WHERE notification_id = %s AND user_id = %s
     """
 
@@ -453,7 +215,6 @@ def markNotificationRead(notification_id):
 
     return responseData("success", "Notification marked as read.", {"notification_id": notification_id}, 200)
 
-
 def markAllNotificationsRead():
     user_id = g.authenticated.get('user_id') if g.authenticated else None
 
@@ -463,7 +224,7 @@ def markAllNotificationsRead():
     update_query = """
         UPDATE notifications
         SET is_read = 1,
-            read_at = IF(read_at IS NULL, NOW(), read_at)
+            read_at = COALESCE(read_at, NOW())
         WHERE user_id = %s AND is_read = 0
     """
 
@@ -476,148 +237,164 @@ def markAllNotificationsRead():
         200
     )
 
+def getCategoriesInHome(condition=""):
+    query = f"SELECT * FROM categories {condition}"
+    results = executeGet(query)
+    return results
 
-def getNotifications():
-    user_id = g.authenticated.get('user_id') if g.authenticated else None
-
+def get_user_wishlist_ids(user_id):
     if not user_id:
-        return responseData("error", "Unauthorized", "", 401)
+        return set()
 
-    notifications = get_user_notifications(user_id, limit=10)
-    unread_count = sum(1 for notif in notifications if not notif.get('is_read'))
+    query = "SELECT product_id FROM wishlists WHERE user_id = %s"
+    results = executeGet(query, (user_id,))
+    if isinstance(results, tuple) or not results:
+        return set()
 
-    payload = {
-        "items": notifications,
-        "unread_count": unread_count
-    }
+    return {row.get('product_id') for row in results if row.get('product_id') is not None}
 
-    return responseData("success", "Notifications loaded.", payload, 200)
+def get_wishlist_items_for_user(user_id):
+    query = """
+        SELECT w.wishlist_id,
+               p.product_id,
+               p.product_name,
+               p.price,
+               p.qty,
+               COALESCE(
+                   (
+                       SELECT pa.attachment
+                       FROM product_attachments pa
+                       WHERE pa.product_id = p.product_id AND pa.status = 1
+                       ORDER BY pa.created_at ASC
+                       LIMIT 1
+                   ),
+                   'images/no-image.jpg'
+               ) AS attachment
+        FROM wishlists w
+        JOIN products p ON w.product_id = p.product_id
+        WHERE w.user_id = %s
+          AND p.status = 1
+        ORDER BY w.created_at DESC
+    """
+    results = executeGet(query, (user_id,))
+    if isinstance(results, tuple) or not results:
+        return []
+    return results
 
+def get_cart_items_for_user(user_id):
+    query = """
+        SELECT oi.order_items_id,
+               oi.product_id,
+               oi.quantity,
+               oi.price,
+               oi.status,
+               oi.reference,
+               p.product_name,
+               p.qty AS stock,
+               p.user_id AS seller_id,
+               sd.store_name,
+               COALESCE(
+                   (
+                       SELECT pa.attachment
+                       FROM product_attachments pa
+                       WHERE pa.product_id = p.product_id AND pa.status = 1
+                       ORDER BY pa.created_at ASC
+                       LIMIT 1
+                   ),
+                   'images/no-image.jpg'
+               ) AS attachment
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.product_id
+        LEFT JOIN seller_details sd ON p.user_id = sd.user_id
+        WHERE oi.user_id = %s
+          AND oi.status = 1
+          AND (oi.reference = '' OR oi.reference IS NULL)
+        ORDER BY oi.created_at DESC
+    """
+    results = executeGet(query, (user_id,))
+    if isinstance(results, tuple) or not results:
+        return []
+
+    for row in results:
+        row['attachment'] = build_product_image_url(row.get('attachment'))
+
+    return results
+
+def group_cart_items_by_seller(cart_items):
+    grouped = {}
+    for item in cart_items or []:
+        seller_id = item.get('seller_id')
+        if not seller_id:
+            continue
+        grouped.setdefault(seller_id, []).append(item)
+    return grouped
+
+def calculate_order_totals(cart_items):
+    seller_groups = group_cart_items_by_seller(cart_items)
+    subtotal = 0
+    shipping_fee = 0
+    tax_amount = 0
+
+    for items in seller_groups.values():
+        group_subtotal = 0
+        for item in items:
+            price = float(item.get('price', 0) or 0)
+            quantity = int(item.get('quantity', 0) or 0)
+            group_subtotal += price * quantity
+
+        subtotal += group_subtotal
+        if group_subtotal > 0 and group_subtotal < 2000:
+            shipping_fee += 79
+
+    total_amount = subtotal + shipping_fee + tax_amount
+    return subtotal, shipping_fee, tax_amount, total_amount
+
+def create_order_notifications(order_id, reference, buyer_name, suborders_payload):
+    if not suborders_payload:
+        return
+
+    insert_query = """
+        INSERT INTO notifications (user_id, order_id, title, message, notification_type, is_read, created_at)
+        VALUES (%s, %s, %s, %s, 'system', 0, NOW())
+    """
+
+    for payload in suborders_payload:
+        seller_id = payload.get('seller_id')
+        if not seller_id:
+            continue
+
+        sub_reference = payload.get('sub_reference') or reference
+        item_names = payload.get('item_names') or []
+        item_preview = ', '.join(item_names[:3])
+        if len(item_names) > 3:
+            item_preview += ', ...'
+
+        title = "New Order Received"
+        message = f"{buyer_name} placed sub-order {sub_reference}."
+        if item_preview:
+            message = f"{message} Items: {item_preview}"
+
+        executePost(insert_query, (seller_id, order_id, title, message))
 
 def home():
-    query = request.args.get('query', '')
-    page = request.args.get('page', 1, type=int)
     categories = getCategoriesInHome("WHERE status = 1")
-
-    if query:  # Check if there is a search query
-        products = getProductsBySearch(query)  # Call the search function
-    else:
-        # Default featured products: only active items that are still in stock
-        products = getProductsInHome("WHERE p.status = 1 AND p.qty > 0", page=page)  # Default products
-
+    products = getProductsInHome("WHERE p.status = 1 AND p.qty > 0", page=1, per_page=12)
     cart_items = session.get('cart', {})
+
     wishlist_ids = set()
     if g.authenticated and g.authenticated.get('user_id'):
         wishlist_ids = get_user_wishlist_ids(g.authenticated.get('user_id'))
-    wishlist_list = list(wishlist_ids)
-
-    for product in products or []:
-        product['is_in_wishlist'] = product.get('product_id') in wishlist_ids
 
     return render_template(
         'views/home.html',
         cat_data=categories,
         prod_data=products,
-        page=page,
-        per_page=10,
+        wishlist_ids=list(wishlist_ids),
         cart_items=cart_items,
-        wishlist_ids=wishlist_list
     )
 
-
 def shop():
-    # Get all products with pagination
-    page = request.args.get('page', 1, type=int)
-    per_page = 12  # 12 products per page for the shop grid
-    
-    # Get filter parameters
-    category_id = request.args.get('category', None)
-    search_query = request.args.get('q', '')
-    min_price = request.args.get('min_price', 0, type=float)
-    max_price = request.args.get('max_price', 100000, type=float)
-    
-    # Base query
-    condition = "WHERE p.status = 1"
-    params = []
-    
-    # Add category filter if specified
-    if category_id and category_id != 'all':
-        condition += " AND p.category_id = %s"
-        params.append(category_id)
-    
-    # Add search query filter
-    if search_query:
-        condition += " AND (p.product_name LIKE %s OR p.description LIKE %s)"
-        search_term = f"%{search_query}%"
-        params.extend([search_term, search_term])
-    
-    # Add price range filter
-    condition += " AND p.price BETWEEN %s AND %s"
-    params.extend([min_price, max_price])
-    
-    # Get products with filters
-    products = getProductsInHome(condition, page, per_page, params)
-    
-    # Get all categories for the sidebar
-    categories = getCategoriesInHome("WHERE status = 1")
-    
-    # Get cart items
-    cart_items = session.get('cart', {})
-    
-    return render_template('buyer/shop.html', 
-                         products=products, 
-                         categories=categories, 
-                         current_category=category_id,
-                         search_query=search_query,
-                         min_price=min_price,
-                         max_price=max_price,
-                         page=page,
-                         per_page=per_page,
-                         cart_items=cart_items)
-
-def getProductsBySearch(query):
-    query = f"%{query}%"
-    sql_query = """
-        SELECT 
-            p.product_id,
-            p.category_id,
-            p.product_name,
-            c.category_name,
-            p.description,
-            p.price,
-            p.qty,
-            p.created_at,
-            p.status,
-            (
-                SELECT GROUP_CONCAT(pa.attachment ORDER BY pa.created_at ASC)
-                FROM product_attachments pa
-                WHERE pa.product_id = p.product_id
-                  AND pa.status = 1
-            ) AS attachments
-        FROM products p
-        LEFT JOIN categories c ON p.category_id = c.category_id
-        WHERE p.product_name LIKE %s
-          AND p.status = 1
-          AND c.status != 2
-    """
-    results = executeGet(sql_query, (query,))
-    if not results or isinstance(results, tuple):
-        return []
-
-    for product in results:
-        product_price = float(product.get('price', 0) or 0)
-        product['formatted_price'] = locale.format_string("%0.2f", product_price, grouping=True)
-
-        attachments = product.get('attachments') or ''
-        first_attachment = attachments.split(',')[0] if attachments else None
-        product['attachment'] = build_product_image_url(first_attachment)
-
-    return results
-
-def getCategoriesInHome(condition=""):
-    query = f"SELECT * FROM `categories` {condition}"
-    results = executeGet(query)
-    return results
+    return home()
 
 def getProductsInHome(condition="", page=1, per_page=10, params=None):
     offset = (page - 1) * per_page
@@ -633,7 +410,7 @@ def getProductsInHome(condition="", page=1, per_page=10, params=None):
     AND c.status != 2 
     GROUP BY p.product_id, p.category_id, p.product_name, c.category_name, 
              p.price, p.qty, p.created_at, p.status 
-    LIMIT %s, %s
+    LIMIT %s OFFSET %s
     """
     
     # Format the condition (remove WHERE if it's empty to avoid SQL syntax error)
@@ -646,7 +423,7 @@ def getProductsInHome(condition="", page=1, per_page=10, params=None):
     
     # Execute the query with parameters
     query = base_query.format(condition=condition)
-    results = executeGet(query, params + [offset, per_page])
+    results = executeGet(query, params + [per_page, offset])
     
     if not results:  # Check if results is empty
         return []
@@ -655,11 +432,10 @@ def getProductsInHome(condition="", page=1, per_page=10, params=None):
     for product in results:
         product['formatted_price'] = locale.format_string("%0.2f", float(product['price']), grouping=True)
         if product['attachment'] is not None:
-            # Remove any leading slashes or backslashes from the attachment path
-            attachment_path = product['attachment'].lstrip('/\\')
-            product['attachment'] = url_for('static', filename=attachment_path)
+            product['attachment'] = build_product_image_url(product['attachment'])
         else:
             product['attachment'] = None
+    
     return results
 
 def loadMoreProducts():
@@ -677,7 +453,6 @@ def loadMoreProducts():
         return responseData("error", "No more products found.", [], 200)
 
     return responseData("success", "Products loaded successfully.", products, 200)
-
 
 @login_required
 def wishlistPage():
@@ -718,8 +493,29 @@ def categoryPage(category_id):
 
 def getProductsInCategoryGrouped(category_id, page=1, per_page=10):
     offset = (page - 1) * per_page
-    query = f"SELECT p.product_id, p.user_id, p.product_name, p.price, p.status AS product_status, pa.product_attachment_id, pa.product_id AS attachment_product_id, pa.attachment, pa.status AS attachment_status, c.category_id, c.category_name, c.status AS category_status FROM products p LEFT JOIN product_attachments pa ON p.product_id = pa.product_id LEFT JOIN categories c ON p.category_id = c.category_id WHERE c.category_id = {category_id} AND c.status = 1 GROUP BY p.product_id LIMIT {offset}, {per_page};"
-    results = executeGet(query)
+    query = """
+        SELECT p.product_id,
+               p.user_id,
+               p.product_name,
+               p.price,
+               p.status AS product_status,
+               pa.product_attachment_id,
+               pa.product_id AS attachment_product_id,
+               pa.attachment,
+               pa.status AS attachment_status,
+               c.category_id,
+               c.category_name,
+               c.status AS category_status
+        FROM products p
+        LEFT JOIN product_attachments pa ON p.product_id = pa.product_id
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        WHERE c.category_id = %s AND c.status = 1
+        GROUP BY p.product_id,
+                 pa.product_attachment_id,
+                 c.category_id
+        LIMIT %s OFFSET %s
+    """
+    results = executeGet(query, (category_id, per_page, offset))
     
     if not results:  # Check if results is empty
         return []  # Return an empty list or handle as needed
@@ -727,9 +523,7 @@ def getProductsInCategoryGrouped(category_id, page=1, per_page=10):
     for product in results:
         product['formatted_price'] = locale.format_string("%0.2f", product['price'], grouping=True)
         if 'attachment' in product and product['attachment'] is not None:
-            # Remove any leading slashes or backslashes from the attachment path
-            attachment_path = product['attachment'].lstrip('/\\')
-            product['attachment'] = url_for('static', filename=attachment_path)
+            product['attachment'] = build_product_image_url(product['attachment'])
             print(f"Image URL for {product['product_name']}: {product['attachment']}")
         else:
             product['attachment'] = None

@@ -74,7 +74,7 @@ def buyer():
     
 def getBuyers(condition, params=None):
     user_id = g.authenticated['user_id']
-    query = f"SELECT * FROM `users` WHERE role_id = 2 {condition} ORDER BY updated_at DESC"
+    query = f"SELECT * FROM \"users\" WHERE role_id = 2 {condition} ORDER BY updated_at DESC"
     results = executeGet(query, params)
     return results
 
@@ -84,11 +84,11 @@ def updateBuyer():
 
     try:
         if status_to == "1":
-            executePost("UPDATE users SET status = 1 WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET status = 1 WHERE user_id = %s", (user_id,))
             return responseData("success", "Buyer enabled successfully.", "", 200)
         
         elif status_to == "2":
-            executePost("UPDATE users SET status = 2 WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET status = 2 WHERE user_id = %s", (user_id,))
             return responseData("success", "Buyer disabled successfully.", "", 200)
 
 
@@ -140,22 +140,22 @@ def updateRider():
     try:
         if status_to == "1":  # Approve rider
             executePost("UPDATE delivery_partners SET status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
-            executePost("UPDATE users SET role_id = 4, status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET role_id = 4, status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
             return responseData("success", "Rider approved successfully.", "", 200)
         
         elif status_to == "2":  # Enable rider
             executePost("UPDATE delivery_partners SET status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
-            executePost("UPDATE users SET status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
             return responseData("success", "Rider enabled successfully.", "", 200)
 
         elif status_to == "3":  # Disable rider
             executePost("UPDATE delivery_partners SET status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
-            executePost("UPDATE users SET status = 2, updated_at = NOW() WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET status = 2, updated_at = NOW() WHERE user_id = %s", (user_id,))
             return responseData("success", "Rider disabled successfully.", "", 200)
         
         elif status_to == "0":  # Reject rider
             executePost("DELETE FROM delivery_partners WHERE user_id = %s", (user_id,))
-            executePost("UPDATE users SET role_id = 2, status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
+            executePost("UPDATE \"users\" SET role_id = 2, status = 1, updated_at = NOW() WHERE user_id = %s", (user_id,))
             return responseData("success", "Rider rejected and removed successfully.", "", 200)
 
         else:
@@ -167,6 +167,6 @@ def updateRider():
 
 def getAdmin(condition, params=None):
     user_id = g.authenticated['user_id']
-    query = f"SELECT * FROM `users` WHERE role_id = 1 {condition} ORDER BY updated_at DESC"
+    query = f"SELECT * FROM \"users\" WHERE role_id = 1 {condition} ORDER BY updated_at DESC"
     results = executeGet(query, params)
     return results
