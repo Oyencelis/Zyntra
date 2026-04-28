@@ -848,6 +848,22 @@ def submitCheckout():
     if not cart_items:
         return responseData("error", "Your cart is empty.", "", 200)
 
+    for item in cart_items:
+        requested_quantity = int(item.get('quantity', 0) or 0)
+        available_stock = int(item.get('stock', 0) or 0)
+        product_name = item.get('product_name') or 'This product'
+
+        if requested_quantity <= 0:
+            return responseData("error", "Invalid item quantity found in your cart.", "", 200)
+
+        if requested_quantity > available_stock:
+            return responseData(
+                "error",
+                f"{product_name} only has {available_stock} item(s) left in stock.",
+                "",
+                200
+            )
+
     subtotal, shipping_fee, tax_amount, total_amount = calculate_order_totals(cart_items)
     provided_reference = request.form.get('reference')
     reference = provided_reference if provided_reference else generate_random_string(12)
@@ -920,12 +936,36 @@ def submitCheckout():
         suborder_id = suborder_result.get('last_inserted_id')
         item_names = []
         for cart_item in items:
+            item_quantity = int(cart_item.get('quantity', 0) or 0)
+            product_id = cart_item.get('product_id')
+
             update_item_query = """
                 UPDATE order_items
                 SET status = 1, reference = %s, suborder_id = %s
                 WHERE order_items_id = %s
             """
             executePost(update_item_query, (reference, suborder_id, cart_item.get('order_items_id')))
+
+            deduct_stock_query = """
+                UPDATE products
+                SET qty = qty - %s
+                WHERE product_id = %s
+                  AND qty >= %s
+            """
+            deduct_result = executePost(deduct_stock_query, (item_quantity, product_id, item_quantity))
+
+            if isinstance(deduct_result, tuple):
+                return deduct_result
+
+            if not deduct_result or deduct_result.get('rowcount', 0) == 0:
+                product_name = cart_item.get('product_name') or 'One or more products'
+                return responseData(
+                    "error",
+                    f"Unable to reserve stock for {product_name}. Please refresh your cart and try again.",
+                    "",
+                    200
+                )
+
             item_names.append(cart_item.get('product_name') or 'Product')
 
         suborders_payload.append({
@@ -1480,19 +1520,6 @@ def updateSuborderStatus():
         WHERE suborder_id = %s
     """
     executePost(update_items_query, (status, suborder_id))
-
-    # When seller accepts the suborder, deduct stock for all items in this suborder.
-    if status == 7:
-        stock_update_query = """
-            UPDATE products p
-            JOIN order_items oi ON oi.product_id = p.product_id
-            SET p.qty = GREATEST(p.qty - oi.quantity, 0)
-            WHERE oi.suborder_id = %s
-        """
-        executePost(stock_update_query, (suborder_id,))
-
-    if status == 2:
-        notify_riders_pickup_available(suborder_id)
 
     status_labels = {
         2: 'Shipped',
