@@ -44,11 +44,13 @@ from datetime import datetime, timedelta
 from flask import render_template, request, session, g, url_for, redirect
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string
+from helpers.SupabaseStorage import resolve_storage_url
 from controller.UserController import getSellers
 from middleware.auth import login_required
 import json
 import locale
 import os
+import re
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
@@ -60,8 +62,15 @@ def build_product_image_url(attachment):
     if not attachment or attachment in ('no-image.jpg', ''):
         return '/static/images/no-image.jpg'
 
-    if isinstance(attachment, str) and attachment.startswith(('http://', 'https://')):
-        return attachment
+    if isinstance(attachment, str):
+        attachment = attachment.strip()
+        if attachment.startswith(('http://', 'https://')):
+            return resolve_storage_url(attachment) or attachment
+
+        url_match = re.search(r'https?://[^\s\'\"]+', attachment)
+        if url_match:
+            extracted_url = url_match.group(0)
+            return resolve_storage_url(extracted_url) or extracted_url
 
     clean_path = attachment.replace('\\', '/').lstrip('/')
     if clean_path.startswith('static/'):
