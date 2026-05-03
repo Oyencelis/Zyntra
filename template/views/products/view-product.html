@@ -440,8 +440,14 @@
   }
 
   function setCartQuantity() {
-    var quantity = document.getElementById('quantity').value;
-    document.getElementById('cart-quantity').value = quantity;
+    var quantityInput = document.getElementById('quantity');
+    var cartQuantityInput = document.getElementById('cart-quantity');
+    if (!cartQuantityInput) {
+      return;
+    }
+
+    var quantity = quantityInput && quantityInput.value ? quantityInput.value : cartQuantityInput.value || '1';
+    cartQuantityInput.value = quantity;
   }
 </script>
 {% endblock %}

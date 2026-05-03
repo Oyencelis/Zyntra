@@ -286,7 +286,7 @@ def get_cart_items_for_user(user_id):
         SELECT oi.order_items_id,
                oi.product_id,
                oi.quantity,
-               oi.price,
+               p.price,
                oi.status,
                oi.reference,
                p.product_name,
@@ -309,7 +309,7 @@ def get_cart_items_for_user(user_id):
         WHERE oi.user_id = %s
           AND oi.status = 1
           AND (oi.reference = '' OR oi.reference IS NULL)
-        ORDER BY oi.created_at DESC
+        ORDER BY oi.order_items_id DESC
     """
     results = executeGet(query, (user_id,))
     if isinstance(results, tuple) or not results:
@@ -402,14 +402,19 @@ def getProductsInHome(condition="", page=1, per_page=10, params=None):
     # Base query with proper parameterization
     base_query = """
     SELECT p.product_id, p.category_id, p.product_name, c.category_name, 
-           pa.attachment, p.description, p.price, p.qty, p.created_at, p.status 
+           (
+               SELECT pa.attachment
+               FROM product_attachments pa
+               WHERE pa.product_id = p.product_id AND pa.status = 1
+               ORDER BY pa.created_at ASC, pa.product_attachment_id ASC
+               LIMIT 1
+           ) AS attachment,
+           p.description, p.price, p.qty, p.created_at, p.status 
     FROM products p 
     LEFT JOIN categories c ON p.category_id = c.category_id 
-    LEFT JOIN product_attachments pa ON p.product_id = pa.product_id 
     {condition} 
     AND c.status != 2 
-    GROUP BY p.product_id, p.category_id, p.product_name, c.category_name, 
-             p.price, p.qty, p.created_at, p.status 
+    ORDER BY p.created_at DESC, p.product_id DESC
     LIMIT %s OFFSET %s
     """
     
@@ -781,6 +786,143 @@ def submitCheckout():
     }
 
     return responseData("success", "Checkout successful", response_payload, 200)
+
+
+def build_order_summary(order_row):
+    order_row = order_row or {}
+
+    status_labels = {
+        1: 'Order Placed',
+        2: 'Shipped',
+        3: 'Out for Delivery',
+        4: 'Delivered',
+        5: 'Cancelled',
+        6: 'Completed',
+        7: 'Accepted',
+        8: 'Rejected',
+    }
+
+    def _to_float(value):
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _format_currency(value):
+        return locale.format_string("%0.2f", value, grouping=True)
+
+    status = int(order_row.get('status_override') or order_row.get('status') or 1)
+    created_at = order_row.get('created_at')
+
+    if isinstance(created_at, datetime):
+        created_at_text = created_at.strftime("%B %d, %Y")
+        estimated_delivery = (created_at + timedelta(days=5)).strftime("%B %d, %Y")
+    else:
+        created_at_text = created_at or ''
+        estimated_delivery = (datetime.utcnow() + timedelta(days=5)).strftime("%B %d, %Y")
+
+    subtotal = _to_float(order_row.get('subtotal'))
+    shipping_fee = _to_float(order_row.get('shipping_fee'))
+    tax_amount = _to_float(order_row.get('tax_amount'))
+    total_amount = _to_float(order_row.get('total_amount'))
+
+    payment_method_raw = (order_row.get('cash_type') or order_row.get('payment_method') or 'cod').strip()
+    payment_method = payment_method_raw.upper() if payment_method_raw else 'COD'
+
+    return {
+        'order_id': order_row.get('order_id'),
+        'reference': order_row.get('reference') or '',
+        'created_at': created_at_text,
+        'estimated_delivery': estimated_delivery,
+        'status': status,
+        'status_text': status_labels.get(status, 'Processing'),
+        'subtotal_raw': subtotal,
+        'shipping_fee_raw': shipping_fee,
+        'tax_amount_raw': tax_amount,
+        'total_amount_raw': total_amount,
+        'subtotal': _format_currency(subtotal),
+        'shipping_fee': _format_currency(shipping_fee),
+        'tax_amount': _format_currency(tax_amount),
+        'total_amount': _format_currency(total_amount),
+        'payment_method': payment_method,
+    }
+
+
+def get_order_items_by_reference(reference):
+    query = """
+        SELECT
+            oi.order_items_id,
+            oi.product_id,
+            oi.quantity,
+            oi.status,
+            oi.reference,
+            oi.variant_type,
+            oi.variant_value,
+            p.product_name,
+            p.price,
+            p.user_id AS seller_id,
+            sd.store_name,
+            os.shipping_fee AS shipping_fee_raw,
+            COALESCE(
+                (
+                    SELECT pa.attachment
+                    FROM product_attachments pa
+                    WHERE pa.product_id = p.product_id AND pa.status = 1
+                    ORDER BY pa.updated_at DESC, pa.product_attachment_id DESC
+                    LIMIT 1
+                ),
+                'images/no-image.jpg'
+            ) AS attachment
+        FROM order_items oi
+        INNER JOIN products p ON oi.product_id = p.product_id
+        LEFT JOIN seller_details sd ON p.user_id = sd.user_id
+        LEFT JOIN order_suborders os ON oi.suborder_id = os.suborder_id
+        WHERE oi.reference = %s
+        ORDER BY oi.order_items_id ASC
+    """
+
+    results = executeGet(query, (reference,))
+    if not isinstance(results, list) or not results:
+        return []
+
+    status_labels = {
+        1: 'Order Placed',
+        2: 'Shipped',
+        3: 'Out for Delivery',
+        4: 'Delivered',
+        5: 'Cancelled',
+        6: 'Completed',
+        7: 'Accepted',
+        8: 'Rejected',
+    }
+
+    formatted_items = []
+    for row in results:
+        price = float(row.get('price', 0) or 0)
+        quantity = int(row.get('quantity', 0) or 0)
+        line_total = price * quantity
+        status = int(row.get('status') or 1)
+
+        formatted_items.append({
+            'order_items_id': row.get('order_items_id'),
+            'product_id': row.get('product_id'),
+            'product_name': row.get('product_name') or 'Product',
+            'quantity': quantity,
+            'price_raw': price,
+            'formatted_price': locale.format_string("%0.2f", price, grouping=True),
+            'formatted_total': locale.format_string("%0.2f", line_total, grouping=True),
+            'seller_id': row.get('seller_id'),
+            'store_name': row.get('store_name') or 'Seller',
+            'attachment': build_product_image_url(row.get('attachment')),
+            'status': status,
+            'status_text': status_labels.get(status, 'Processing'),
+            'shipping_fee_raw': float(row.get('shipping_fee_raw', 0) or 0),
+            'reference': row.get('reference') or reference,
+            'variant_type': row.get('variant_type') or 'none',
+            'variant_value': row.get('variant_value'),
+        })
+
+    return formatted_items
 
 
 def build_timeline_steps(order_status):
