@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, session, redirect, url_for, current_app
 from helpers.HelperFunction import responseData, hashing, allowed_image_file, generate_random_filename
 from helpers.QueryHelpers import executeGet, executePost
-from helpers.SupabaseStorage import upload_file_to_supabase
+from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.Session import setSession, sessionRemove
 from helpers.VerificationHelper import (
     generate_otp,
@@ -434,8 +434,11 @@ def _format_document_path(path):
     if not path:
         return None
 
-    if isinstance(path, str) and path.startswith(('http://', 'https://')):
-        return path
+    if isinstance(path, str):
+        path = path.strip()
+        resolved_url = resolve_storage_url(path)
+        if resolved_url:
+            return resolved_url
 
     normalized = path.replace('\\', '/').lstrip('/')
     if normalized.startswith('static/'):
