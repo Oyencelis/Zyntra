@@ -8,7 +8,7 @@
 
     <div class="card">
         <h5 class="card-header">Buyer Management</h5>
-        <div class="table-responsive text-nowrap p-5">
+        <div class="table-responsive text-nowrap p-5 d-none d-md-block">
             <table class="table table-striped" id="DataTables_Table_0">
             <thead class="table-dark">
                 <tr>
@@ -57,8 +57,64 @@
                 {% endfor %}
             </tbody>
         </table>
-    
-        
+      </div>
+
+      <div class="d-md-none p-3">
+        {% for buyer in buyer_data %}
+        <div class="card mb-3 border">
+          <div class="card-body p-3">
+            <div class="mb-2">
+              <strong class="text-muted small">Buyer Name</strong>
+              <p class="mb-0 fw-bold text-capitalize">{{ buyer.firstname }} {{ buyer.lastname }}</p>
+            </div>
+
+            <div class="mb-2">
+              <strong class="text-muted small">Email</strong>
+              <p class="mb-0">{{ buyer.email }}</p>
+            </div>
+
+            <div class="mb-2">
+              <strong class="text-muted small">Phone</strong>
+              <p class="mb-0">{{ buyer.phone }}</p>
+            </div>
+
+            <div class="mb-2">
+              <strong class="text-muted small">Status</strong>
+              <p class="mb-0">
+                {% if buyer.status == 1 %}
+                  <span class="badge bg-label-success">Active</span>
+                {% elif buyer.status == 2 %}
+                  <span class="badge bg-label-danger">Disabled</span>
+                {% endif %}
+              </p>
+            </div>
+
+            <div class="mb-2">
+              <strong class="text-muted small">Approval Date</strong>
+              <p class="mb-0"><span class="created_at">{{ buyer.updated_at }}</span></p>
+            </div>
+
+            <div class="d-flex gap-2 flex-wrap mt-3 pt-2 border-top">
+              <div class="dropdown w-100">
+                <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                  <i class="bx bx-dots-vertical-rounded"></i> More Actions
+                </button>
+                <div class="dropdown-menu dropdown-menu-end w-100">
+                  {% if buyer.status == 1 %}
+                    <a class="dropdown-item change-status" data-status-to="2" data-role="{{ buyer.role_id }}" data-id="{{ buyer.user_id }}" href="javascript:void(0);">
+                      <i class='bx bx-user-x'></i>Disable
+                    </a>
+                  {% else %}
+                    <a class="dropdown-item change-status" data-status-to="1" data-role="{{ buyer.role_id }}" data-id="{{ buyer.user_id }}" href="javascript:void(0);">
+                      <i class='bx bx-user-check'></i>Enable
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
       </div>
     </div>
 
@@ -69,7 +125,9 @@
 <script>
 
 $(document).ready(function() {
-    $('#DataTables_Table_0').DataTable();
+    if (window.innerWidth >= 768) {
+        $('#DataTables_Table_0').DataTable();
+    }
 
     $(".change-status").click(function(e) {
         e.preventDefault();

@@ -156,7 +156,7 @@
 
       // DataTable initialization
       $(document).ready(function() {
-        if ($('.table').length) {
+        if (window.innerWidth >= 768 && $('.table').length) {
           let table = new DataTable('.table', {
             responsive: true,
             dataSrc: '',

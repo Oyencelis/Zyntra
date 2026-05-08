@@ -86,6 +86,15 @@ body {
   align-items: stretch;
 }
 
+.layout-page {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.content-wrapper {
+  min-width: 0;
+}
+
 /* ==========================================================================
    Sidebar Menu Styles
    -------------------------------------------------------------------------- */
@@ -101,6 +110,274 @@ body {
   overflow-y: auto;
   z-index: 1020;
   transition: all var(--transition-base);
+}
+
+@media (max-width: 1199.98px) {
+  .layout-menu {
+    transform: translateX(-100%);
+  }
+
+  .layout-wrapper.layout-menu-expanded .layout-menu {
+    transform: translateX(0);
+  }
+
+  .layout-wrapper.layout-menu-expanded .layout-overlay {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .layout-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1015;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+  }
+
+  .layout-page {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .layout-navbar.container-xxl,
+  .container-xxl.flex-grow-1.container-p-y {
+    max-width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .layout-navbar {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .layout-navbar .navbar-nav-right {
+    min-width: 0;
+  }
+
+  .dashboard-notification-menu {
+    width: min(24rem, calc(100vw - 2rem));
+  }
+
+  .card-header .d-flex.justify-content-between,
+  .card-body .d-flex.justify-content-between,
+  .hero-card .card-body,
+  .payout-hero .card-body {
+    gap: 1rem;
+  }
+
+  .search-orders-group,
+  .search-orders-group.w-auto {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .search-orders-group .form-control {
+    min-width: 0;
+  }
+
+  .table-responsive {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .table td,
+  .table th {
+    white-space: nowrap;
+  }
+
+  .dropdown-menu {
+    max-width: min(22rem, calc(100vw - 2rem));
+  }
+
+  .container-p-y {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .layout-navbar.container-xxl,
+  .container-xxl.flex-grow-1.container-p-y {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .layout-navbar .d-flex.align-items-center.w-100.flex-wrap.gap-3 {
+    gap: 0.75rem !important;
+  }
+
+  .layout-menu-toggle .nav-link {
+    padding: 0.35rem 0.5rem !important;
+  }
+
+  .app-brand {
+    padding: 0.75rem 0.75rem 0.5rem;
+  }
+
+  .app-brand .zyn-brand-text {
+    font-size: 1.15rem !important;
+  }
+
+  .menu-header {
+    margin-top: 0.75rem;
+  }
+
+  .menu-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-card .card-body,
+  .payout-hero .card-body,
+  .card .card-header,
+  .card .card-body {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .hero-card .card-body,
+  .payout-hero .card-body {
+    flex-direction: column !important;
+  }
+
+  .hero-card .text-end,
+  .payout-hero .text-end,
+  .card-header .text-end,
+  .text-lg-end {
+    text-align: left !important;
+  }
+
+  .dashboard-table td {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .dashboard-table td::before {
+    flex: 0 0 auto;
+    margin-right: 0;
+  }
+
+  .dashboard-table td > * {
+    text-align: left;
+    width: 100%;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .btn-group > .btn {
+    flex: 1 1 auto;
+  }
+
+  .d-flex.justify-content-end.mt-4 {
+    justify-content: stretch !important;
+  }
+
+  .d-flex.justify-content-end.mt-4 > .btn {
+    width: 100%;
+  }
+
+  .ql-toolbar.ql-snow,
+  .ql-container.ql-snow {
+    overflow-x: auto;
+  }
+
+  #editor {
+    min-height: 180px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .layout-menu {
+    width: min(88vw, 320px);
+  }
+
+  .dashboard-notification-menu {
+    width: calc(100vw - 1.5rem);
+  }
+
+  .notification-header,
+  .notification-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .card,
+  .hero-card,
+  .payout-hero,
+  .summary-card,
+  .breakdown-card {
+    border-radius: 1rem;
+  }
+
+  .card-header h5,
+  .hero-card h4,
+  .payout-hero .stat-value {
+    word-break: break-word;
+  }
+
+  .table-responsive {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .table-responsive.d-none.d-md-block + .d-md-none,
+  .d-md-none.p-3,
+  .d-md-none.p-3.pt-0 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .dropdown.w-100 .btn,
+  .d-grid.gap-2 .btn,
+  .card .btn.btn-sm,
+  .card .btn.btn-primary,
+  .card .btn.btn-outline-primary,
+  .card .btn.btn-outline-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dashboard-chat-card .conversation-panel,
+  .dashboard-chat-card .message-panel {
+    padding: 1rem !important;
+  }
+
+  .dashboard-chat-card .message-scroll {
+    min-height: 320px;
+    max-height: 50vh;
+  }
+
+  .dashboard-chat-card .message-input .input-group {
+    flex-wrap: nowrap;
+  }
+
+  .dashboard-chat-card .search-box input,
+  .dashboard-chat-card .message-input input,
+  .dashboard-chat-card .message-input button {
+    min-height: 44px;
+  }
+
+  .document-viewer .d-flex.justify-content-between.align-items-center {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .document-viewer .d-flex.justify-content-between.align-items-center > div:last-child {
+    display: grid;
+    gap: 0.5rem;
+  }
 }
 
 .app-brand {

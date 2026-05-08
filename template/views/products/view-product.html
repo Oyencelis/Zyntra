@@ -101,7 +101,7 @@
                     <input type="hidden" name="product_id" value="{{ product_id }}">
                     <input type="hidden" name="quantity" value="1" id="cart-quantity">
                     <input type="hidden" name="variant_selection" id="selectedVariantInput" value="">
-                    <div class="d-flex gap-2">
+                    <div class="d-flex gap-2 product-action-row">
                         {% if auth_user and auth_user.role_id == 2 %}
                             <button type="submit" class="btn btn-primary btn-lg flex-grow-1 d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%); border: none; border-radius: 0.5rem; padding: 0.75rem 1.5rem; font-weight: 600; letter-spacing: 0.5px; transition: all 0.3s ease; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);">
                                 <i class="fas fa-shopping-cart"></i>
@@ -136,7 +136,7 @@
 
         <!-- Product Tabs -->
         <div class="product-tabs">
-            <ul class="nav nav-tabs" id="productTabs" role="tablist">
+            <ul class="nav nav-tabs product-tabs-nav" id="productTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab" aria-controls="description" aria-selected="true">Description</button>
                 </li>

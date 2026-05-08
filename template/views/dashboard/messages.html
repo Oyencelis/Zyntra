@@ -5,7 +5,7 @@
 {% block style %}{% endblock %}
 
 {% block content %}
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y dashboard-messages-page">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
     <div>
       <h3 class="mb-1">Messages</h3>
@@ -14,7 +14,7 @@
     <span class="badge bg-label-primary">Live Support</span>
   </div>
 
-  <div class="card messages-card" id="dashboardMessages" data-chat-role="{{ g.authenticated.role_id if g.authenticated else '' }}" data-chat-user="{{ g.authenticated.user_id if g.authenticated else '' }}">
+  <div class="card messages-card dashboard-chat-card" id="dashboardMessages" data-chat-role="{{ g.authenticated.role_id if g.authenticated else '' }}" data-chat-user="{{ g.authenticated.user_id if g.authenticated else '' }}">
     <div class="row g-0">
       <div class="col-lg-4 conversation-panel p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
