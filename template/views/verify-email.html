@@ -2,7 +2,6 @@
 {% block title %}Verify Account{% endblock %}
 
 {% block content %}
-{% include 'views/components/verification_modals.html' %}
 <section class="py-5" style="min-height: 60vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
   <div class="container">
     <div class="row justify-content-center">
@@ -12,20 +11,17 @@
             <div class="mb-4">
               <span class="badge bg-primary bg-opacity-25 text-primary border border-primary px-4 py-2 rounded-pill">Account Verification</span>
             </div>
-            <h2 class="fw-bold mb-3">Finish setting up your account</h2>
+            <h2 class="fw-bold mb-3">Check your email</h2>
             <p class="text-muted mb-4">
-              Enter the verification codes we sent to your email and phone. This keeps your account secure.
+              Email confirmation is now handled by Supabase. Open the confirmation email we sent you, click the verification link, and then sign in to your Zyntra account.
             </p>
             <div class="d-grid gap-3">
-              <button class="btn btn-primary btn-lg" id="launchEmailModalBtn">
-                <i class="bi bi-envelope-check me-2"></i>Verify Email
-              </button>
-              <button class="btn btn-outline-primary btn-lg" id="launchOtpModalBtn">
-                <i class="bi bi-phone me-2"></i>Verify Phone
-              </button>
+              <a class="btn btn-primary btn-lg" href="{{ url_for('login_page') }}">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
+              </a>
             </div>
             <div class="alert alert-info mt-4" role="alert">
-              Didn’t receive the codes? Use the resend buttons inside each step.
+              If you do not see the message, check your spam folder and confirm that your Supabase redirect URL is allowed in your project settings.
             </div>
           </div>
         </div>
@@ -33,33 +29,4 @@
     </div>
   </div>
 </section>
-{% endblock %}
-
-{% block script %}
-<script src="{{ url_for('static', filename='js/verification-flow.js') }}"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const email = new URLSearchParams(window.location.search).get('email');
-    const phone = new URLSearchParams(window.location.search).get('phone');
-    if (window.VerificationFlow && (email || phone)) {
-      VerificationFlow.start(email, phone);
-    }
-    const emailBtn = document.getElementById('launchEmailModalBtn');
-    const otpBtn = document.getElementById('launchOtpModalBtn');
-    if (emailBtn) {
-      emailBtn.addEventListener('click', () => {
-        if (window.VerificationFlow) {
-          VerificationFlow.requireEmail(email, phone);
-        }
-      });
-    }
-    if (otpBtn) {
-      otpBtn.addEventListener('click', () => {
-        if (window.VerificationFlow) {
-          VerificationFlow.requirePhone(email, phone);
-        }
-      });
-    }
-  });
-</script>
 {% endblock %}

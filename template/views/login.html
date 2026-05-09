@@ -2,7 +2,6 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-{% include 'views/components/verification_modals.html' %}
 <section class="login-page min-vh-100 d-flex align-items-center position-relative overflow-hidden py-4 py-lg-0" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
   <!-- Animated Circuit Board Background -->
   <div class="position-absolute w-100 h-100 top-0 start-0" style="opacity: 0.1; background-image: url('data:image/svg+xml,%3Csvg width=\'80\' height=\'80\' viewBox=\'0 0 80 80\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'1\'%3E%3Cpath d=\'M50 50c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm-35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm35 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');"></div>
@@ -244,70 +243,8 @@
 {% endblock %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='js/verification-flow.js') }}"></script>
 <script>
 $(document).ready(function() {
-	$("#loginForm").submit(function(e) {
-		e.preventDefault(); // Prevent form from reloading the page
-
-		var data = new FormData(this);
-		let path = `/login`;
-
-		$.SystemScript.executePost(path, data).done((response) => {
-			const payload = response.data || {};
-			const details = payload.data || {};
-			console.log('Login response:', payload);
-			
-			switch(payload.status) {
-				case 'success':
-					let role = payload.data.role_id;
-					if (role == 1 || role == 3 || role == 4) {
-						window.location.href = '/dashboard';
-					} else {
-						window.location.href = '/';
-					}
-					break;
-					
-				case 'pending':
-					$.SystemScript.swalAlertMessage(
-						'Application Under Review', 
-						'Your seller application is currently under review. We will notify you via email once your account has been approved. This typically takes 24-48 hours.', 
-						'info'
-					);
-					$("#password").val('');
-					break;
-					
-				case 'rejected':
-					$.SystemScript.swalAlertMessage(
-						'Application Rejected', 
-						'Your seller application has been reviewed and unfortunately not approved at this time. Please contact our support team for more information.', 
-						'warning'
-					);
-					$("#password").val('');
-					break;
-					
-				default:
-					const message = (payload.message || '').toLowerCase();
-					const hasVerificationDetails = details && (details.email || details.phone);
-					if (hasVerificationDetails && window.VerificationFlow) {
-						if (message.includes('verify your email')) {
-							VerificationFlow.requireEmail(details.email, details.phone);
-						} else if (message.includes('verify your phone')) {
-							VerificationFlow.requirePhone(details.email, details.phone);
-						} else {
-							VerificationFlow.requireEmail(details.email, details.phone);
-						}
-					} else {
-						$.SystemScript.swalAlertMessage('Login Failed', payload.message || 'An error occurred during login', 'error');
-					}
-					$("#password").val('');
-			}
-		}).fail((xhr, status, error) => {
-			console.error('Login error:', error);
-			$.SystemScript.swalAlertMessage('Error', 'An error occurred while processing your request. Please try again.', 'error');
-		});
-	});
-
 	// Show/Hide Password with Eye Icon
 	$('#togglePassword').click(function() {
 		const passwordField = $('#password');

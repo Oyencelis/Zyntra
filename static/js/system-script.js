@@ -270,27 +270,15 @@ $.SystemScript = (function() {
                                 }
                                 break;
                             case 'pending':
-                                __swalAlertMessage('Application Under Review', 'Your seller application is currently under review. We will notify you via email once your account has been approved. This typically takes 24-48 hours.', 'info');
+                                __swalAlertMessage('Application Under Review', payload.message || 'Your application is currently under review.', 'info');
                                 if (passwordField) passwordField.value = '';
                                 break;
                             case 'rejected':
-                                __swalAlertMessage('Application Rejected', 'Your seller application has been reviewed and unfortunately not approved at this time. Please contact our support team for more information.', 'warning');
+                                __swalAlertMessage('Application Rejected', payload.message || 'Your application was not approved.', 'warning');
                                 if (passwordField) passwordField.value = '';
                                 break;
                             default:
-                                let message = (payload.message || '').toLowerCase();
-                                let hasVerificationDetails = details && (details.email || details.phone);
-                                if (hasVerificationDetails && window.VerificationFlow) {
-                                    if (message.includes('verify your email')) {
-                                        VerificationFlow.requireEmail(details.email, details.phone);
-                                    } else if (message.includes('verify your phone')) {
-                                        VerificationFlow.requirePhone(details.email, details.phone);
-                                    } else {
-                                        VerificationFlow.requireEmail(details.email, details.phone);
-                                    }
-                                } else {
-                                    __swalAlertMessage('Login Failed', payload.message || 'An error occurred during login', 'error');
-                                }
+                                __swalAlertMessage('Login Failed', payload.message || 'An error occurred during login', 'error');
                                 if (passwordField) passwordField.value = '';
                                 break;
                         }

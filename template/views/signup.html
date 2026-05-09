@@ -3,7 +3,6 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-{% include 'views/components/verification_modals.html' %}
 <!-- Modern Signup Page -->
 <section class="min-vh-100 d-flex align-items-center position-relative overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
   <!-- Animated Circuit Board Background -->
@@ -268,7 +267,6 @@
 {% endblock %}
 
 {% block script %}
-<script src="{{ url_for('static', filename='js/verification-flow.js') }}"></script>
 <script>
 $(document).ready(function() {
 	$("#signupForm").submit(function(e) {
@@ -294,13 +292,10 @@ $(document).ready(function() {
 		$.SystemScript.executePost(path, data).done((response) => {
 			const payload = response.data || {};
 			if (payload.status === 'success') {
-				const details = payload.data || {};
-				if (window.VerificationFlow) {
-					VerificationFlow.start(details.email || $('#email').val(), details.phone || $('#phone').val());
-				} else {
-					// Fallback if verification script failed to load
-					alert('Account created! Please check your email and phone for verification codes.');
-				}
+				$.SystemScript.swalAlertMessage('Success!', payload.message || 'Account created successfully. Please check your email for the confirmation link.', 'success');
+				$('.swal2-confirm').off('click').on('click', function() {
+					window.location.href = '/login';
+				});
 			} else {
 				$.SystemScript.swalAlertMessage('Oops!', `${payload.message || 'Something went wrong.'}`, 'error');
 			}
