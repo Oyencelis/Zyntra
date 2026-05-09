@@ -103,6 +103,8 @@ def _normalize_auth_error(error: Exception) -> str:
         return 'Invalid email or password.'
     if 'user already registered' in lowered:
         return 'Email already exists.'
+    if 'email rate limit exceeded' in lowered or 'over_email_send_rate_limit' in lowered:
+        return 'Too many confirmation emails were requested from Supabase. Please wait a few minutes before trying again, or use a different email while testing.'
     if 'signup is disabled' in lowered:
         return 'Supabase signup is currently disabled.'
 
