@@ -33,11 +33,11 @@ def estimate_shipping_for_seller_group(
 ) -> tuple[float, str]:
     """
     Returns (fee, reason_label).
-    Free shipping when group_subtotal >= configured threshold.
+    Shipping is based on seller-to-buyer locality, with optional distance pricing
+    when coordinates are available.
     """
-    threshold = get_float_setting("shipping_free_threshold", 2000.0)
-    if group_subtotal >= threshold or group_subtotal <= 0:
-        return 0.0, "free_threshold"
+    if group_subtotal <= 0:
+        return 0.0, "empty_group"
 
     bla = _num((buyer_address or {}).get("latitude"))
     blo = _num((buyer_address or {}).get("longitude"))

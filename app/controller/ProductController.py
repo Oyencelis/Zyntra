@@ -5,7 +5,7 @@ from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, init_app_locale
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.delivery_media import save_compressed_proof
-from helpers.marketplace_settings import get_bool_setting, get_float_setting
+from helpers.marketplace_settings import get_bool_setting
 import os
 import json
 # pyrefly: ignore [missing-import]
@@ -420,7 +420,6 @@ def viewProduct(product_id):
         protection_show_badge = bool(product.get("protection_eligible", True)) and get_bool_setting(
             "protection_enabled", True
         )
-        free_ship = int(get_float_setting("shipping_free_threshold", 2000))
 
         return render_template('views/products/view-product.html',
                              product_name=product['product_name'],
@@ -443,8 +442,7 @@ def viewProduct(product_id):
                              can_review=can_review,
                              variant_type=variant_type,
                              variant_values=variant_values,
-                             protection_show_badge=protection_show_badge,
-                             free_shipping_threshold=free_ship)
+                             protection_show_badge=protection_show_badge)
     except Exception as e:
         print(f"Error in viewProduct: {str(e)}")
         return render_template('views/404.html'), 404
