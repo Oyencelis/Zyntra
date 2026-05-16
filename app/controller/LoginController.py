@@ -6,6 +6,7 @@ from helpers.SupabaseAuth import sign_in_with_supabase, sign_up_with_supabase, s
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.Session import setSession, sessionRemove
 import os
+import re
 from datetime import datetime
 
 
@@ -54,6 +55,26 @@ def _supabase_password_reset_redirect_url():
         return url_for('login_page', mode='recovery', _external=True)
     except Exception:
         return None
+
+
+def _password_policy_message():
+    return 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character.'
+
+
+def _validate_password_strength(password):
+    if password is None or password == '':
+        return 'Password is required'
+    if len(password) < 8:
+        return _password_policy_message()
+    if not re.search(r'[A-Z]', password):
+        return _password_policy_message()
+    if not re.search(r'[a-z]', password):
+        return _password_policy_message()
+    if not re.search(r'\d', password):
+        return _password_policy_message()
+    if not re.search(r'[^A-Za-z0-9]', password):
+        return _password_policy_message()
+    return None
 
 
 def _auth_user_id(auth_user):
@@ -333,6 +354,9 @@ def signupSubmit():
         return responseData("error", "Password is required", "", 200)
     if confirmPassword is None or confirmPassword == "":
         return responseData("error", "confirmPassword is required", "", 200)
+    password_error = _validate_password_strength(password)
+    if password_error:
+        return responseData("error", password_error, "", 200)
     if password != confirmPassword:
         return responseData("error", "Passwords do not match", "", 200)
     
@@ -427,6 +451,9 @@ def sellerSignupSubmit():
             return responseData("error", "Phone is required", "", 200)
         if not password:
             return responseData("error", "Password is required", "", 200)
+        password_error = _validate_password_strength(password)
+        if password_error:
+            return responseData("error", password_error, "", 200)
         if password != confirm_password:
             return responseData("error", "Passwords do not match", "", 200)
         if not store_name:
@@ -545,6 +572,9 @@ def deliveryPartnerSignupSubmit():
             return responseData("error", "Phone is required", "", 200)
         if not password:
             return responseData("error", "Password is required", "", 200)
+        password_error = _validate_password_strength(password)
+        if password_error:
+            return responseData("error", password_error, "", 200)
         if password != confirm_password:
             return responseData("error", "Passwords do not match", "", 200)
         if not vehicle_type:

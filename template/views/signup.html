@@ -138,8 +138,9 @@
                   <span class="input-group-text border-end-0 bg-transparent">
                     <i class="bi bi-key text-muted"></i>
                   </span>
-                  <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Min. 8 characters" oninput="checkPasswordStrength()" required>
+                  <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Use a strong password" minlength="8" autocomplete="new-password" oninput="checkPasswordStrength()" required>
                 </div>
+                <small class="text-muted">Use at least 8 characters with uppercase, lowercase, a number, and a special character.</small>
                 <div id="passwordStrength" class="mt-2"></div>
               </div>
 
@@ -149,7 +150,7 @@
                   <span class="input-group-text border-end-0 bg-transparent">
                     <i class="bi bi-shield-check text-muted"></i>
                   </span>
-                  <input type="password" class="form-control border-start-0" name="confirmPassword" id="confirmPassword" placeholder="Confirm your password" required>
+                  <input type="password" class="form-control border-start-0" name="confirmPassword" id="confirmPassword" placeholder="Confirm your password" minlength="8" autocomplete="new-password" required>
                 </div>
               </div>
 
@@ -269,15 +270,23 @@
 {% block script %}
 <script>
 $(document).ready(function() {
+	const passwordPolicyMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character.';
+	const isStrongPassword = function(password) {
+		return password.length >= 8
+			&& /[A-Z]/.test(password)
+			&& /[a-z]/.test(password)
+			&& /[0-9]/.test(password)
+			&& /[^A-Za-z0-9]/.test(password);
+	};
+
 	$("#signupForm").submit(function(e) {
 		e.preventDefault(); // Prevent form from reloading the page
 
 		var password = $('#password').val();
         var confirmPassword = $('#confirmPassword').val();
 
-        // Client-side validation for password length and matching
-        if (password.length < 8) {
-            $.SystemScript.swalAlertMessage('Oops!', 'Password must be at least 8 characters long.', 'error');
+        if (!isStrongPassword(password)) {
+            $.SystemScript.swalAlertMessage('Oops!', passwordPolicyMessage, 'error');
             return;
         }
 

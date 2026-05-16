@@ -207,6 +207,7 @@
                       <i class="bi bi-eye-slash text-muted" id="recoveryEyeIcon"></i>
                     </button>
                   </div>
+                  <small class="text-muted">Use at least 8 characters with uppercase, lowercase, a number, and a special character.</small>
                 </div>
 
                 <div class="mb-4">
@@ -345,6 +346,15 @@ document.addEventListener('DOMContentLoaded', function () {
   const supabasePublicKey = authCardState ? JSON.parse(authCardState.dataset.supabasePublicKey || '""') : '';
   let supabaseClient = null;
   let recoverySessionReady = false;
+  const passwordPolicyMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character.';
+
+  function isStrongPassword(password) {
+    return password.length >= 8
+      && /[A-Z]/.test(password)
+      && /[a-z]/.test(password)
+      && /[0-9]/.test(password)
+      && /[^A-Za-z0-9]/.test(password);
+  }
 
   function swalMessage(title, text, icon) {
     if (window.$ && $.SystemScript && $.SystemScript.swalAlertMessage) {
@@ -509,8 +519,8 @@ document.addEventListener('DOMContentLoaded', function () {
       const nextPassword = passwordInput ? passwordInput.value : '';
       const confirmPassword = confirmInput ? confirmInput.value : '';
 
-      if (nextPassword.length < 8) {
-        swalMessage('Weak Password', 'Your new password must be at least 8 characters long.', 'warning');
+      if (!isStrongPassword(nextPassword)) {
+        swalMessage('Weak Password', passwordPolicyMessage, 'warning');
         return;
       }
 
