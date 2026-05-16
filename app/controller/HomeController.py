@@ -1505,6 +1505,20 @@ def orderTracking(reference):
     if isinstance(suborders, tuple):
         suborders = []
 
+    shipping_breakdown = []
+    seen_suborders = set()
+    for suborder in suborders or []:
+        suborder_id = suborder.get('suborder_id')
+        if not suborder_id or suborder_id in seen_suborders:
+            continue
+        seen_suborders.add(suborder_id)
+        shipping_breakdown.append({
+            'seller_id': suborder.get('seller_id'),
+            'store_name': suborder.get('store_name') or 'Seller',
+            'shipping_fee': float(suborder.get('shipping_fee') or 0),
+        })
+    summary['shipping_breakdown'] = shipping_breakdown
+
     # Determine primary seller for buyer<>seller chat (first seller in this order)
     primary_seller_id = None
     primary_seller_name = None
