@@ -1,5 +1,12 @@
-from flask import Flask, session
 import os
+import sys
+
+# Vercel imports this file as a module from the repo root; ensure `app/` is on the path.
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if _APP_DIR not in sys.path:
+    sys.path.insert(0, _APP_DIR)
+
+from flask import Flask, session
 from dotenv import load_dotenv
 from extensions import mail
 from helpers.template_filters import register_template_filters
