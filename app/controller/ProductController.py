@@ -2,7 +2,7 @@
 from flask import render_template, session, g, request, redirect, url_for
 import html
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
-from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename
+from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, init_app_locale
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.delivery_media import save_compressed_proof
 from helpers.marketplace_settings import get_bool_setting, get_float_setting
@@ -16,7 +16,7 @@ from controller.UserController import getSellers
 import locale
 import re
 
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+init_app_locale()
 
 ALLOWED_VARIANT_TYPES = {'none', 'sizes', 'colors'}
 
@@ -150,7 +150,7 @@ def products():
         images = executeGet(query, (product_id,))
         product['images'] = [img['attachment'] for img in images]
     
-    return render_template('/views/Products/index.html', 
+    return render_template('views/products/index.html', 
                          menu=active_menu, 
                          categories=categories, 
                          products=products,
@@ -422,7 +422,7 @@ def viewProduct(product_id):
         )
         free_ship = int(get_float_setting("shipping_free_threshold", 2000))
 
-        return render_template('views/Products/view-product.html',
+        return render_template('views/products/view-product.html',
                              product_name=product['product_name'],
                              product_description=product['description'],
                              product_price=product['price'],
@@ -555,7 +555,7 @@ def storeProducts(seller_id):
     }
 
     return render_template(
-        'views/Products/store.html',
+        'views/products/store.html',
         store=store,
         products=seller_products,
         stats=stats,

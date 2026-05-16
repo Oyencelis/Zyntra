@@ -1,10 +1,13 @@
-# app.py or factory file
-# pyrefly: ignore [missing-import]
-from flask import Flask, session
 import os
-# pyrefly: ignore [missing-import]
+import sys
+
+# Vercel imports this file as a module from the repo root; ensure `app/` is on the path.
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if _APP_DIR not in sys.path:
+    sys.path.insert(0, _APP_DIR)
+
+from flask import Flask, session
 from dotenv import load_dotenv
-from flask_session import Session
 from extensions import mail
 from helpers.template_filters import register_template_filters
 
@@ -22,7 +25,6 @@ def create_app():
     
     # Core config
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-prod')
-    app.config['SESSION_TYPE'] = 'filesystem'
 
     # Mail configuration
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -40,7 +42,6 @@ def create_app():
     app.config['OTP_TTL_MINUTES'] = int(os.environ.get('OTP_TTL_MINUTES', 5))
     app.config['OTP_RESEND_COOLDOWN_SECONDS'] = int(os.environ.get('OTP_RESEND_COOLDOWN_SECONDS', 60))
 
-    Session(app)
     mail.init_app(app)
 
     @app.context_processor
@@ -54,6 +55,9 @@ def create_app():
 
     return app
 
+
+# Required by Vercel — must be a module-level variable named "app"
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True)
