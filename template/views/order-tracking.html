@@ -119,14 +119,19 @@
                 </div>
             </div>
 
-            {% set delivered_proofs = suborders | selectattr('status', 'equalto', 4) | selectattr('delivery_proof_image') | list %}
-            {% if delivered_proofs %}
+            {% set proof_suborders = namespace(items=[]) %}
+            {% for suborder in suborders %}
+            {% if suborder.delivery_proof_image and suborder.status in [4, 6] %}
+            {% set _ = proof_suborders.items.append(suborder) %}
+            {% endif %}
+            {% endfor %}
+            {% if proof_suborders.items %}
             <div class="timeline-card card border-0 shadow-sm rounded-4 mt-4">
                 <div class="card-body">
                     <p class="text-muted small mb-1">Delivery Proof</p>
-                    <h5 class="mb-3">Rider confirmation for delivered item{{ 's' if delivered_proofs|length > 1 else '' }}</h5>
+                    <h5 class="mb-3">Rider confirmation for delivered item{{ 's' if proof_suborders.items|length > 1 else '' }}</h5>
                     <div class="row g-3">
-                        {% for suborder in delivered_proofs %}
+                        {% for suborder in proof_suborders.items %}
                         <div class="col-md-6">
                             <div class="border rounded-4 h-100 overflow-hidden bg-white">
                                 <img src="{{ suborder.delivery_proof_image }}" alt="Delivery proof for {{ suborder.sub_reference }}"
@@ -137,7 +142,7 @@
                                             <p class="text-muted small text-uppercase mb-1">Sub-order</p>
                                             <h6 class="mb-1">{{ suborder.sub_reference }}</h6>
                                         </div>
-                                        <span class="badge rounded-pill bg-soft-success text-success">Delivered</span>
+                                        <span class="badge rounded-pill bg-soft-success text-success">{{ 'Completed' if suborder.status == 6 else 'Delivered' }}</span>
                                     </div>
                                     <div class="small text-muted">
                                         <div><strong>Seller:</strong> {{ suborder.store_name }}</div>
