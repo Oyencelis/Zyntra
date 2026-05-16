@@ -1,6 +1,10 @@
 (function (window, document) {
   const API_BASE = '/api/rider/pickups';
 
+  function formatCurrency(value) {
+    return `₱${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
   function createPickupCard(data, scope) {
     const isAvailable = scope === 'available';
     const actions = [];
@@ -38,6 +42,7 @@
             <h6 class="mb-1">Order ${data.order_reference || data.sub_reference}</h6>
             <p class="mb-1 small text-muted">Seller: ${escapeHtml(data.seller_store || 'Seller')}</p>
             <p class="mb-1 small">Drop-off: ${escapeHtml(data.buyer_name || 'Buyer')} ${data.buyer_phone ? `&middot; ${data.buyer_phone}` : ''}</p>
+            <p class="mb-1 small text-primary fw-semibold">${escapeHtml(data.commission_label || 'Projected commission')}: ${formatCurrency(data.display_commission)}</p>
             <div>${statusBadge}</div>
           </div>
           <div class="d-flex flex-column gap-2">
@@ -198,6 +203,8 @@
     const buyerPhoneEl = modalEl.querySelector('[data-detail="buyer-phone"]');
     const buyerAddressEl = modalEl.querySelector('[data-detail="buyer-address"]');
     const sellerStoreEl = modalEl.querySelector('[data-detail="seller-store"]');
+    const commissionAmountEl = modalEl.querySelector('[data-detail="commission-amount"]');
+    const commissionLabelEl = modalEl.querySelector('[data-detail="commission-label"]');
     const itemsRoot = modalEl.querySelector('[data-detail="items"]');
     const statusHintEl = modalEl.querySelector('[data-detail="status-hint"]');
     const statusButtons = modalEl.querySelectorAll('[data-detail="status-btn"]');
@@ -209,6 +216,8 @@
     if (buyerPhoneEl) buyerPhoneEl.textContent = detail.buyer_phone || 'N/A';
     if (buyerAddressEl) buyerAddressEl.textContent = detail.buyer_address || 'No address on file';
     if (sellerStoreEl) sellerStoreEl.textContent = detail.seller_store || detail.seller_name || 'Seller';
+    if (commissionAmountEl) commissionAmountEl.textContent = formatCurrency(detail.display_commission);
+    if (commissionLabelEl) commissionLabelEl.textContent = detail.commission_label || 'Projected commission';
 
     const pickupStatus = detail.pickup_status || 0;
     if (statusHintEl) {
@@ -364,8 +373,8 @@
         const qty = item.quantity || 0;
         const unit = item.unit_price || 0;
         const total = item.line_total || qty * unit;
-        const priceText = `₱${Number(unit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-        const totalText = `₱${Number(total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const priceText = formatCurrency(unit);
+        const totalText = formatCurrency(total);
         const image = item.product_image
           ? `<div class="me-3 flex-shrink-0" style="width: 48px; height: 48px; overflow: hidden; border-radius: 0.5rem; background:#f8f9fa;"><img src="${item.product_image}" alt="${escapeHtml(
               item.product_name || ''

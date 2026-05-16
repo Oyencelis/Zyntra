@@ -15,10 +15,12 @@
           <div class="text-md-end mt-3 mt-md-0">
             <p class="mb-0 opacity-75">Active Rider</p>
             <h5 class="mb-0">{{ g.authenticated.firstname }} {{ g.authenticated.lastname }}</h5>
-            <div class="mt-2 text-white">
-              <span class="badge bg-success me-2 fs-6">₱{{ '{:,.2f}'.format(wallet_balance|default(0, true)) }} Available</span>
-              <span class="badge bg-info fs-6">₱{{ '{:,.2f}'.format(total_commission|default(0, true)) }} Total Earnings</span>
+            <div class="mt-2 d-flex flex-wrap gap-2 justify-content-md-end text-white">
+              <span class="badge bg-success fs-6">₱{{ '{:,.2f}'.format(wallet_balance|default(0, true)) }} Available Balance</span>
+              <span class="badge bg-info fs-6">₱{{ '{:,.2f}'.format(credited_earnings|default(0, true)) }} Credited Earnings</span>
+              <span class="badge bg-warning text-dark fs-6">₱{{ '{:,.2f}'.format(active_earnings|default(0, true)) }} Active Projected</span>
             </div>
+            <small class="d-block mt-2 opacity-75">Projected total earnings: ₱{{ '{:,.2f}'.format(projected_total|default(0, true)) }}</small>
           </div>
         </div>
       </div>
@@ -119,6 +121,8 @@
               </div>
               <hr class="my-3">
               <p class="mb-1 small"><strong>Store:</strong> <span data-detail="seller-store">-</span></p>
+              <p class="mb-1 small"><strong>Current commission:</strong> <span data-detail="commission-amount">-</span></p>
+              <p class="mb-0 small"><strong>Commission status:</strong> <span data-detail="commission-label">-</span></p>
               <hr class="my-3">
               <h6 class="mb-2">Status Overview</h6>
               <div class="d-flex flex-wrap gap-2 mb-2">

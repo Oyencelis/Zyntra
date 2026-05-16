@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from flask import render_template, g, redirect, url_for
 from helpers.QueryHelpers import executeGet
+from helpers.wallet_finance import rider_earnings_snapshot, calculate_rider_commission_amount
 
 ORDER_STATUS_BADGES = {
     1: ('Order Placed', 'bg-label-secondary'),
@@ -424,38 +425,39 @@ def _build_seller_context(user_id):
 
 
 def _build_rider_context(user_id):
-    aggregates = (executeGet("""
-        SELECT
-            COUNT(*) AS total_trips,
-            SUM(shipping_fee) AS total_fee,
-            SUM(CASE WHEN pickup_status = 4 THEN 1 ELSE 0 END) AS completed_trips,
-            SUM(CASE WHEN pickup_status IN (0,1) THEN 1 ELSE 0 END) AS awaiting_trips,
-            SUM(CASE WHEN pickup_status IN (2,3) THEN 1 ELSE 0 END) AS in_transit_trips,
-            SUM(CASE WHEN pickup_status = 4 THEN shipping_fee ELSE 0 END) AS completed_fee,
-            SUM(CASE WHEN pickup_status IN (0,1) THEN shipping_fee ELSE 0 END) AS awaiting_fee,
-            SUM(CASE WHEN pickup_status IN (2,3) THEN shipping_fee ELSE 0 END) AS in_transit_fee
-        FROM order_suborders
-        WHERE pickup_rider_id = %s
-    """, (user_id,)) or [{}])[0]
+    aggregates = rider_earnings_snapshot(user_id)
 
     assigned_suborders = executeGet("""
         SELECT 
+            os.suborder_id,
             os.reference,
-            os.total_amount,
+            os.shipping_fee,
+            os.subtotal,
             os.pickup_status,
             os.updated_at,
-            COALESCE(sd.store_name, 'Seller') AS store_name
+            COALESCE(sd.store_name, 'Seller') AS store_name,
+            (
+                SELECT wl.amount
+                FROM wallet_ledger wl
+                WHERE wl.user_id = %s
+                  AND wl.wallet_role = 'rider'
+                  AND wl.entry_kind = 'rider_commission_delivery'
+                  AND wl.reference_id = os.suborder_id
+                LIMIT 1
+            ) AS actual_commission
         FROM order_suborders os
         LEFT JOIN seller_details sd ON sd.user_id = os.seller_id
         WHERE os.pickup_rider_id = %s
         ORDER BY os.updated_at DESC
         LIMIT 6
-    """, (user_id,)) or []
+    """, (user_id, user_id)) or []
 
     available_pickups = executeGet("""
         SELECT 
+            os.suborder_id,
             os.reference,
-            os.total_amount,
+            os.shipping_fee,
+            os.subtotal,
             os.updated_at,
             COALESCE(sd.store_name, 'Seller') AS store_name
         FROM order_suborders os
@@ -496,8 +498,10 @@ def _build_rider_context(user_id):
         {
             'label': 'Lifetime earnings',
             'value': _format_currency(aggregates.get('total_fee')),
-            'helper': 'Shipping fees assigned',
-            'icon': 'bx bxs-wallet'
+            'helper': 'Credited plus projected rider commissions',
+            'icon': 'bx bxs-wallet',
+            'trend': f"Available {_format_currency(aggregates.get('available_balance'))}",
+            'trend_class': 'text-success'
         },
     ]
 
@@ -528,7 +532,7 @@ def _build_rider_context(user_id):
         'columns': [
             {'key': 'reference', 'label': 'Sub-order'},
             {'key': 'customer', 'label': 'Store'},
-            {'key': 'amount', 'label': 'Fee'},
+            {'key': 'amount', 'label': 'Earnings'},
             {'key': 'status', 'label': 'Status'},
             {'key': 'created_at', 'label': 'Updated'},
         ],
@@ -536,7 +540,7 @@ def _build_rider_context(user_id):
             {
                 'reference': row.get('reference'),
                 'customer': row.get('store_name'),
-                'amount': _format_currency(row.get('total_amount')),
+                'amount': _format_currency(row.get('actual_commission') if row.get('actual_commission') is not None else calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))),
                 'status': _status_badge(row.get('pickup_status'), PICKUP_STATUS_BADGES),
                 'created_at': _format_datetime(row.get('updated_at')),
             } for row in assigned_suborders
@@ -550,7 +554,7 @@ def _build_rider_context(user_id):
             'items': [
                 {
                     'primary': pickup.get('store_name'),
-                    'secondary': _format_currency(pickup.get('total_amount')),
+                    'secondary': _format_currency(calculate_rider_commission_amount(pickup.get('shipping_fee'), pickup.get('subtotal'))),
                     'meta': _format_datetime(pickup.get('updated_at'))
                 } for pickup in available_pickups
             ]
@@ -569,8 +573,8 @@ def _build_rider_context(user_id):
         'eyebrow': 'Delivery ops',
         'title': 'Trips, fees, and pickups in one view',
         'subtitle': 'Track what is waiting, in transit, and already delivered.',
-        'meta_label': 'Completed drops',
-        'meta_value': f"{_safe_int(aggregates.get('completed_trips')):,}",
+        'meta_label': 'Projected total earnings',
+        'meta_value': _format_currency(aggregates.get('total_fee')),
         'cta_label': 'Go to earnings',
         'cta_href': '/rider-earnings'
     }

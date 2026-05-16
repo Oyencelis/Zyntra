@@ -46,6 +46,71 @@ def available_balance(user_id: int, wallet_role: str) -> Decimal:
     return ledger_balance(user_id, wallet_role) - pending_withdrawal_total(user_id, wallet_role)
 
 
+def calculate_rider_commission_amount(shipping_fee, subtotal) -> float:
+    shipping = float(shipping_fee or 0)
+    subtotal_amount = float(subtotal or 0)
+    ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
+    prod_pct = get_float_setting("rider_commission_pct_of_product", 5.0) / 100.0
+    return round(max(0.0, (shipping * ship_pct) + (subtotal_amount * prod_pct)), 2)
+
+
+def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
+    active_rows = executeGet(
+        """
+        SELECT
+            COUNT(*) AS total_trips,
+            SUM(CASE WHEN pickup_status IN (2, 3) THEN shipping_fee ELSE 0 END) AS in_transit_shipping_fee,
+            SUM(CASE WHEN pickup_status IN (2, 3) THEN subtotal ELSE 0 END) AS in_transit_subtotal,
+            SUM(CASE WHEN pickup_status IN (0, 1) THEN shipping_fee ELSE 0 END) AS awaiting_shipping_fee,
+            SUM(CASE WHEN pickup_status IN (0, 1) THEN subtotal ELSE 0 END) AS awaiting_subtotal,
+            SUM(CASE WHEN pickup_status IN (2, 3) THEN 1 ELSE 0 END) AS in_transit_trips,
+            SUM(CASE WHEN pickup_status IN (0, 1) THEN 1 ELSE 0 END) AS awaiting_trips,
+            SUM(CASE WHEN pickup_status = 4 THEN 1 ELSE 0 END) AS completed_trips
+        FROM order_suborders
+        WHERE pickup_rider_id = %s
+        """,
+        (user_id,),
+    ) or []
+    active = active_rows[0] if active_rows else {}
+
+    completed_rows = executeGet(
+        """
+        SELECT COALESCE(SUM(amount), 0) AS completed_fee
+        FROM wallet_ledger
+        WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind = 'rider_commission_delivery'
+        """,
+        (user_id,),
+    ) or []
+    completed_fee = float((completed_rows[0] if completed_rows else {}).get("completed_fee") or 0)
+
+    in_transit_fee = calculate_rider_commission_amount(
+        active.get("in_transit_shipping_fee"),
+        active.get("in_transit_subtotal"),
+    )
+    awaiting_fee = calculate_rider_commission_amount(
+        active.get("awaiting_shipping_fee"),
+        active.get("awaiting_subtotal"),
+    )
+    active_fee = round(in_transit_fee + awaiting_fee, 2)
+    total_fee = round(completed_fee + active_fee, 2)
+    available = float(available_balance(user_id, "rider"))
+    pending = float(pending_withdrawal_total(user_id, "rider"))
+
+    return {
+        "total_trips": int(active.get("total_trips") or 0),
+        "completed_trips": int(active.get("completed_trips") or 0),
+        "in_transit_trips": int(active.get("in_transit_trips") or 0),
+        "awaiting_trips": int(active.get("awaiting_trips") or 0),
+        "completed_fee": completed_fee,
+        "in_transit_fee": in_transit_fee,
+        "awaiting_fee": awaiting_fee,
+        "active_fee": active_fee,
+        "total_fee": total_fee,
+        "available_balance": available,
+        "pending_withdrawals": pending,
+    }
+
+
 def _ledger_exists(entry_kind: str, reference_id: int | None, user_id: int) -> bool:
     rows = executeGet(
         """
@@ -86,13 +151,7 @@ def credit_rider_commission_for_suborder(suborder_id: int) -> None:
     rider_id = rows[0].get("rider_id")
     if not rider_id:
         return
-    shipping = float(rows[0].get("shipping_fee") or 0)
-    subtotal = float(rows[0].get("subtotal") or 0)
-    
-    ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
-    prod_pct = get_float_setting("rider_commission_pct_of_product", 5.0) / 100.0
-    
-    amount = round(max(0.0, (shipping * ship_pct) + (subtotal * prod_pct)), 2)
+    amount = calculate_rider_commission_amount(rows[0].get("shipping_fee"), rows[0].get("subtotal"))
     if amount <= 0:
         return
     rid = int(rider_id)

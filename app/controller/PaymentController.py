@@ -2,7 +2,7 @@ from datetime import datetime
 # pyrefly: ignore [missing-import]
 from flask import render_template, g, redirect, url_for
 from helpers.QueryHelpers import executeGet
-from helpers.wallet_finance import available_balance, pending_withdrawal_total
+from helpers.wallet_finance import available_balance, pending_withdrawal_total, rider_earnings_snapshot, calculate_rider_commission_amount
 
 ORDER_STATUS_LABELS = {
     1: "Order Placed",
@@ -73,7 +73,7 @@ def paymentDashboard():
             "eyebrow": "Delivery earnings overview",
             "title": "Rider Earnings & Payouts",
             "subtitle": "Track completed trips, pending drops, and funds waiting to be released.",
-            "meta_label": "Total shipping earnings to date",
+            "meta_label": "Projected rider earnings to date",
             "meta_value": _format_currency(aggregates.get('total_fee')),
         }
         menu = ['earnings']
@@ -107,53 +107,7 @@ def paymentDashboard():
 
 
 def _get_rider_aggregates(user_id):
-    from helpers.wallet_finance import get_float_setting
-    ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
-    prod_pct = get_float_setting("rider_commission_pct_of_product", 5.0) / 100.0
-
-    # Query for pending / active trips
-    query_active = """
-        SELECT
-            COUNT(*) AS total_trips,
-            SUM(CASE WHEN pickup_status IN (2, 3) THEN (shipping_fee * %s) + (subtotal * %s) ELSE 0 END) AS in_transit_fee,
-            SUM(CASE WHEN pickup_status IN (0, 1) THEN (shipping_fee * %s) + (subtotal * %s) ELSE 0 END) AS awaiting_fee,
-            SUM(CASE WHEN pickup_status IN (2, 3) THEN 1 ELSE 0 END) AS in_transit_trips,
-            SUM(CASE WHEN pickup_status IN (0, 1) THEN 1 ELSE 0 END) AS awaiting_trips,
-            SUM(CASE WHEN pickup_status = 4 THEN 1 ELSE 0 END) AS completed_trips
-        FROM order_suborders
-        WHERE pickup_rider_id = %s
-    """
-    rows_active = executeGet(query_active, (ship_pct, prod_pct, ship_pct, prod_pct, user_id))
-    active = rows_active[0] if rows_active else {}
-    
-    # Query for completed commission from wallet ledger
-    query_completed = """
-        SELECT COALESCE(SUM(amount), 0) AS completed_fee
-        FROM wallet_ledger
-        WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind = 'rider_commission_delivery'
-    """
-    rows_completed = executeGet(query_completed, (user_id,))
-    completed_fee = float(rows_completed[0]['completed_fee']) if rows_completed else 0.0
-
-    total_trips = _safe_int(active.get('total_trips'))
-    completed_trips = _safe_int(active.get('completed_trips'))
-    in_transit_trips = _safe_int(active.get('in_transit_trips'))
-    awaiting_trips = _safe_int(active.get('awaiting_trips'))
-    
-    in_transit_fee = _safe_number(active.get('in_transit_fee'))
-    awaiting_fee = _safe_number(active.get('awaiting_fee'))
-    total_fee = completed_fee + in_transit_fee + awaiting_fee
-
-    return {
-        'total_trips': total_trips,
-        'total_fee': total_fee,
-        'completed_fee': completed_fee,
-        'in_transit_fee': in_transit_fee,
-        'awaiting_fee': awaiting_fee,
-        'completed_trips': completed_trips,
-        'in_transit_trips': in_transit_trips,
-        'awaiting_trips': awaiting_trips,
-    }
+    return rider_earnings_snapshot(user_id)
 
 
 def _get_seller_aggregates(user_id):
@@ -220,7 +174,7 @@ def _build_rider_summary_cards(aggregates):
         {
             'label': 'Total Earnings',
             'value': _format_currency(aggregates.get('total_fee')),
-            'helper': 'Shipping fees assigned to you'
+            'helper': 'Credited plus projected rider commissions'
         }
     ]
 
@@ -267,7 +221,7 @@ def _build_rider_breakdown_cards(aggregates):
         {
             'label': 'Awaiting pickup',
             'amount': _format_currency(aggregates.get('awaiting_fee')),
-            'caption': f"{aggregates.get('awaiting_trips', 0):,} drops queued",
+            'caption': f"{aggregates.get('awaiting_trips', 0):,} drops queued for claim",
             'badge_class': 'bg-label-warning'
         }
     ]
@@ -297,10 +251,6 @@ def _build_seller_breakdown_cards(aggregates):
 
 
 def _get_rider_transactions(user_id):
-    from helpers.wallet_finance import get_float_setting
-    ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
-    prod_pct = get_float_setting("rider_commission_pct_of_product", 5.0) / 100.0
-
     query = """
         SELECT 
             os.reference, os.status, os.pickup_status, os.shipping_fee, os.subtotal, os.updated_at, os.suborder_id,
@@ -317,14 +267,14 @@ def _get_rider_transactions(user_id):
         actual_commission = row.get('actual_commission')
         if actual_commission is not None:
             commission = float(actual_commission)
+            label = 'Credited commission'
         else:
-            shipping = float(row.get('shipping_fee') or 0)
-            subtotal = float(row.get('subtotal') or 0)
-            commission = max(0.0, (shipping * ship_pct) + (subtotal * prod_pct))
+            commission = calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))
+            label = 'Projected commission' if pickup_status in (2, 3) else 'Queued commission'
             
         transactions.append({
             'reference': row.get('reference'),
-            'label': 'Delivery Commission',
+            'label': label,
             'amount': _format_currency(commission),
             'status_text': PICKUP_STATUS_LABELS.get(pickup_status, 'Pending'),
             'badge_class': PICKUP_BADGE_CLASSES.get(pickup_status, 'bg-label-secondary'),

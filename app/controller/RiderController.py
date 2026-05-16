@@ -3,7 +3,7 @@ from flask import render_template, request, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
 from helpers.delivery_media import save_compressed_proof
-from helpers.wallet_finance import credit_rider_commission_for_suborder
+from helpers.wallet_finance import credit_rider_commission_for_suborder, rider_earnings_snapshot, calculate_rider_commission_amount
 from controller.HomeController import get_user_address_details, build_product_image_url
 
 
@@ -17,17 +17,17 @@ def riderPickupDashboard():
     rider, error = _ensure_rider_auth()
     if error:
         return error
-        
-    from helpers.wallet_finance import available_balance
-    bal = available_balance(rider['user_id'], 'rider')
-    
-    rows = executeGet(
-        "SELECT COALESCE(SUM(amount), 0) AS total_commission FROM wallet_ledger WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind = 'rider_commission_delivery'",
-        (rider['user_id'],)
-    )
-    total_commission = rows[0].get('total_commission', 0) if rows else 0
 
-    return render_template('views/dashboard/rider-pickups.html', menu=['rider', 'assigned-deliveries'], wallet_balance=bal, total_commission=total_commission)
+    earnings = rider_earnings_snapshot(rider['user_id'])
+
+    return render_template(
+        'views/dashboard/rider-pickups.html',
+        menu=['deliveries'],
+        wallet_balance=earnings.get('available_balance', 0),
+        credited_earnings=earnings.get('completed_fee', 0),
+        active_earnings=earnings.get('active_fee', 0),
+        projected_total=earnings.get('total_fee', 0),
+    )
 
 
 def _pickup_query(scope):
@@ -37,6 +37,8 @@ def _pickup_query(scope):
             os.order_id,
             os.reference AS sub_reference,
             os.status,
+            os.shipping_fee,
+            os.subtotal,
             os.pickup_status,
             os.pickup_rider_id,
             os.pickup_claimed_at,
@@ -53,7 +55,16 @@ def _pickup_query(scope):
             sd.store_name,
             sd.city AS seller_city,
             sd.province AS seller_province,
-            sd.street AS seller_street
+            sd.street AS seller_street,
+            (
+                SELECT wl.amount
+                FROM wallet_ledger wl
+                WHERE wl.user_id = os.pickup_rider_id
+                  AND wl.wallet_role = 'rider'
+                  AND wl.entry_kind = 'rider_commission_delivery'
+                  AND wl.reference_id = os.suborder_id
+                LIMIT 1
+            ) AS actual_commission
         FROM order_suborders os
         INNER JOIN orders o ON os.order_id = o.order_id
         LEFT JOIN users buyer ON o.user_id = buyer.user_id
@@ -78,6 +89,10 @@ def _serialize_pickup(row):
     seller_name = f"{row.get('seller_firstname', '')} {row.get('seller_lastname', '')}".strip()
     buyer_name = f"{row.get('buyer_firstname', '')} {row.get('buyer_lastname', '')}".strip()
     pickup_state = row.get('pickup_status') or 0
+    projected_commission = calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))
+    actual_commission = row.get('actual_commission')
+    display_commission = float(actual_commission) if actual_commission is not None else projected_commission
+    commission_label = 'Credited commission' if actual_commission is not None else ('Projected commission' if pickup_state in (2, 3) else 'Queued commission')
     return {
         "suborder_id": row.get('suborder_id'),
         "order_id": row.get('order_id'),
@@ -95,6 +110,12 @@ def _serialize_pickup(row):
         "buyer_id": row.get('buyer_id'),
         "buyer_name": buyer_name or 'Buyer',
         "buyer_phone": row.get('buyer_phone'),
+        "shipping_fee": float(row.get('shipping_fee') or 0),
+        "subtotal": float(row.get('subtotal') or 0),
+        "projected_commission": projected_commission,
+        "actual_commission": float(actual_commission) if actual_commission is not None else None,
+        "display_commission": display_commission,
+        "commission_label": commission_label,
     }
 
 
@@ -268,6 +289,8 @@ def _fetch_pickup_detail(suborder_id):
             os.order_id,
             os.reference AS sub_reference,
             os.status,
+            os.shipping_fee,
+            os.subtotal,
             os.pickup_status,
             os.pickup_rider_id,
             os.pickup_claimed_at,
@@ -284,7 +307,16 @@ def _fetch_pickup_detail(suborder_id):
             sd.store_name,
             sd.city AS seller_city,
             sd.province AS seller_province,
-            sd.street AS seller_street
+            sd.street AS seller_street,
+            (
+                SELECT wl.amount
+                FROM wallet_ledger wl
+                WHERE wl.user_id = os.pickup_rider_id
+                  AND wl.wallet_role = 'rider'
+                  AND wl.entry_kind = 'rider_commission_delivery'
+                  AND wl.reference_id = os.suborder_id
+                LIMIT 1
+            ) AS actual_commission
         FROM order_suborders os
         INNER JOIN orders o ON os.order_id = o.order_id
         LEFT JOIN users buyer ON o.user_id = buyer.user_id
