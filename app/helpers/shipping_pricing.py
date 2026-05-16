@@ -33,11 +33,11 @@ def estimate_shipping_for_seller_group(
 ) -> tuple[float, str]:
     """
     Returns (fee, reason_label).
-    Shipping is based on seller-to-buyer locality, with optional distance pricing
-    when coordinates are available.
+    Free shipping when group_subtotal >= configured threshold.
     """
-    if group_subtotal <= 0:
-        return 0.0, "empty_group"
+    threshold = get_float_setting("shipping_free_threshold", 2000.0)
+    if group_subtotal >= threshold or group_subtotal <= 0:
+        return 0.0, "free_threshold"
 
     bla = _num((buyer_address or {}).get("latitude"))
     blo = _num((buyer_address or {}).get("longitude"))
@@ -64,11 +64,11 @@ def estimate_shipping_for_seller_group(
         fee = get_float_setting("shipping_same_city", 49.0)
         return round(fee, 2), "tier_same_city"
     if br and sr and br == sr and bp and sp and bp == sp:
-        fee = get_float_setting("shipping_same_province", 79.0)
+        fee = get_float_setting("shipping_same_province", 65.0)
         return round(fee, 2), "tier_same_province"
     if br and sr and br == sr:
-        fee = get_float_setting("shipping_same_region", 109.0)
+        fee = get_float_setting("shipping_same_region", 85.0)
         return round(fee, 2), "tier_same_region"
 
-    fee = get_float_setting("shipping_cross_region", 149.0)
+    fee = get_float_setting("shipping_cross_region", 120.0)
     return round(fee, 2), "tier_cross_region"

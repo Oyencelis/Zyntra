@@ -5,13 +5,13 @@ from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, init_app_locale
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.delivery_media import save_compressed_proof
-from helpers.marketplace_settings import get_bool_setting
+from helpers.marketplace_settings import get_bool_setting, get_float_setting
 import os
 import json
 # pyrefly: ignore [missing-import]
 from werkzeug.utils import secure_filename
 import uuid
-from controller.HomeController import getCategoriesInHome, get_user_wishlist_ids, get_user_address_details, get_cart_items_for_user, calculate_order_totals
+from controller.HomeController import getCategoriesInHome, get_user_wishlist_ids
 from controller.UserController import getSellers
 import locale
 import re
@@ -420,6 +420,7 @@ def viewProduct(product_id):
         protection_show_badge = bool(product.get("protection_eligible", True)) and get_bool_setting(
             "protection_enabled", True
         )
+        free_ship = int(get_float_setting("shipping_free_threshold", 2000))
 
         return render_template('views/products/view-product.html',
                              product_name=product['product_name'],
@@ -442,7 +443,8 @@ def viewProduct(product_id):
                              can_review=can_review,
                              variant_type=variant_type,
                              variant_values=variant_values,
-                             protection_show_badge=protection_show_badge)
+                             protection_show_badge=protection_show_badge,
+                             free_shipping_threshold=free_ship)
     except Exception as e:
         print(f"Error in viewProduct: {str(e)}")
         return render_template('views/404.html'), 404
@@ -901,32 +903,8 @@ def updateCart():
         result = executeGet(total_price_query, (user_id,))
         total_price = result[0]['total_price'] if result else 0
 
-        buyer_address, _, _ = get_user_address_details(user_id)
-        cart_items = get_cart_items_for_user(user_id)
-        subtotal, shipping_fee, tax_amount, total_amount, seller_shipping_breakdown = calculate_order_totals(cart_items, buyer_address)
-
         # Send the updated total price
-        return responseData("success", "Quantity updated", {
-            "total_price": total_price,
-            "summary": {
-                "subtotal": subtotal,
-                "shipping_fee": shipping_fee,
-                "tax_amount": tax_amount,
-                "total_amount": total_amount,
-                "formatted_subtotal": locale.format_string("%0.2f", subtotal, grouping=True),
-                "formatted_shipping": locale.format_string("%0.2f", shipping_fee, grouping=True),
-                "formatted_tax": locale.format_string("%0.2f", tax_amount, grouping=True),
-                "formatted_total": locale.format_string("%0.2f", total_amount, grouping=True),
-                "shipping_breakdown": [
-                    {
-                        "seller_id": entry.get("seller_id"),
-                        "store_name": entry.get("store_name") or "Seller",
-                        "shipping_fee": float(entry.get("shipping_fee", 0) or 0),
-                    }
-                    for entry in seller_shipping_breakdown
-                ],
-            }
-        }, 200)
+        return responseData("success", "Quantity updated", {"total_price": total_price}, 200)
 
     return responseData("error", "Invalid request", "", 400)
 

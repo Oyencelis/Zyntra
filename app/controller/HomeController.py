@@ -45,7 +45,6 @@ from datetime import datetime, timedelta
 from flask import render_template, request, session, g, url_for, redirect
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string, init_app_locale
-from helpers.shipping_pricing import estimate_shipping_for_seller_group
 from helpers.SupabaseStorage import resolve_storage_url
 from controller.UserController import getSellers
 from middleware.auth import login_required
@@ -304,9 +303,6 @@ def get_cart_items_for_user(user_id):
                p.qty AS stock,
                p.user_id AS seller_id,
                sd.store_name,
-               sd.region AS seller_region,
-               sd.province AS seller_province,
-               sd.city AS seller_city,
                COALESCE(
                    (
                        SELECT pa.attachment
@@ -343,53 +339,26 @@ def group_cart_items_by_seller(cart_items):
         grouped.setdefault(seller_id, []).append(item)
     return grouped
 
-def _calculate_group_subtotal(items):
-    group_subtotal = 0.0
-    for item in items or []:
-        price = float(item.get('price', 0) or 0)
-        quantity = int(item.get('quantity', 0) or 0)
-        group_subtotal += price * quantity
-    return group_subtotal
-
-def build_seller_shipping_breakdown(cart_items, buyer_address=None):
+def calculate_order_totals(cart_items):
     seller_groups = group_cart_items_by_seller(cart_items)
-    subtotal = 0.0
-    seller_shipping_breakdown = []
+    subtotal = 0
+    shipping_fee = 0
+    tax_amount = 0
 
-    for seller_id, items in seller_groups.items():
-        if not items:
-            continue
+    for items in seller_groups.values():
+        group_subtotal = 0
+        for item in items:
+            price = float(item.get('price', 0) or 0)
+            quantity = int(item.get('quantity', 0) or 0)
+            group_subtotal += price * quantity
 
-        seller_name = items[0].get('store_name') or 'Seller'
-        group_subtotal = _calculate_group_subtotal(items)
         subtotal += group_subtotal
+        if group_subtotal > 0 and group_subtotal < 2000:
+            shipping_fee += 79
 
-        shipping_fee, shipping_basis = estimate_shipping_for_seller_group(
-            group_subtotal=group_subtotal,
-            buyer_address=buyer_address,
-            seller_geo={
-                'region': items[0].get('seller_region'),
-                'province': items[0].get('seller_province'),
-                'city': items[0].get('seller_city'),
-            },
-        )
-
-        seller_shipping_breakdown.append({
-            'seller_id': seller_id,
-            'store_name': seller_name,
-            'shipping_fee': shipping_fee,
-            'shipping_basis': shipping_basis,
-            'group_subtotal': group_subtotal,
-        })
-
-    return subtotal, seller_shipping_breakdown
-
-def calculate_order_totals(cart_items, buyer_address=None):
-    subtotal, seller_shipping_breakdown = build_seller_shipping_breakdown(cart_items, buyer_address)
-    shipping_fee = sum(float(entry.get('shipping_fee', 0) or 0) for entry in seller_shipping_breakdown)
     tax_amount = (subtotal + shipping_fee) * 0.01
     total_amount = subtotal + shipping_fee + tax_amount
-    return subtotal, shipping_fee, tax_amount, total_amount, seller_shipping_breakdown
+    return subtotal, shipping_fee, tax_amount, total_amount
 
 def create_order_notifications(order_id, reference, buyer_name, suborders_payload):
     if not suborders_payload:
@@ -591,8 +560,25 @@ def cart():
     order_totals = None
     total_sum = 0
     random_order_reference = None
+    seller_shipping_breakdown = []
 
     if cart_items:
+        seller_groups = group_cart_items_by_seller(cart_items)
+        for seller_id, items in seller_groups.items():
+            seller_name = items[0].get('store_name') or 'Seller'
+            group_subtotal = 0
+            for item in items:
+                price = float(item.get('price', 0) or 0)
+                quantity = int(item.get('quantity', 0) or 0)
+                group_subtotal += price * quantity
+
+            shipping_fee = 0 if group_subtotal >= 2000 or group_subtotal == 0 else 79
+            seller_shipping_breakdown.append({
+                'seller_id': seller_id,
+                'store_name': seller_name,
+                'shipping_fee': shipping_fee
+            })
+
         for item in cart_items:
             price = item.get('price', 0) or 0
             quantity = item.get('quantity', 0) or 0
@@ -606,7 +592,11 @@ def cart():
                 cleaned_attachment = attachment.lstrip('/\\')
                 item['attachment'] = cleaned_attachment
 
-        subtotal, shipping_fee, tax_amount, total_amount, seller_shipping_breakdown = calculate_order_totals(cart_items, user_address)
+        subtotal, shipping_fee, tax_amount, total_amount = calculate_order_totals(cart_items)
+        if seller_shipping_breakdown:
+            shipping_fee = sum(entry.get('shipping_fee', 0) for entry in seller_shipping_breakdown)
+            tax_amount = (subtotal + shipping_fee) * 0.01
+            total_amount = subtotal + shipping_fee + tax_amount
         total_sum = total_amount
         order_totals = {
             'subtotal': subtotal,
@@ -617,7 +607,7 @@ def cart():
             'formatted_shipping': locale.format_string("%0.2f", shipping_fee, grouping=True),
             'formatted_tax': locale.format_string("%0.2f", tax_amount, grouping=True),
             'formatted_total': locale.format_string("%0.2f", total_amount, grouping=True),
-            'is_shipping_free': shipping_fee <= 0
+            'is_shipping_free': shipping_fee == 0
         }
         order_totals['shipping_breakdown'] = seller_shipping_breakdown
         random_order_reference = generate_random_string(10)
@@ -660,7 +650,7 @@ def submitCheckout():
         return responseData("error", "Please select a payment method.", "", 200)
 
     # Ensure the user has a saved shipping address before allowing checkout
-    buyer_address, formatted_address, _ = get_user_address_details(user_id)
+    _, formatted_address, _ = get_user_address_details(user_id)
     if not formatted_address:
         return responseData("error", "Please add a shipping address before checking out.", "", 200)
 
@@ -684,7 +674,7 @@ def submitCheckout():
                 200
             )
 
-    subtotal, shipping_fee, tax_amount, total_amount, seller_shipping_breakdown = calculate_order_totals(cart_items, buyer_address)
+    subtotal, shipping_fee, tax_amount, total_amount = calculate_order_totals(cart_items)
     provided_reference = request.form.get('reference')
     reference = provided_reference if provided_reference else generate_random_string(12)
     estimated_delivery = (datetime.utcnow() + timedelta(days=5)).strftime("%B %d, %Y")
@@ -722,19 +712,18 @@ def submitCheckout():
     if not seller_groups:
         return responseData("error", "Unable to allocate items to sellers.", "", 200)
 
-    shipping_by_seller = {
-        str(entry.get('seller_id')): entry
-        for entry in seller_shipping_breakdown
-    }
-
     suborders_payload = []
     for index, (seller_id, items) in enumerate(seller_groups.items(), start=1):
         if not seller_id or not items:
             continue
 
-        group_subtotal = _calculate_group_subtotal(items)
-        shipping_details = shipping_by_seller.get(str(seller_id), {})
-        group_shipping_fee = float(shipping_details.get('shipping_fee', 0) or 0)
+        group_subtotal = 0
+        for cart_item in items:
+            price = float(cart_item.get('price', 0) or 0)
+            quantity = int(cart_item.get('quantity', 0) or 0)
+            group_subtotal += price * quantity
+
+        group_shipping_fee = 0 if group_subtotal >= 2000 or group_subtotal == 0 else 79
         group_tax_amount = (group_subtotal + group_shipping_fee) * 0.01
         group_total_amount = group_subtotal + group_shipping_fee + group_tax_amount
 
