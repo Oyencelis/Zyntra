@@ -90,62 +90,147 @@
       <div class="col-12 col-lg-6">
         <div class="card border-0 shadow-2xl mt-4 mt-lg-0" style="background: rgba(255,255,255,0.95); backdrop-filter: blur(20px);">
           <div class="card-body p-4 p-lg-5">
-            <div class="text-center mb-5">
-              <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
-                <i class="bi bi-box-arrow-in-right text-white fs-3"></i>
-              </div>
-              <h2 class="fw-bold mb-2">Sign In to Zyntra</h2>
-              <p class="text-muted">Access your personalized dashboard</p>
+            <div id="authCardState"
+              data-recovery-mode='{{ recovery_mode|tojson }}'
+              data-supabase-project-url='{{ supabase_project_url|tojson }}'
+              data-supabase-public-key='{{ supabase_public_key|tojson }}'>
             </div>
 
-            <form id="loginForm" method="POST">
-              <div class="mb-4">
-                <label class="form-label fw-semibold">Email Address</label>
-                <div class="input-group input-group-lg">
-                  <span class="input-group-text border-end-0 bg-transparent">
-                    <i class="bi bi-envelope text-muted"></i>
-                  </span>
-                  <input type="email" class="form-control border-start-0" name="email" placeholder="your@email.com" required>
+            <div id="loginPane" {% if recovery_mode %}class="d-none"{% endif %}>
+              <div class="text-center mb-5">
+                <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                  <i class="bi bi-box-arrow-in-right text-white fs-3"></i>
                 </div>
+                <h2 class="fw-bold mb-2">Sign In to Zyntra</h2>
+                <p class="text-muted">Access your personalized dashboard</p>
               </div>
 
-              <div class="mb-4">
-                <label class="form-label fw-semibold">Password</label>
-                <div class="input-group input-group-lg">
-                  <span class="input-group-text border-end-0 bg-transparent">
-                    <i class="bi bi-key text-muted"></i>
-                  </span>
-                  <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Enter your password" required>
-                  <button class="btn btn-outline-secondary border-start-0 border-end-0 bg-transparent" type="button" id="togglePassword">
-                    <i class="bi bi-eye-slash text-muted" id="eyeIcon"></i>
-                  </button>
+              <form id="loginForm" method="POST">
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Email Address</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text border-end-0 bg-transparent">
+                      <i class="bi bi-envelope text-muted"></i>
+                    </span>
+                    <input type="email" class="form-control border-start-0" name="email" placeholder="your@email.com" autocomplete="email" required>
+                  </div>
                 </div>
-              </div>
 
-              <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="rememberMe">
-                  <label class="form-check-label text-muted" for="rememberMe">
-                    Remember me
-                  </label>
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Password</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text border-end-0 bg-transparent">
+                      <i class="bi bi-key text-muted"></i>
+                    </span>
+                    <input type="password" class="form-control border-start-0" name="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                    <button class="btn btn-outline-secondary border-start-0 border-end-0 bg-transparent" type="button" data-toggle-password data-target="#password" data-icon="#eyeIcon">
+                      <i class="bi bi-eye-slash text-muted" id="eyeIcon"></i>
+                    </button>
+                  </div>
                 </div>
-                <a href="#" class="text-primary text-decoration-none small">Forgot password?</a>
+
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                    <label class="form-check-label text-muted" for="rememberMe">
+                      Remember me
+                    </label>
+                  </div>
+                  <button type="button" id="showForgotPassword" class="btn btn-link text-primary text-decoration-none small p-0 align-self-start align-self-sm-auto">Forgot password?</button>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3">
+                  <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </button>
+
+                <div class="text-center">
+                  <small class="text-muted">
+                    Don't have an account?
+                    <a href="{{ url_for('signup_page') }}" class="text-primary text-decoration-none fw-semibold">Sign up here.</a>
+                  </small>
+                </div>
+              </form>
+            </div>
+
+            <div id="forgotPasswordPane" class="d-none">
+              <div class="text-center mb-4">
+                <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                  <i class="bi bi-envelope-paper text-white fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-2">Forgot your password?</h2>
+                <p class="text-muted mb-0">Enter your email and we’ll send a secure reset link.</p>
               </div>
 
-              <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3">
-                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-              </button>
+              <form id="forgotPasswordForm" method="POST">
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Email Address</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text border-end-0 bg-transparent">
+                      <i class="bi bi-envelope text-muted"></i>
+                    </span>
+                    <input type="email" class="form-control border-start-0" name="email" placeholder="your@email.com" autocomplete="email" required>
+                  </div>
+                </div>
 
+                <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3">
+                  <i class="bi bi-send me-2"></i>Send Reset Link
+                </button>
 
+                <button type="button" id="showLoginFromForgot" class="btn btn-outline-secondary btn-lg w-100 py-3 fw-semibold">
+                  <i class="bi bi-arrow-left me-2"></i>Back to Sign In
+                </button>
+              </form>
+            </div>
 
-              <!-- Sign Up Links -->
-              <div class="text-center">
-                <small class="text-muted">
-                  Don't have an account?
-                  <a href="{{ url_for('signup_page') }}" class="text-primary text-decoration-none fw-semibold">Sign up here.</a>
-                </small>
+            <div id="recoveryPane" {% if not recovery_mode %}class="d-none"{% endif %}>
+              <div class="text-center mb-4">
+                <div class="bg-gradient-primary rounded-circle p-3 d-inline-block mb-3">
+                  <i class="bi bi-shield-lock text-white fs-3"></i>
+                </div>
+                <h2 class="fw-bold mb-2">Set a new password</h2>
+                <p class="text-muted mb-0">Create a strong new password for your Zyntra account.</p>
               </div>
-            </form>
+
+              <div id="recoveryStatus" class="alert alert-info small" role="alert">
+                Validating your secure recovery link...
+              </div>
+
+              <form id="recoveryForm" method="POST">
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">New Password</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text border-end-0 bg-transparent">
+                      <i class="bi bi-key text-muted"></i>
+                    </span>
+                    <input type="password" class="form-control border-start-0" id="recoveryPassword" placeholder="Enter your new password" autocomplete="new-password" minlength="8" required>
+                    <button class="btn btn-outline-secondary border-start-0 border-end-0 bg-transparent" type="button" data-toggle-password data-target="#recoveryPassword" data-icon="#recoveryEyeIcon">
+                      <i class="bi bi-eye-slash text-muted" id="recoveryEyeIcon"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label fw-semibold">Confirm New Password</label>
+                  <div class="input-group input-group-lg">
+                    <span class="input-group-text border-end-0 bg-transparent">
+                      <i class="bi bi-shield-check text-muted"></i>
+                    </span>
+                    <input type="password" class="form-control border-start-0" id="recoveryConfirmPassword" placeholder="Confirm your new password" autocomplete="new-password" minlength="8" required>
+                    <button class="btn btn-outline-secondary border-start-0 border-end-0 bg-transparent" type="button" data-toggle-password data-target="#recoveryConfirmPassword" data-icon="#recoveryConfirmEyeIcon">
+                      <i class="bi bi-eye-slash text-muted" id="recoveryConfirmEyeIcon"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" id="recoverySubmitButton" class="btn btn-primary btn-lg w-100 py-3 fw-semibold mb-3" disabled>
+                  <i class="bi bi-check2-circle me-2"></i>Update Password
+                </button>
+
+                <button type="button" id="showLoginFromRecovery" class="btn btn-outline-secondary btn-lg w-100 py-3 fw-semibold d-none">
+                  <i class="bi bi-arrow-left me-2"></i>Back to Sign In
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -243,20 +328,221 @@
 {% endblock %}
 
 {% block script %}
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-$(document).ready(function() {
-	// Show/Hide Password with Eye Icon
-	$('#togglePassword').click(function() {
-		const passwordField = $('#password');
-		const eyeIcon = $('#eyeIcon');
-		if (passwordField.attr('type') === 'password') {
-			passwordField.attr('type', 'text');
-			eyeIcon.removeClass('bx-show').addClass('bx-hide');
-		} else {
-			passwordField.attr('type', 'password');
-			eyeIcon.removeClass('bx-hide').addClass('bx-show');
-		}
-	});
-})
+document.addEventListener('DOMContentLoaded', function () {
+  const authCardState = document.getElementById('authCardState');
+  const loginPane = document.getElementById('loginPane');
+  const forgotPasswordPane = document.getElementById('forgotPasswordPane');
+  const recoveryPane = document.getElementById('recoveryPane');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const recoveryForm = document.getElementById('recoveryForm');
+  const recoveryStatus = document.getElementById('recoveryStatus');
+  const recoverySubmitButton = document.getElementById('recoverySubmitButton');
+  const showLoginFromRecovery = document.getElementById('showLoginFromRecovery');
+  const recoveryMode = authCardState ? JSON.parse(authCardState.dataset.recoveryMode || 'false') : false;
+  const supabaseProjectUrl = authCardState ? JSON.parse(authCardState.dataset.supabaseProjectUrl || '""') : '';
+  const supabasePublicKey = authCardState ? JSON.parse(authCardState.dataset.supabasePublicKey || '""') : '';
+  let supabaseClient = null;
+  let recoverySessionReady = false;
+
+  function swalMessage(title, text, icon) {
+    if (window.$ && $.SystemScript && $.SystemScript.swalAlertMessage) {
+      $.SystemScript.swalAlertMessage(title, text, icon);
+      return;
+    }
+    if (typeof Swal !== 'undefined' && typeof Swal.fire === 'function') {
+      Swal.fire({ title, text, icon, confirmButtonText: 'OK' });
+      return;
+    }
+    alert(title + '\n' + text);
+  }
+
+  function showPane(name) {
+    if (loginPane) loginPane.classList.toggle('d-none', name !== 'login');
+    if (forgotPasswordPane) forgotPasswordPane.classList.toggle('d-none', name !== 'forgot');
+    if (recoveryPane) recoveryPane.classList.toggle('d-none', name !== 'recovery');
+  }
+
+  function setRecoveryStatus(kind, message) {
+    if (!recoveryStatus) {
+      return;
+    }
+    recoveryStatus.className = 'alert small';
+    if (kind === 'success') {
+      recoveryStatus.classList.add('alert-success');
+    } else if (kind === 'error') {
+      recoveryStatus.classList.add('alert-danger');
+    } else {
+      recoveryStatus.classList.add('alert-info');
+    }
+    recoveryStatus.textContent = message;
+  }
+
+  function setRecoveryReady(isReady) {
+    recoverySessionReady = !!isReady;
+    if (recoverySubmitButton) {
+      recoverySubmitButton.disabled = !recoverySessionReady;
+    }
+  }
+
+  document.querySelectorAll('[data-toggle-password]').forEach((button) => {
+    button.addEventListener('click', function () {
+      const input = document.querySelector(this.getAttribute('data-target') || '');
+      const icon = document.querySelector(this.getAttribute('data-icon') || '');
+      if (!input) {
+        return;
+      }
+      const nextType = input.getAttribute('type') === 'password' ? 'text' : 'password';
+      input.setAttribute('type', nextType);
+      if (icon) {
+        icon.classList.toggle('bi-eye');
+        icon.classList.toggle('bi-eye-slash');
+      }
+    });
+  });
+
+  const showForgotPassword = document.getElementById('showForgotPassword');
+  if (showForgotPassword) {
+    showForgotPassword.addEventListener('click', function () {
+      showPane('forgot');
+    });
+  }
+
+  const showLoginFromForgot = document.getElementById('showLoginFromForgot');
+  if (showLoginFromForgot) {
+    showLoginFromForgot.addEventListener('click', function () {
+      showPane('login');
+    });
+  }
+
+  if (showLoginFromRecovery) {
+    showLoginFromRecovery.addEventListener('click', function () {
+      window.location.href = "{{ url_for('login_page') }}";
+    });
+  }
+
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const formData = new FormData(forgotPasswordForm);
+      axios.post("{{ url_for('forgot_password_submit') }}", formData)
+        .then(function (response) {
+          const payload = response.data || {};
+          if (payload.status === 'success') {
+            swalMessage('Reset Link Sent', payload.message || 'Please check your email for the password reset link.', 'success');
+            forgotPasswordForm.reset();
+            showPane('login');
+            return;
+          }
+          swalMessage('Unable to Send Reset Link', payload.message || 'Please try again.', 'error');
+        })
+        .catch(function () {
+          swalMessage('Error', 'Unable to process your password reset request right now.', 'error');
+        });
+    });
+  }
+
+  async function initializeRecoveryMode() {
+    if (!recoveryMode) {
+      showPane('login');
+      return;
+    }
+
+    showPane('recovery');
+    setRecoveryReady(false);
+
+    if (!supabaseProjectUrl || !supabasePublicKey || !window.supabase || typeof window.supabase.createClient !== 'function') {
+      setRecoveryStatus('error', 'Password recovery is temporarily unavailable. Please contact support or try again later.');
+      return;
+    }
+
+    try {
+      supabaseClient = window.supabase.createClient(supabaseProjectUrl, supabasePublicKey);
+
+      const currentUrl = new URL(window.location.href);
+      const hashParams = new URLSearchParams((currentUrl.hash || '').replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const authCode = currentUrl.searchParams.get('code');
+
+      if (authCode) {
+        await supabaseClient.auth.exchangeCodeForSession(authCode);
+      } else if (accessToken && refreshToken) {
+        await supabaseClient.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+      }
+
+      const sessionResult = await supabaseClient.auth.getSession();
+      const session = sessionResult && sessionResult.data ? sessionResult.data.session : null;
+
+      currentUrl.searchParams.delete('code');
+      currentUrl.searchParams.set('mode', 'recovery');
+      currentUrl.hash = '';
+      window.history.replaceState({}, document.title, currentUrl.pathname + currentUrl.search);
+
+      if (!session) {
+        setRecoveryStatus('error', 'This password recovery link is invalid or has expired. Please request a new reset email.');
+        return;
+      }
+
+      setRecoveryReady(true);
+      setRecoveryStatus('success', 'Recovery link verified. You can now set your new password.');
+    } catch (error) {
+      setRecoveryStatus('error', (error && error.message) ? error.message : 'Unable to verify your recovery link. Please request a new reset email.');
+    }
+  }
+
+  if (recoveryForm) {
+    recoveryForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      if (!supabaseClient || !recoverySessionReady) {
+        swalMessage('Recovery Unavailable', 'Please verify your password recovery link first.', 'error');
+        return;
+      }
+
+      const passwordInput = document.getElementById('recoveryPassword');
+      const confirmInput = document.getElementById('recoveryConfirmPassword');
+      const nextPassword = passwordInput ? passwordInput.value : '';
+      const confirmPassword = confirmInput ? confirmInput.value : '';
+
+      if (nextPassword.length < 8) {
+        swalMessage('Weak Password', 'Your new password must be at least 8 characters long.', 'warning');
+        return;
+      }
+
+      if (nextPassword !== confirmPassword) {
+        swalMessage('Password Mismatch', 'Your new password and confirmation do not match.', 'warning');
+        return;
+      }
+
+      recoverySubmitButton.disabled = true;
+
+      try {
+        const result = await supabaseClient.auth.updateUser({ password: nextPassword });
+        if (result.error) {
+          throw result.error;
+        }
+
+        setRecoveryStatus('success', 'Your password has been updated successfully. You can now sign in with your new password.');
+        recoveryForm.reset();
+        if (showLoginFromRecovery) {
+          showLoginFromRecovery.classList.remove('d-none');
+        }
+        await supabaseClient.auth.signOut();
+        swalMessage('Password Updated', 'Your password has been changed. Please sign in with your new password.', 'success');
+      } catch (error) {
+        swalMessage('Update Failed', (error && error.message) ? error.message : 'Unable to update your password right now.', 'error');
+      } finally {
+        recoverySubmitButton.disabled = !recoverySessionReady;
+      }
+    });
+  }
+
+  initializeRecoveryMode();
+});
 </script>
 {% endblock %}

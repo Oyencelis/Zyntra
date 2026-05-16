@@ -2,7 +2,7 @@
 from flask import render_template, request, jsonify, session, redirect, url_for, current_app, g
 from helpers.HelperFunction import responseData, hashing, allowed_image_file, generate_random_filename
 from helpers.QueryHelpers import executeGet, executePost
-from helpers.SupabaseAuth import sign_in_with_supabase, sign_up_with_supabase
+from helpers.SupabaseAuth import sign_in_with_supabase, sign_up_with_supabase, send_password_reset_email
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.Session import setSession, sessionRemove
 import os
@@ -15,6 +15,43 @@ def _supabase_redirect_url():
         return configured_url
     try:
         return url_for('login_page', _external=True)
+    except Exception:
+        return None
+
+
+def _supabase_public_auth_key():
+    return (
+        os.environ.get('SUPABASE_ANON_KEY')
+        or os.environ.get('SUPABASE_PUBLISHABLE_KEY')
+        or ''
+    )
+
+
+def _should_mask_password_reset_error(error_message):
+    lowered = (error_message or '').strip().lower()
+    if not lowered:
+        return False
+    return any(fragment in lowered for fragment in (
+        'user not found',
+        'email not found',
+        'no user found',
+        'invalid email',
+        'for security purposes',
+    ))
+
+
+def _supabase_password_reset_redirect_url():
+    configured_url = os.environ.get('SUPABASE_PASSWORD_RESET_REDIRECT_URL')
+    if configured_url:
+        return configured_url
+
+    base_url = _supabase_redirect_url()
+    if base_url:
+        separator = '&' if '?' in base_url else '?'
+        return f"{base_url}{separator}mode=recovery"
+
+    try:
+        return url_for('login_page', mode='recovery', _external=True)
     except Exception:
         return None
 
@@ -179,7 +216,12 @@ def login():
             return redirect('/dashboard')
         else:
             return redirect('/')
-    return render_template('views/login.html')
+    return render_template(
+        'views/login.html',
+        recovery_mode=(request.args.get('mode') == 'recovery'),
+        supabase_project_url=os.environ.get('SUPABASE_PROJECT_URL', ''),
+        supabase_public_key=_supabase_public_auth_key(),
+    )
 
 
 def LoginSubmit():
@@ -236,6 +278,34 @@ def LoginSubmit():
 
     _set_authenticated_session(user)
     return responseData("success", "Login Successful", user, 200)
+
+
+def forgotPasswordSubmit():
+    email = (request.form.get('email') or '').strip()
+    if not email:
+        return responseData("error", "Email is required.", None, 200)
+
+    reset_error = send_password_reset_email(
+        email,
+        redirect_url=_supabase_password_reset_redirect_url(),
+    )
+
+    if reset_error:
+        if _should_mask_password_reset_error(reset_error):
+            return responseData(
+                "success",
+                "If that email is registered, a secure password reset link has been sent. Please check your inbox.",
+                {"email": email},
+                200,
+            )
+        return responseData("error", reset_error, None, 200)
+
+    return responseData(
+        "success",
+        "If that email is registered, a secure password reset link has been sent. Please check your inbox.",
+        {"email": email},
+        200,
+    )
 
 
 def signup():

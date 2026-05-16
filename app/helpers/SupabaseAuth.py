@@ -153,3 +153,29 @@ def sign_in_with_supabase(email: str, password: str) -> Tuple[Optional[Dict[str,
         return user_data, None
     except Exception as error:
         return None, _normalize_auth_error(error)
+
+
+def send_password_reset_email(email: str, redirect_url: Optional[str] = None) -> Optional[str]:
+    try:
+        auth_client = get_supabase_auth_client().auth
+        options: Dict[str, Any] = {}
+        if redirect_url:
+            options['redirect_to'] = redirect_url
+
+        if hasattr(auth_client, 'reset_password_email'):
+            if options:
+                auth_client.reset_password_email(email, options)
+            else:
+                auth_client.reset_password_email(email)
+            return None
+
+        if hasattr(auth_client, 'reset_password_for_email'):
+            if options:
+                auth_client.reset_password_for_email(email, options)
+            else:
+                auth_client.reset_password_for_email(email)
+            return None
+
+        return 'Supabase password reset is not available with the current client configuration.'
+    except Exception as error:
+        return _normalize_auth_error(error)

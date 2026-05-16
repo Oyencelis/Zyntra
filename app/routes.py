@@ -1,6 +1,6 @@
 from functools import wraps
 # pyrefly: ignore [missing-import]
-from flask import Flask, session, redirect, url_for, g, render_template
+from flask import Flask, session, redirect, url_for, g, render_template, request
 
 # Middleware
 from middleware.auth import login_required
@@ -15,6 +15,7 @@ from controller.HomeController import home, loadMoreProducts, categoryPage, getC
 from controller.LoginController import (
     login,
     LoginSubmit,
+    forgotPasswordSubmit,
     signup,
     signupSubmit,
     sellerSignup,
@@ -154,13 +155,17 @@ def setup_routes(app: Flask):
     @app.route('/login')
     def login_page():
         # Check if the user is already logged in
-        if g.authenticated:
+        if g.authenticated and request.args.get('mode') != 'recovery':
             return redirect(url_for('home_page'))  # Redirect to home if logged in
         return login() 
     
     @app.route('/login', methods=['POST'])
     def login_submit():
         return LoginSubmit() 
+
+    @app.route('/forgot-password', methods=['POST'])
+    def forgot_password_submit():
+        return forgotPasswordSubmit()
     
     #Sign Up Controller
     @app.route('/signup')
