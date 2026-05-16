@@ -1,8 +1,19 @@
 # pyrefly: ignore [missing-import]
 from flask import Flask, request, jsonify, session
 import hashlib
+import locale
 import random
 import string
+
+
+def init_app_locale():
+    """Set locale for price formatting; fall back on minimal serverless images (e.g. Vercel)."""
+    for loc in ('en_US.UTF-8', 'en_US.utf8', 'C.UTF-8', 'C'):
+        try:
+            locale.setlocale(locale.LC_ALL, loc)
+            return
+        except locale.Error:
+            continue
 def responseData(status, message, data, status_res):
      return jsonify({
           "status": status, 

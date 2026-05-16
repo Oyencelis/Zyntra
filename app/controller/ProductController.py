@@ -2,7 +2,7 @@
 from flask import render_template, session, g, request, redirect, url_for
 import html
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
-from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename
+from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, init_app_locale
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.delivery_media import save_compressed_proof
 from helpers.marketplace_settings import get_bool_setting, get_float_setting
@@ -16,7 +16,7 @@ from controller.UserController import getSellers
 import locale
 import re
 
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+init_app_locale()
 
 ALLOWED_VARIANT_TYPES = {'none', 'sizes', 'colors'}
 

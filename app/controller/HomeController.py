@@ -44,7 +44,7 @@ from datetime import datetime, timedelta
 # pyrefly: ignore [missing-import]
 from flask import render_template, request, session, g, url_for, redirect
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
-from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string
+from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string, init_app_locale
 from helpers.SupabaseStorage import resolve_storage_url
 from controller.UserController import getSellers
 from middleware.auth import login_required
@@ -53,7 +53,7 @@ import locale
 import os
 import re
 
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+init_app_locale()
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PH_JSON_DIR = os.path.join(BASE_DIR, 'static', 'ph-json')
