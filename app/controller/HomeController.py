@@ -1333,7 +1333,21 @@ def get_suborders_for_order(order_id):
                 WHERE pa.product_id = p.product_id AND pa.status = 1
                 ORDER BY pa.updated_at DESC, pa.product_attachment_id DESC
                 LIMIT 1
-            ) AS product_image
+            ) AS product_image,
+            (
+                SELECT dpf.image_path
+                FROM delivery_proofs dpf
+                WHERE dpf.suborder_id = os.suborder_id
+                ORDER BY dpf.created_at DESC, dpf.proof_id DESC
+                LIMIT 1
+            ) AS delivery_proof_image,
+            (
+                SELECT dpf.captured_at
+                FROM delivery_proofs dpf
+                WHERE dpf.suborder_id = os.suborder_id
+                ORDER BY dpf.created_at DESC, dpf.proof_id DESC
+                LIMIT 1
+            ) AS delivery_proof_captured_at
         FROM order_suborders os
         INNER JOIN users seller ON os.seller_id = seller.user_id
         LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
@@ -1358,6 +1372,9 @@ def get_suborders_for_order(order_id):
         if suborder_id not in grouped:
             seller_name = f"{row.get('seller_firstname', '')} {row.get('seller_lastname', '')}".strip()
             store_name = row.get('store_name') or seller_name or 'Seller'
+            delivery_proof_captured_at = row.get('delivery_proof_captured_at')
+            if isinstance(delivery_proof_captured_at, datetime):
+                delivery_proof_captured_at = delivery_proof_captured_at.strftime("%B %d, %Y %I:%M %p")
             grouped[suborder_id] = {
                 'suborder_id': suborder_id,
                 'sub_reference': row.get('sub_reference'),
@@ -1370,6 +1387,8 @@ def get_suborders_for_order(order_id):
                 'rider_phone': row.get('rider_phone'),
                 'rider_vehicle': row.get('rider_vehicle_type'),
                 'rider_plate': row.get('rider_plate_number'),
+                'delivery_proof_image': build_product_image_url(row.get('delivery_proof_image')) if row.get('delivery_proof_image') else None,
+                'delivery_proof_captured_at': delivery_proof_captured_at,
                 'items': [],
                 'shipping_fee': float(row.get('sub_shipping_fee') or 0)
             }
