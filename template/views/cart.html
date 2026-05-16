@@ -7,7 +7,8 @@
         <div class="col-12 mb-4">
             <h1 class="fw-bold mb-1">Shopping Cart</h1>
             {% if cart_items %}
-            <p class="text-muted small mb-0">{{ cart_items|length }} item{{ '' if cart_items|length == 1 else 's' }} in your cart</p>
+            <p class="text-muted small mb-0">{{ cart_items|length }} item{{ '' if cart_items|length == 1 else 's' }} in
+                your cart</p>
             {% endif %}
         </div>
     </div>
@@ -20,23 +21,25 @@
                 <div class="card-body py-4 px-4">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
                         <div class="d-flex align-items-start gap-3">
-                            <div class="shipping-icon rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center">
+                            <div
+                                class="shipping-icon rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center">
                                 <i class="fas fa-map-marker-alt"></i>
                             </div>
                             <div>
                                 <p class="text-uppercase text-muted fw-semibold small mb-1">Shipping Address</p>
                                 {% if address_display %}
-                                    <p class="mb-1 text-dark fw-semibold">{{ address_display }}</p>
-                                    {% if user_address and user_address.other_notes %}
-                                        <p class="mb-0 text-muted small">Notes: {{ user_address.other_notes }}</p>
-                                    {% endif %}
+                                <p class="mb-1 text-dark fw-semibold">{{ address_display }}</p>
+                                {% if user_address and user_address.other_notes %}
+                                <p class="mb-0 text-muted small">Notes: {{ user_address.other_notes }}</p>
+                                {% endif %}
                                 {% else %}
-                                    <p class="text-muted mb-1">No address on file.</p>
-                                    <p class="text-muted small mb-0">Add one now to speed up checkout.</p>
+                                <p class="text-muted mb-1">No address on file.</p>
+                                <p class="text-muted small mb-0">Add one now to speed up checkout.</p>
                                 {% endif %}
                             </div>
                         </div>
-                        <button class="btn btn-outline-primary btn-sm rounded-pill ms-md-auto px-4" data-bs-toggle="modal" data-bs-target="#addressModal">
+                        <button class="btn btn-outline-primary btn-sm rounded-pill ms-md-auto px-4"
+                            data-bs-toggle="modal" data-bs-target="#addressModal">
                             <i class="fas fa-pen me-1"></i> {% if address_display %}Edit{% else %}Add{% endif %}
                         </button>
                     </div>
@@ -57,72 +60,78 @@
                         <div class="row align-items-center">
                             <div class="col-3 col-md-2">
                                 <a href="/product/view/{{ item.get('product_id', '') }}" class="d-block">
-                                    <img src="{{ url_for('static', filename=item.get('attachment', '')) }}" 
-                                         alt="{{ item.get('product_name', '') }}" 
-                                         class="img-fluid rounded-3"
-                                         style="width: 100%; height: 100px; object-fit: cover;">
+                                    <img src="{{ item.get('attachment') if item.get('attachment') else url_for('static', filename='images/no-image.jpg') }}"
+                                        alt="{{ item.get('product_name', '') }}" class="img-fluid rounded-3"
+                                        style="width: 100%; height: 100px; object-fit: cover;">
                                 </a>
                             </div>
                             <div class="col-9 col-md-7">
                                 <div class="ps-3">
                                     <h5 class="mb-1 fw-semibold">
-                                        <a href="/product/view/{{ item.get('product_id', '') }}" class="text-dark text-decoration-none">
+                                        <a href="/product/view/{{ item.get('product_id', '') }}"
+                                            class="text-dark text-decoration-none">
                                             {{ item.get('product_name', '') }}
                                         </a>
                                     </h5>
-                                    {% if item.get('variant_type') and item.get('variant_type') != 'none' and item.get('variant_value') %}
+                                    {% if item.get('variant_type') and item.get('variant_type') != 'none' and
+                                    item.get('variant_value') %}
                                     <div class="mb-2">
                                         <span class="badge bg-primary-subtle text-primary rounded-pill small">
-                                            {{ item.get('variant_type')|capitalize|replace('s','',1) if item.get('variant_type') != 'sizes' else 'Size' }}:
+                                            {{ item.get('variant_type')|capitalize|replace('s','',1) if
+                                            item.get('variant_type') != 'sizes' else 'Size' }}:
                                             <strong>{{ item.get('variant_value') }}</strong>
                                         </span>
                                     </div>
                                     {% endif %}
-                                    <span class="badge rounded-pill bg-success-subtle text-success small mb-2">In Stock</span>
+                                    <span class="badge rounded-pill bg-success-subtle text-success small mb-2">In
+                                        Stock</span>
                                     <div class="d-flex align-items-center">
                                         <div class="quantity-selector me-3" style="width: 96px;">
-                                            <input type="number" 
-                                                   id="quantity-{{ item.get('order_items_id') }}" 
-                                                   value="{{ item.get('quantity', 1) }}" 
-                                                   class="form-control form-control-sm text-center quantity-input" 
-                                                   style="padding-inline: 0.35rem; font-size: 0.8rem;"
-                                                   min="1"
-                                                   max="{{ item.get('stock', 9999) }}"
-                                                   data-price="{{ item.get('price', 0) }}"
-                                                   data-max-stock="{{ item.get('stock', 9999) }}"
-                                                   data-order-item-id="{{ item.get('order_items_id') }}"
-                                                   oninput="updateItemTotal(this)"
-                                                   onkeypress="return handleQuantityKeyPress(event, this)"
-                                                   onchange="sendQuantityUpdate(this)">
+                                            <input type="number" id="quantity-{{ item.get('order_items_id') }}"
+                                                value="{{ item.get('quantity', 1) }}"
+                                                class="form-control form-control-sm text-center quantity-input"
+                                                style="padding-inline: 0.35rem; font-size: 0.8rem;" min="1"
+                                                max="{{ item.get('stock', 9999) }}"
+                                                data-price="{{ item.get('price', 0) }}"
+                                                data-max-stock="{{ item.get('stock', 9999) }}"
+                                                data-order-item-id="{{ item.get('order_items_id') }}"
+                                                oninput="updateItemTotal(this)"
+                                                onkeypress="return handleQuantityKeyPress(event, this)"
+                                                onchange="sendQuantityUpdate(this)">
                                         </div>
-                                        <a href="#" 
-                                           class="remove-item text-danger text-decoration-none small"
-                                           data-order-item-id="{{ item.get('order_items_id') }}">
+                                        <a href="#" class="remove-item text-danger text-decoration-none small"
+                                            data-order-item-id="{{ item.get('order_items_id') }}">
                                             <i class="fas fa-trash-alt me-1"></i> Remove
                                         </a>
-                                        <form action="/remove-from-cart" method="POST" style="display: none;" data-order-item-id="{{ item.get('order_items_id') }}">
-                                            <input type="hidden" name="order_item_id" value="{{ item.get('order_items_id') }}">
+                                        <form action="/remove-from-cart" method="POST" style="display: none;"
+                                            data-order-item-id="{{ item.get('order_items_id') }}">
+                                            <input type="hidden" name="order_item_id"
+                                                value="{{ item.get('order_items_id') }}">
                                         </form>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-12 col-md-3 text-md-end mt-3 mt-md-0">
-                                <div class="fw-bold h4 mb-0 item-total text-primary" data-order-item-id="{{ item.get('order_items_id') }}">₱{{ item.get('total_price', 0) }}</div>
-                                <div class="text-muted small item-price" data-order-item-id="{{ item.get('order_items_id') }}">₱{{ item.get('formatted_price', '0.00') }} each</div>
+                                <div class="fw-bold h4 mb-0 item-total text-primary"
+                                    data-order-item-id="{{ item.get('order_items_id') }}">₱{{ item.get('total_price', 0)
+                                    }}</div>
+                                <div class="text-muted small item-price"
+                                    data-order-item-id="{{ item.get('order_items_id') }}">₱{{
+                                    item.get('formatted_price', '0.00') }} each</div>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-            
+
             <div class="d-flex mb-4">
                 <a href="/" class="btn btn-outline-secondary rounded-pill px-4">
                     <i class="fas fa-arrow-left me-2"></i> Continue Shopping
                 </a>
             </div>
         </div>
-        
+
         <div class="col-lg-4">
             <div class="card border-0 shadow rounded-4 mb-4 order-summary-card">
                 <div class="card-header bg-white py-3">
@@ -168,13 +177,16 @@
                     <hr>
                     <div class="d-flex justify-content-between mb-3">
                         <span class="fw-bold">Total</span>
-                        <span class="fw-bold">₱<span id="total-price">{{ order_totals.formatted_total if order_totals else "0.00" }}</span></span>
+                        <span class="fw-bold">₱<span id="total-price">{{ order_totals.formatted_total if order_totals
+                                else "0.00" }}</span></span>
                     </div>
-                    <button class="btn btn-primary w-100 py-2 rounded-pill fw-bold" onclick="openCheckoutModal()" {% if not order_totals or not address_display %}disabled{% endif %}>
+                    <button class="btn btn-primary w-100 py-2 rounded-pill fw-bold" onclick="openCheckoutModal()" {% if
+                        not order_totals or not address_display %}disabled{% endif %}>
                         Proceed to Checkout
                     </button>
                     {% if not address_display %}
-                    <p class="mt-2 small text-danger mb-0">Please add a shipping address above before proceeding to checkout.</p>
+                    <p class="mt-2 small text-danger mb-0">Please add a shipping address above before proceeding to
+                        checkout.</p>
                     {% endif %}
                     <div class="mt-3 small text-muted">
                         <div class="d-flex align-items-center gap-2 mb-2">
@@ -188,12 +200,13 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-body">
                     <h6 class="mb-3">We Accept</h6>
                     <div class="d-flex gap-2">
-                        <img src="{{ url_for('static', filename='images/payment/cod.png') }}" alt="Cash on Delivery" style="height: 30px;">
+                        <img src="{{ url_for('static', filename='images/payment/cod.png') }}" alt="Cash on Delivery"
+                            style="height: 30px;">
                     </div>
                 </div>
             </div>
@@ -215,14 +228,16 @@
                             <i class="fas fa-info-circle me-2 mt-1"></i>
                             <div>
                                 <h6 class="alert-heading mb-1">Order Reference: #{{ random_order_reference }}</h6>
-                                <p class="mb-0 small">Shipping Fee: <span class="{{ 'text-success' if order_totals.is_shipping_free else '' }}">
-                                    {% if order_totals.is_shipping_free %}Free{% else %}₱{{ order_totals.formatted_shipping }}{% endif %}
-                                </span></p>
+                                <p class="mb-0 small">Shipping Fee: <span
+                                        class="{{ 'text-success' if order_totals.is_shipping_free else '' }}">
+                                        {% if order_totals.is_shipping_free %}Free{% else %}₱{{
+                                        order_totals.formatted_shipping }}{% endif %}
+                                    </span></p>
                             </div>
                         </div>
                     </div>
                     {% endif %}
-                    
+
                     <form id="buy-now-form">
                         {% if random_order_reference %}
                         <input type="hidden" name="reference" value="{{ random_order_reference }}">
@@ -231,14 +246,18 @@
                             <label class="form-label fw-bold mb-3">Payment Method</label>
                             <div class="alert alert-light border rounded-3 d-flex align-items-center gap-2 mb-3">
                                 <i class="fas fa-info-circle text-primary"></i>
-                                <span class="small">We currently offer <strong>Cash on Delivery</strong> as our only payment method.</span>
+                                <span class="small">We currently offer <strong>Cash on Delivery</strong> as our only
+                                    payment method.</span>
                             </div>
                             <div class="payment-options">
                                 <div class="payment-option">
-                                    <input type="radio" id="cod" name="payment-method" value="cod" class="d-none" checked>
-                                    <label for="cod" class="payment-option-label d-flex align-items-center p-3 border rounded-3">
+                                    <input type="radio" id="cod" name="payment-method" value="cod" class="d-none"
+                                        checked>
+                                    <label for="cod"
+                                        class="payment-option-label d-flex align-items-center p-3 border rounded-3">
                                         <div class="payment-icon me-3">
-                                            <img src="{{ url_for('static', filename='images/payment/cod.png') }}" alt="Cash on Delivery" style="height: 24px;">
+                                            <img src="{{ url_for('static', filename='images/payment/cod.png') }}"
+                                                alt="Cash on Delivery" style="height: 24px;">
                                         </div>
                                         <div class="payment-details">
                                             <h6 class="mb-0">Cash on Delivery</h6>
@@ -266,7 +285,8 @@
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
                     <div>
-                        <h5 class="modal-title fw-bold" id="addressModalLabel">{{ address_display and 'Update' or 'Add' }} Shipping Address</h5>
+                        <h5 class="modal-title fw-bold" id="addressModalLabel">{{ address_display and 'Update' or 'Add'
+                            }} Shipping Address</h5>
                         <p class="text-muted small mb-0">We'll use this address for all upcoming deliveries.</p>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -276,35 +296,44 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Floor / Unit / Building</label>
-                                <input type="text" class="form-control" name="floor_unit_number" value="{{ user_address.floor_unit_number if user_address else '' }}" placeholder="e.g., 2F, Unit 3B" required>
+                                <input type="text" class="form-control" name="floor_unit_number"
+                                    value="{{ user_address.floor_unit_number if user_address else '' }}"
+                                    placeholder="e.g., 2F, Unit 3B" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Street</label>
-                                <input type="text" class="form-control" name="street_text" value="{{ user_address.street if user_address else '' }}" placeholder="House No., Street" required>
+                                <input type="text" class="form-control" name="street_text"
+                                    value="{{ user_address.street if user_address else '' }}"
+                                    placeholder="House No., Street" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Region</label>
                                 <select class="form-select" id="region" name="region" required></select>
-                                <input type="hidden" name="region_text" id="region-text" value="{{ address_texts.region if address_texts else '' }}">
+                                <input type="hidden" name="region_text" id="region-text"
+                                    value="{{ address_texts.region if address_texts else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Province</label>
                                 <select class="form-select" id="province" name="province" required></select>
-                                <input type="hidden" name="province_text" id="province-text" value="{{ address_texts.province if address_texts else '' }}">
+                                <input type="hidden" name="province_text" id="province-text"
+                                    value="{{ address_texts.province if address_texts else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">City / Municipality</label>
                                 <select class="form-select" id="city" name="city" required></select>
-                                <input type="hidden" name="city_text" id="city-text" value="{{ address_texts.city if address_texts else '' }}">
+                                <input type="hidden" name="city_text" id="city-text"
+                                    value="{{ address_texts.city if address_texts else '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-semibold">Barangay</label>
                                 <select class="form-select" id="barangay" name="barangay" required></select>
-                                <input type="hidden" name="barangay_text" id="barangay-text" value="{{ address_texts.barangay if address_texts else '' }}">
+                                <input type="hidden" name="barangay_text" id="barangay-text"
+                                    value="{{ address_texts.barangay if address_texts else '' }}">
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-semibold">Other Notes (Optional)</label>
-                                <textarea class="form-control" name="other_notes" rows="2" placeholder="Directions, landmark, contact instructions">{{ user_address.other_notes if user_address else '' }}</textarea>
+                                <textarea class="form-control" name="other_notes" rows="2"
+                                    placeholder="Directions, landmark, contact instructions">{{ user_address.other_notes if user_address else '' }}</textarea>
                             </div>
                         </div>
                         <div class="mt-4">
@@ -334,297 +363,203 @@
 
 {% block script %}
 <script>
-    // Global functions for cart functionality
-    // Helper function to format numbers with thousand separators
+    // ─────────────────────────────────────────────
+    // Helper: format number with thousand separators
+    // ─────────────────────────────────────────────
     function formatNumberWithCommas(number) {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
-    
-    // Helper function to parse number with thousand separators
+
     function parseNumberWithCommas(str) {
         return parseFloat(str.replace(/,/g, ''));
     }
-    
+
+    // ─────────────────────────────────────────────
+    // updateItemTotal
+    // Only updates the displayed per-item total.
+    // Does NOT clamp to 1 while typing (that was the bug).
+    // Only call this when the value is already valid.
+    // ─────────────────────────────────────────────
     function updateItemTotal(input) {
-        // Store the current value before changing it
-        input.setAttribute('data-old-value', input.value);
-
-        // Determine max stock limit if provided
-        const maxStockAttr = input.dataset.maxStock || input.getAttribute('max');
-        const maxStock = maxStockAttr ? parseInt(maxStockAttr, 10) : null;
-
-        // Ensure quantity is at least 1 and does not exceed stock
-        let quantity = Math.max(1, parseInt(input.value) || 1);
-        if (maxStock && quantity > maxStock) {
-            quantity = maxStock;
-        }
-
-        if (input.value !== quantity.toString()) {
-            input.value = quantity;
-        }
-        
         const orderItemId = input.dataset.orderItemId || input.id.split('-')[1];
         const priceElement = document.querySelector(`.item-price[data-order-item-id="${orderItemId}"]`);
-        
-        // Get the price from the data attribute or parse it from the price element
+
         let price = parseFloat(input.dataset.price);
-        
-        // If price is not in data attribute, try to get it from the price element
+
         if ((isNaN(price) || price === 0) && priceElement) {
-            // Get the price text and clean it (remove currency symbol and commas)
             const priceText = priceElement.textContent.trim()
                 .replace('₱', '')
                 .replace(/,/g, '')
                 .replace('each', '')
                 .trim();
-                
             price = parseFloat(priceText);
-            
-            // If we got a valid price, update the data attribute
             if (!isNaN(price) && price > 0) {
                 input.dataset.price = price;
             } else {
-                console.error('Invalid price found:', priceText);
-                price = 0; // Set to 0 if we can't parse a valid price
+                price = 0;
             }
         }
-        
-        // Calculate total and ensure it's a valid number
+
+        const quantity = Math.max(1, parseInt(input.value) || 1);
         const total = (price * quantity).toFixed(2);
         const formattedTotal = formatNumberWithCommas(total);
-        
-        // Debug log
-        console.log(`Updating item ${orderItemId}: ${quantity} x ${price} = ${total}`);
-        
-        // Update the displayed total for this item
+
         const totalElement = document.querySelector(`.item-total[data-order-item-id="${orderItemId}"]`);
         if (totalElement) {
             totalElement.textContent = `₱${formattedTotal}`;
         }
-        
-        // Update the cart total
+
         updateCartTotal();
     }
 
-    function sendQuantityUpdate(input, quantityOverride) {
-        const orderItemId = input ? (input.dataset.orderItemId || input.id.split('-')[1]) : null;
-        let quantity = quantityOverride !== undefined ? quantityOverride : (input ? input.value : null);
+    // ─────────────────────────────────────────────
+    // sendQuantityUpdate
+    // Validates, clamps, updates display, then POSTs to server.
+    // Called only on blur or Enter — NOT on every keystroke.
+    // ─────────────────────────────────────────────
+    function sendQuantityUpdate(input) {
+        const orderItemId = input.dataset.orderItemId || input.id.split('-')[1];
+        if (!orderItemId) return;
 
-        if (!input || !orderItemId) return;
-
-        // Enforce min/max bounds including stock
         const maxStockAttr = input.dataset.maxStock || input.getAttribute('max');
         const maxStock = maxStockAttr ? parseInt(maxStockAttr, 10) : null;
 
-        let quantityInt = Math.max(1, parseInt(quantity) || 1);
+        // Clamp: at least 1, at most maxStock
+        let quantityInt = Math.max(1, parseInt(input.value) || 1);
         if (maxStock && quantityInt > maxStock) {
             quantityInt = maxStock;
         }
 
-        if (input.value !== quantityInt.toString()) {
-            input.value = quantityInt;
-        }
-        
+        // Sync the input value to clamped result
+        input.value = quantityInt;
+
+        // Save as old value after clamping
+        input.setAttribute('data-old-value', quantityInt);
+
+        // Update display immediately
         updateItemTotal(input);
 
-        // Show loading state
+        // Disable while fetching
         input.disabled = true;
-        const originalValue = input.value;
-
-        // Get the current price from the data attribute or price element
-        let price = parseFloat(input.dataset.price);
-        if (isNaN(price)) {
-            const priceElement = document.querySelector(`.item-price[data-order-item-id="${orderItemId}"]`);
-            if (priceElement) {
-                const priceText = priceElement.textContent.replace(/[^0-9.-]+/g, '');
-                price = parseFloat(priceText) || 0;
-                // Update the data attribute for future reference
-                input.dataset.price = price;
-            }
-        }
-
-        // Update the UI immediately for better responsiveness
-        const total = (price * quantityInt).toFixed(2);
-        const formattedTotal = formatNumberWithCommas(total);
-        const totalElement = document.querySelector(`.item-total[data-order-item-id="${orderItemId}"]`);
-        if (totalElement) {
-            totalElement.textContent = `₱${formattedTotal}`;
-        }
-        updateCartTotal();
 
         fetch('/update-cart', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 order_item_id: orderItemId,
                 quantity: quantityInt
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update the total price in the order summary
-                if (data.data && data.data.total_price) {
-                    const subtotalElement = document.querySelector('.order-summary .d-flex.justify-content-between.mb-2:first-child span:last-child');
-                    if (subtotalElement) {
-                        subtotalElement.textContent = `₱${formatNumberWithCommas(parseFloat(data.data.total_price).toFixed(2))}`;
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.data && data.data.total_price) {
+                        const totalPriceElement = document.getElementById('total-price');
+                        if (totalPriceElement) {
+                            totalPriceElement.textContent = formatNumberWithCommas(
+                                parseFloat(data.data.total_price).toFixed(2)
+                            );
+                        }
                     }
-                    
-                    // Update the order total in the checkout modal
-                    const orderTotalElement = document.querySelector('.order-total-amount');
-                    if (orderTotalElement) {
-                        orderTotalElement.textContent = `₱${formatNumberWithCommas(parseFloat(data.data.total_price).toFixed(2))}`;
-                    }
-                    
-                    // Update the main total
-                    const totalPriceElement = document.getElementById('total-price');
-                    if (totalPriceElement) {
-                        totalPriceElement.textContent = formatNumberWithCommas(parseFloat(data.data.total_price).toFixed(2));
-                    }
+                } else {
+                    console.error('Error updating quantity:', data.message);
+                    // Revert to last known good value
+                    const oldVal = input.getAttribute('data-old-value');
+                    input.value = oldVal !== null ? oldVal : 1;
+                    updateItemTotal(input);
                 }
-            } else {
-                console.error('Error updating quantity:', data.message);
-                // Revert the input value on error
-                input.value = input.getAttribute('data-old-value') || 1;
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                // Revert to last known good value
+                const oldVal = input.getAttribute('data-old-value');
+                input.value = oldVal !== null ? oldVal : 1;
                 updateItemTotal(input);
-            }
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-            // Revert the input value on error
-            input.value = input.getAttribute('data-old-value') || 1;
-            updateItemTotal(input);
-        })
-        .finally(() => {
-            // Re-enable the input
-            input.disabled = false;
-        });
+            })
+            .finally(() => {
+                input.disabled = false;
+            });
     }
 
+    // ─────────────────────────────────────────────
+    // updateCartTotal
+    // Recalculates and updates the order summary sidebar.
+    // ─────────────────────────────────────────────
     function updateCartTotal() {
         let subtotal = 0;
         let isValid = true;
-        
-        // Calculate subtotal from all items (price * quantity)
+
         document.querySelectorAll('.cart-item').forEach(item => {
             const orderItemId = item.getAttribute('data-order-item-id');
             const quantityInput = document.getElementById(`quantity-${orderItemId}`);
             const priceElement = document.querySelector(`.item-price[data-order-item-id="${orderItemId}"]`);
-            
+
             if (quantityInput && priceElement) {
                 const quantity = parseInt(quantityInput.value) || 0;
                 const priceText = priceElement.textContent.replace(/[^0-9.-]+/g, '');
                 const price = parseFloat(priceText);
-                
+
                 if (!isNaN(price) && !isNaN(quantity)) {
                     subtotal += price * quantity;
                 } else {
-                    console.error('Invalid price or quantity:', price, quantity);
                     isValid = false;
                 }
             }
         });
-        
-        if (isValid) {
-            // Calculate shipping (₱79 if subtotal < 2000, else free)
-            const shipping = subtotal < 2000 ? 79 : 0;
-            
-            // Calculate total before tax
-            const totalBeforeTax = subtotal + shipping;
-            
-            // Calculate tax (1% of total before tax)
-            const tax = totalBeforeTax * 0.01;
-            
-            // Calculate final total
-            const total = totalBeforeTax + tax;
-            
-            // Format values
-            const formattedSubtotal = formatNumberWithCommas(subtotal.toFixed(2));
-            const formattedShipping = formatNumberWithCommas(shipping.toFixed(2));
-            const formattedTax = formatNumberWithCommas(tax.toFixed(2));
-            const formattedTotal = formatNumberWithCommas(total.toFixed(2));
-            
-            // Update the order summary
-            const subtotalElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:first-child span:last-child');
-            const shippingElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:nth-child(2) span:last-child');
-            const taxElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-3 span:last-child');
-            const totalElement = document.getElementById('total-price');
-            
-            console.log('Updating order summary:', { subtotal, shipping, tax, total });
-            
-            console.log('Updating elements:', { subtotalElement, shippingElement, taxElement, totalElement });
-            
-            if (subtotalElement) {
-                subtotalElement.textContent = `₱${formattedSubtotal}`;
-                console.log('Updated subtotal element:', subtotalElement);
+
+        if (!isValid) return;
+
+        const shipping = subtotal < 2000 ? 79 : 0;
+        const totalBeforeTax = subtotal + shipping;
+        const tax = totalBeforeTax * 0.01;
+        const total = totalBeforeTax + tax;
+
+        const formattedSubtotal = formatNumberWithCommas(subtotal.toFixed(2));
+        const formattedShipping = formatNumberWithCommas(shipping.toFixed(2));
+        const formattedTax = formatNumberWithCommas(tax.toFixed(2));
+        const formattedTotal = formatNumberWithCommas(total.toFixed(2));
+
+        const subtotalElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:first-child span:last-child');
+        const shippingElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:nth-child(2) span:last-child');
+        const taxElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-3 span:last-child');
+        const totalElement = document.getElementById('total-price');
+
+        if (subtotalElement) subtotalElement.textContent = `₱${formattedSubtotal}`;
+
+        if (shippingElement) {
+            if (subtotal >= 2000) {
+                shippingElement.textContent = 'Free';
+                shippingElement.className = 'text-success';
             } else {
-                console.error('Could not find subtotal element');
+                shippingElement.textContent = `₱${formattedShipping}`;
+                shippingElement.className = '';
             }
-            
-            if (shippingElement) {
-                if (subtotal >= 2000) {
-                    shippingElement.textContent = 'Free';
-                    shippingElement.className = 'text-success';
-                } else {
-                    shippingElement.textContent = `₱${formattedShipping}`;
-                    shippingElement.className = '';
-                }
-                console.log('Updated shipping element:', shippingElement);
-            } else {
-                console.error('Could not find shipping element');
-            }
-            
-            if (taxElement) {
-                taxElement.textContent = `₱${formattedTax}`;
-                console.log('Updated tax element:', taxElement);
-            } else {
-                console.error('Could not find tax element');
-            }
-            
-            if (totalElement) {
-                totalElement.textContent = formattedTotal;
-                console.log('Updated total element:', totalElement);
-            } else {
-                console.error('Could not find total element');
-            }
-            
-            // Update the checkout button total
-            const checkoutButton = document.querySelector('.btn-checkout');
-            if (checkoutButton) {
-                checkoutButton.textContent = `Proceed to Checkout - ₱${formattedTotal}`;
-            }
-            
-            return { subtotal, shipping, tax, total };
         }
+
+        if (taxElement) taxElement.textContent = `₱${formattedTax}`;
+        if (totalElement) totalElement.textContent = formattedTotal;
+
+        return { subtotal, shipping, tax, total };
     }
 
-    // Function to handle Enter key press
-    function handleQuantityKeyPress(event, input) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            sendQuantityUpdate(input, input.value);
-            return false;
-        }
-        return true;
-    }
-
-    // Handle remove item clicks
-    document.addEventListener('click', function(e) {
+    // ─────────────────────────────────────────────
+    // Remove item handler
+    // ─────────────────────────────────────────────
+    document.addEventListener('click', function (e) {
         if (e.target.closest('.remove-item')) {
             e.preventDefault();
             const orderItemId = e.target.closest('.remove-item').getAttribute('data-order-item-id');
             const form = document.querySelector(`form[data-order-item-id="${orderItemId}"]`);
-            if (form) {
-                form.submit();
-            }
+            if (form) form.submit();
         }
     });
 
-    // Format all prices on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Format item prices
+    // ─────────────────────────────────────────────
+    // DOMContentLoaded — single source of truth for all input events
+    // ─────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // Format item prices on load
         document.querySelectorAll('.item-price').forEach(priceEl => {
             const priceText = priceEl.textContent.trim()
                 .replace('₱', '')
@@ -635,40 +570,59 @@
                 priceEl.textContent = `₱${formatNumberWithCommas(price.toFixed(2))} each`;
             }
         });
-        
-        // Initialize item totals
-        document.querySelectorAll('input[id^="quantity-"]').forEach(input => {
-            updateItemTotal(input);
-            
-            // Add event listeners for input changes
-            input.addEventListener('change', function() {
-                sendQuantityUpdate(this, this.value);
-            });
-            
-            // Add event listener for Enter key
-            input.addEventListener('keypress', function(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    sendQuantityUpdate(this, this.value);
-                    return false;
-                }
-                return true;
-            });
-        });
-        
-        // Format the total price on page load
+
+        // Format total on load
         const totalPriceElement = document.getElementById('total-price');
         if (totalPriceElement) {
             const total = parseFloat(totalPriceElement.textContent.replace(/,/g, '')) || 0;
             totalPriceElement.textContent = formatNumberWithCommas(total.toFixed(2));
         }
 
+        // Attach events to each quantity input
+        document.querySelectorAll('input[id^="quantity-"]').forEach(input => {
+
+            // Set initial old-value to page-rendered quantity
+            input.setAttribute('data-old-value', input.value);
+
+            // Update display on page load
+            updateItemTotal(input);
+
+            // FIX: oninput — update display ONLY when value is valid.
+            // Do NOT clamp while the user is still typing.
+            // This was the root cause: empty field → NaN → forced to 1 immediately.
+            input.addEventListener('input', function () {
+                const raw = parseInt(this.value);
+                if (!isNaN(raw) && raw >= 1) {
+                    updateItemTotal(this);
+                }
+                // If field is empty or partially typed, just leave it alone.
+                // Clamping happens on blur/Enter only.
+            });
+
+            // FIX: onblur — clamp + validate + send to server when user leaves field.
+            // Single event, no duplicates.
+            input.addEventListener('blur', function () {
+                sendQuantityUpdate(this);
+            });
+
+            // FIX: Enter key — blur the input which triggers the blur handler above.
+            // Avoids duplicating the sendQuantityUpdate call.
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    this.blur();
+                }
+            });
+        });
+
         initializePaymentSelection();
     });
 
+    // ─────────────────────────────────────────────
+    // Payment selection
+    // ─────────────────────────────────────────────
     let selectedPaymentMethod = 'cod';
 
-    // Function to open the checkout modal
     function openCheckoutModal() {
         const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
         modal.show();
@@ -677,19 +631,17 @@
     function initializePaymentSelection() {
         const inputs = document.querySelectorAll('input[name="payment-method"]');
         inputs.forEach((input, index) => {
-            if (index === 0 && !input.checked) {
-                input.checked = true;
-            }
-            if (input.checked) {
-                selectedPaymentMethod = input.value;
-            }
-            input.addEventListener('change', function() {
+            if (index === 0 && !input.checked) input.checked = true;
+            if (input.checked) selectedPaymentMethod = input.value;
+            input.addEventListener('change', function () {
                 selectedPaymentMethod = this.value;
             });
         });
     }
 
-    // Function to handle the buy now action
+    // ─────────────────────────────────────────────
+    // Checkout flow
+    // ─────────────────────────────────────────────
     function showOrderConfirmation(data) {
         const paymentLabel = data.payment_method_label || data.payment_method.toUpperCase();
         return Swal.fire({
@@ -724,8 +676,9 @@
         });
     }
 
-    $('#buy-now-form').on('submit', function(e) {
+    $('#buy-now-form').on('submit', function (e) {
         e.preventDefault();
+
         if (!selectedPaymentMethod) {
             $.SystemScript.swalAlertMessage('Oops!', 'Please select a payment method before proceeding.', 'error');
             return;
@@ -745,34 +698,32 @@
         };
 
         showOrderConfirmation(confirmData).then((result) => {
-            if (!result.isConfirmed) {
-                return;
-            }
+            if (!result.isConfirmed) return;
 
             const url = '/submit-checkout';
             const data = new FormData(formElement);
             data.append('payment-method', selectedPaymentMethod);
 
-            fetch(url, {
-                method: 'POST',
-                body: data
-            })
-            .then((response) => response.json())
-            .then((payload) => {
-                if (payload.status === 'success') {
-                    showOrderSuccess(payload.data).then(() => {
-                        window.location.href = `/order-tracking/${payload.data.reference}`;
-                    });
-                } else {
-                    Swal.fire('Oops!', payload.message || 'Unable to process order.', 'error');
-                }
-            })
-            .catch(() => {
-                Swal.fire('Oops!', 'Unable to process order. Please try again.', 'error');
-            });
+            fetch(url, { method: 'POST', body: data })
+                .then(response => response.json())
+                .then(payload => {
+                    if (payload.status === 'success') {
+                        showOrderSuccess(payload.data).then(() => {
+                            window.location.href = `/order-tracking/${payload.data.reference}`;
+                        });
+                    } else {
+                        Swal.fire('Oops!', payload.message || 'Unable to process order.', 'error');
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Oops!', 'Unable to process order. Please try again.', 'error');
+                });
         });
     });
 
+    // ─────────────────────────────────────────────
+    // Address modal / selectors
+    // ─────────────────────────────────────────────
     const addressModal = document.getElementById('addressModal');
     if (addressModal) {
         addressModal.addEventListener('shown.bs.modal', function () {
@@ -793,7 +744,7 @@
 
         if (presetRegion) {
             setTimeout(() => {
-                $('#region option').filter(function() {
+                $('#region option').filter(function () {
                     return $(this).text() === presetRegion;
                 }).prop('selected', true).trigger('change');
             }, 300);
@@ -801,7 +752,7 @@
 
         if (presetProvince) {
             setTimeout(() => {
-                $('#province option').filter(function() {
+                $('#province option').filter(function () {
                     return $(this).text() === presetProvince;
                 }).prop('selected', true).trigger('change');
             }, 600);
@@ -809,7 +760,7 @@
 
         if (presetCity) {
             setTimeout(() => {
-                $('#city option').filter(function() {
+                $('#city option').filter(function () {
                     return $(this).text() === presetCity;
                 }).prop('selected', true).trigger('change');
             }, 900);
@@ -817,21 +768,21 @@
 
         if (presetBarangay) {
             setTimeout(() => {
-                $('#barangay option').filter(function() {
+                $('#barangay option').filter(function () {
                     return $(this).text() === presetBarangay;
                 }).prop('selected', true);
             }, 1200);
         }
     }
 
-    $('#address-form').on('submit', function(e) {
+    $('#address-form').on('submit', function (e) {
         e.preventDefault();
         let url = '/details-submit';
         let data = new FormData(this);
         $.SystemScript.executePost(url, data).done((response) => {
             if (response.data.status === 'success') {
                 $.SystemScript.swalAlertMessage('Success', response.data.message, 'success');
-                $('.swal2-confirm').off('click').on('click', function(){
+                $('.swal2-confirm').off('click').on('click', function () {
                     location.reload();
                 });
             } else {

@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Flask, request, jsonify, session
 import hashlib
 import random

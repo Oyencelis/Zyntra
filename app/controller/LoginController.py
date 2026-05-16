@@ -1,10 +1,10 @@
-from flask import render_template, request, jsonify, session, redirect, url_for, current_app
+# pyrefly: ignore [missing-import]
+from flask import render_template, request, jsonify, session, redirect, url_for, current_app, g
 from helpers.HelperFunction import responseData, hashing, allowed_image_file, generate_random_filename
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.SupabaseAuth import sign_in_with_supabase, sign_up_with_supabase
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
 from helpers.Session import setSession, sessionRemove
-from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 
@@ -588,8 +588,18 @@ def _format_document_path(path):
     return url_for('static', filename=normalized)
 
 
+def _require_admin_for_sensitive_api():
+    auth = getattr(g, 'authenticated', None) or {}
+    if auth.get('role_id') != 1:
+        return responseData("error", "Unauthorized", [], 403)
+    return None
+
+
 def getDeliveryPartnerDocuments(user_id):
     """Fetch delivery partner documents from database"""
+    auth_error = _require_admin_for_sensitive_api()
+    if auth_error:
+        return auth_error
     try:
         query = """
             SELECT drivers_license_path, gov_id_path 
@@ -628,6 +638,9 @@ def getDeliveryPartnerDocuments(user_id):
 
 def getSellerDocuments(user_id):
     """Fetch seller documents from database"""
+    auth_error = _require_admin_for_sensitive_api()
+    if auth_error:
+        return auth_error
     try:
         query = """
             SELECT gov_id_path, business_permit_path 

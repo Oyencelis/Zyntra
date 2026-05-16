@@ -3,7 +3,9 @@ import uuid
 from typing import Optional, Tuple
 from urllib.parse import unquote, urlparse
 
+# pyrefly: ignore [missing-import]
 from supabase import Client, create_client
+# pyrefly: ignore [missing-import]
 from werkzeug.utils import secure_filename
 
 

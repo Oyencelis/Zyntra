@@ -1,5 +1,6 @@
 from functools import wraps
-from flask import Flask, session, redirect, url_for, g, render_template, request
+# pyrefly: ignore [missing-import]
+from flask import Flask, session, redirect, url_for, g, render_template
 
 # Middleware
 from middleware.auth import login_required
@@ -38,6 +39,7 @@ from controller.RiderController import (
     claimPickupAssignment,
     updatePickupStatus,
     getPickupDetail,
+    uploadDeliveryProof,
 )
 from controller.PaymentController import paymentDashboard
 
@@ -47,6 +49,13 @@ from controller.ChatController import (
     postConversationMessage,
     getUserConversations,
     getChatCounterparts,
+)
+
+from controller.WalletController import (
+    admin_withdrawals_page,
+    admin_withdrawal_decide,
+    api_wallet_summary,
+    api_wallet_withdraw
 )
 
 # Seller Management routes
@@ -210,7 +219,7 @@ def setup_routes(app: Flask):
         sessionRemove('authenticated') # Clear session data
         return redirect(url_for('home_page'))
 
-    @app.route('/dashboard')
+    @app.route('/dashboard', strict_slashes=False)
     @login_required 
     def dashboard_page():
         return dashboardIndex()
@@ -422,8 +431,13 @@ def setup_routes(app: Flask):
 
     @app.route('/api/rider/pickups/<int:suborder_id>/status', methods=['POST'])
     @login_required
-    def api_rider_update_pickup(suborder_id):
+    def api_rider_update_status(suborder_id):
         return updatePickupStatus(suborder_id)
+
+    @app.route('/api/rider/pickups/<int:suborder_id>/delivery-proof', methods=['POST'])
+    @login_required
+    def api_rider_delivery_proof(suborder_id):
+        return uploadDeliveryProof(suborder_id)
 
     # Chat APIs
     @app.route('/api/chat/conversations', methods=['GET'])
@@ -508,3 +522,23 @@ def setup_routes(app: Flask):
     @login_required
     def suborders_update_status():
         return updateSuborderStatus()
+
+    @app.route('/admin/withdrawals', strict_slashes=False)
+    @login_required
+    def admin_withdrawals():
+        return admin_withdrawals_page()
+
+    @app.route('/admin/withdrawals/decide', methods=['POST'])
+    @login_required
+    def admin_withdrawals_decide():
+        return admin_withdrawal_decide()
+
+    @app.route('/api/wallet/summary', strict_slashes=False)
+    @login_required
+    def api_wallet_summary_route():
+        return api_wallet_summary()
+
+    @app.route('/api/wallet/withdraw', methods=['POST'])
+    @login_required
+    def api_wallet_withdraw_route():
+        return api_wallet_withdraw()

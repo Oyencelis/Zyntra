@@ -1,206 +1,213 @@
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">
-    <div class="app-brand demo">
-      <a href="/" class="app-brand-link">
-        <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="logo" class="img-fluid" style="max-height: 50px; width: auto; padding: 10px;">
-        <span class="fw-bold fs-4 text-primary zyn-brand-text">Zyntra</span>
-      </a>
-    </div>
-    <div class="menu-inner-shadow"></div>
-    {% set role_id = auth_user['role_id'] %}
-    {% set unread_messages = g.messages_unread_count if g.messages_unread_count is defined else 0 %}
+  <div class="app-brand demo">
+    <a href="/" class="app-brand-link">
+      <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="logo" class="img-fluid"
+        style="max-height: 50px; width: auto; padding: 10px;">
+      <span class="fw-bold fs-4 text-primary zyn-brand-text">Zyntra</span>
+    </a>
+  </div>
+  <div class="menu-inner-shadow"></div>
+  {% set role_id = auth_user['role_id'] %}
+  {% set unread_messages = g.messages_unread_count if g.messages_unread_count is defined else 0 %}
 
-    <h5 class="text-center bg-dark text-light text-uppercase">
-      {% if role_id == 1 %}
-        Admin
-      {% elif role_id == 4 %}
-        Rider
-      {% else %}
-        Seller
-      {% endif %}
-    </h5>
-
-    {% if role_id == 4 %}
-      {# Rider-specific navigation #}
-      <ul class="menu-inner py-1">
-        <li class="menu-item {% if 'dashboard' in menu %}active{% endif %}">
-          <a href="/dashboard" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-home-smile"></i>
-            <div class="text-truncate">Dashboard</div>
-          </a>
-        </li>
-        <li class="menu-item {% if 'deliveries' in menu %}active{% endif %}">
-          <a href="/rider" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-package"></i>
-            <div class="text-truncate">Assigned Deliveries</div>
-          </a>
-        </li>
-        <li class="menu-item {% if 'earnings' in menu %}active{% endif %}">
-          <a href="/rider-earnings" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-wallet"></i>
-            <div class="text-truncate">Earnings &amp; Payouts</div>
-          </a>
-        </li>
-        <li class="menu-item {% if 'messages' in menu %}active{% endif %}">
-          <a href="/messages" class="menu-link d-flex align-items-center">
-            <i class="menu-icon tf-icons bx bx-message-dots"></i>
-            <div class="text-truncate d-flex align-items-center justify-content-between w-100">
-              <span>Messages</span>
-              {% if unread_messages %}
-                <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
-              {% endif %}
-            </div>
-          </a>
-        </li>
-        <li class="menu-header small text-uppercase"><span class="menu-header-text">Account</span></li>
-        <li class="menu-item {% if 'manage' in menu %}active{% endif %}">
-          <a href="/profiles" class="menu-link">
-            <i class="menu-icon tf-icons bx bxs-user-detail"></i>
-            <div class="text-truncate">Manage Profile</div>
-          </a>
-        </li>
-        <li class="menu-item">
-          <a href="/logout" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-power-off"></i>
-            <div class="text-truncate">Log Out</div>
-          </a>
-        </li>
-      </ul>
+  <h5 class="text-center bg-dark text-light text-uppercase">
+    {% if role_id == 1 %}
+    Admin
+    {% elif role_id == 4 %}
+    Rider
     {% else %}
-      {# Admin & Seller navigation #}
-      <ul class="menu-inner py-1">
-        <li class="menu-item {% if 'dashboard' in menu %} active open {% endif%}">
-          <a href="javascript:void(0);" class="menu-link menu-toggle">
-            <i class="menu-icon tf-icons bx bx-home-smile"></i>
-            <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
-          </a>
-          <ul class="menu-sub">
-            <li class="menu-item {% if 'analytics' in menu %} active {% endif%}">
-              <a href="/dashboard" class="menu-link">
-                <div class="text-truncate" data-i18n="Analytics">Analytics</div>
-              </a>
-            </li>
-          </ul>
-        </li>
+    Seller
+    {% endif %}
+  </h5>
 
-        {% if role_id != 1 %}
-        <li class="menu-item">
-          <a href="javascript:void(0);" class="menu-link menu-toggle">
-            <i class="menu-icon tf-icons bx bx-cart"></i>
-            <div class="text-truncate" data-i18n="Layouts">Orders</div>
-          </a>
-          <ul class="menu-sub">
-            <li class="menu-item">
-              <a href="/order-list" class="menu-link">
-                <div class="text-truncate" data-i18n="Without menu">Order List</div>
-              </a>
-            </li>
-            <li class="menu-item">
-              <a href="/order-management" class="menu-link">
-                <div class="text-truncate" data-i18n="Without menu">Order Management</div>
-              </a>
-            </li>
-          </ul>
-        </li>
-
-        <li class="menu-item {% if 'product' in menu %} active open {% endif%}">
-          <a href="javascript:void(0);" class="menu-link menu-toggle">
-            <i class="menu-icon tf-icons bx bx-shopping-bag"></i>
-            <div class="text-truncate" data-i18n="Layouts">Products</div>
-          </a>
-          <ul class="menu-sub">
-            <li class="menu-item {% if 'products' in menu %} active {% endif%}">
-              <a href="/product" class="menu-link">
-                <div class="text-truncate" data-i18n="Without menu">Product List</div>
-              </a>
-            </li>
-            {% if role_id == 1 %}
-            <li class="menu-item {% if 'categories' in menu %} active {% endif%}">
-              <a href="/product/categories" class="menu-link">
-                <div class="text-truncate" data-i18n="Without menu">Categories</div>
-              </a>
-            </li>
-            {% endif %}
-          </ul>
-        </li>
-
-        <li class="menu-item">
-          <a href="/payment" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-dollar"></i>
-            <div class="text-truncate" data-i18n="Email">Payment</div>
-          </a>
-        </li>
-        <li class="menu-item {% if 'messages' in menu %} active {% endif%}">
-          <a href="/messages" class="menu-link d-flex align-items-center">
-            <i class="menu-icon tf-icons bx bx-message-dots"></i>
-            <div class="text-truncate d-flex align-items-center justify-content-between w-100">
-              <span>Messages</span>
-              {% if unread_messages %}
-                <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
+  {% if role_id == 4 %}
+  {# Rider-specific navigation #}
+  <ul class="menu-inner py-1">
+    <li class="menu-item {% if 'dashboard' in menu %}active{% endif %}">
+      <a href="/dashboard" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-home-smile"></i>
+        <div class="text-truncate">Dashboard</div>
+      </a>
+    </li>
+    <li class="menu-item {% if 'deliveries' in menu %}active{% endif %}">
+      <a href="/rider" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-package"></i>
+        <div class="text-truncate">Assigned Deliveries</div>
+      </a>
+    </li>
+    <li class="menu-item {% if 'earnings' in menu %}active{% endif %}">
+      <a href="/rider-earnings" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-wallet"></i>
+        <div class="text-truncate">Earnings &amp; Payouts</div>
+      </a>
+    </li>
+    <li class="menu-item {% if 'messages' in menu %}active{% endif %}">
+      <a href="/messages" class="menu-link d-flex align-items-center">
+        <i class="menu-icon tf-icons bx bx-message-dots"></i>
+        <div class="text-truncate d-flex align-items-center justify-content-between w-100">
+          <span>Messages</span>
+          {% if unread_messages %}
+          <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
               {% endif %}
-            </div>
-          </a>
-        </li>
-        {% endif %}
-
-        {% if role_id == 1 %}
-          <li class="menu-header small text-uppercase"><span class="menu-header-text">User Management</span></li>
-          <li class="menu-item {% if 'users' in menu %} active open {% endif%}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-              <i class="menu-icon tf-icons bx bx-user"></i>
-              <div class="text-truncate">Users</div>
-            </a>
-            <ul class="menu-sub">
-              <li class="menu-item {% if 'seller' in menu %} active {% endif%}">
-                <a href="/seller" class="menu-link">
-                  <div class="text-truncate">Seller</div>
-                </a>
-              </li>
-              <li class="menu-item {% if 'rider' in menu %} active {% endif %}">
-                <a href="/admin/riders" class="menu-link">
-                  <div class="text-truncate">Rider</div>
-                </a>
-              </li>
-              <li class="menu-item {% if 'customer' in menu %} active {% endif%}">
-                <a href="/buyer" class="menu-link">
-                  <div class="text-truncate">Customer</div>
-                </a>
-              </li>
-            </ul>
-          </li>
-        {% endif %}
-
-        {% if role_id != 1 %}
-          <li class="menu-header small text-uppercase"><span class="menu-header-text">Account Settings</span></li>
-          <li class="menu-item {% if 'manage' in menu %} active {% endif %}">
-            <a href="/profiles" class="menu-link">
-              <i class="menu-icon tf-icons bx bxs-user-detail"></i>
-              <div class="text-truncate" data-i18n="Support">Manage Profile</div>
-            </a>
-          </li>
-        {% endif %}
-
-        <li class="menu-item">
-          <a href="/logout" class="menu-link">
-            <i class="menu-icon tf-icons bx bx-power-off"></i>
-            <div class="text-truncate" data-i18n="Documentation">Log Out</div>
+        </div>
+      </a>
+    </li>
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">Account</span></li>
+    <li class="menu-item {% if 'manage' in menu %}active{% endif %}">
+      <a href="/profiles" class="menu-link">
+        <i class="menu-icon tf-icons bx bxs-user-detail"></i>
+        <div class="text-truncate">Manage Profile</div>
+      </a>
+    </li>
+    <li class="menu-item">
+      <a href="/logout" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-power-off"></i>
+        <div class="text-truncate">Log Out</div>
+      </a>
+    </li>
+  </ul>
+  {% else %}
+  {# Admin & Seller navigation #}
+  <ul class="menu-inner py-1">
+    <li class="menu-item {% if 'dashboard' in menu %} active open {% endif%}">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-home-smile"></i>
+        <div class="text-truncate" data-i18n="Dashboards">Dashboards</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item {% if 'analytics' in menu %} active {% endif%}">
+          <a href="/dashboard" class="menu-link">
+            <div class="text-truncate" data-i18n="Analytics">Analytics</div>
           </a>
         </li>
       </ul>
+    </li>
+
+    {% if role_id != 1 %}
+    <li class="menu-item">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-cart"></i>
+        <div class="text-truncate" data-i18n="Layouts">Orders</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item">
+          <a href="/order-list" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Order List</div>
+          </a>
+        </li>
+        <li class="menu-item">
+          <a href="/order-management" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Order Management</div>
+          </a>
+        </li>
+      </ul>
+    </li>
+
+    <li class="menu-item {% if 'product' in menu %} active open {% endif%}">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-shopping-bag"></i>
+        <div class="text-truncate" data-i18n="Layouts">Products</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item {% if 'products' in menu %} active {% endif%}">
+          <a href="/product" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Product List</div>
+          </a>
+        </li>
+        {% if role_id == 1 %}
+        <li class="menu-item {% if 'categories' in menu %} active {% endif%}">
+          <a href="/product/categories" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Categories</div>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </li>
+
+    <li class="menu-item">
+      <a href="/payment" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-dollar"></i>
+        <div class="text-truncate" data-i18n="Email">Payment</div>
+      </a>
+    </li>
+    <li class="menu-item {% if 'messages' in menu %} active {% endif%}">
+      <a href="/messages" class="menu-link d-flex align-items-center">
+        <i class="menu-icon tf-icons bx bx-message-dots"></i>
+        <div class="text-truncate d-flex align-items-center justify-content-between w-100">
+          <span>Messages</span>
+          {% if unread_messages %}
+          <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
+              {% endif %}
+        </div>
+      </a>
+    </li>
     {% endif %}
+
+    {% if role_id == 1 %}
+    <li class="menu-item {% if menu == 'withdrawals' %} active {% endif %}">
+      <a href="/admin/withdrawals" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-wallet"></i>
+        <div class="text-truncate">Withdrawals</div>
+      </a>
+    </li>
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">User Management</span></li>
+    <li class="menu-item {% if 'users' in menu %} active open {% endif%}">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-user"></i>
+        <div class="text-truncate">Users</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item {% if 'seller' in menu %} active {% endif%}">
+          <a href="/seller" class="menu-link">
+            <div class="text-truncate">Seller</div>
+          </a>
+        </li>
+        <li class="menu-item {% if 'rider' in menu %} active {% endif %}">
+          <a href="/admin/riders" class="menu-link">
+            <div class="text-truncate">Rider</div>
+          </a>
+        </li>
+        <li class="menu-item {% if 'customer' in menu %} active {% endif%}">
+          <a href="/buyer" class="menu-link">
+            <div class="text-truncate">Customer</div>
+          </a>
+        </li>
+      </ul>
+    </li>
+    {% endif %}
+
+    {% if role_id != 1 %}
+    <li class="menu-header small text-uppercase"><span class="menu-header-text">Account Settings</span></li>
+    <li class="menu-item {% if 'manage' in menu %} active {% endif %}">
+      <a href="/profiles" class="menu-link">
+        <i class="menu-icon tf-icons bx bxs-user-detail"></i>
+        <div class="text-truncate" data-i18n="Support">Manage Profile</div>
+      </a>
+    </li>
+    {% endif %}
+
+    <li class="menu-item">
+      <a href="/logout" class="menu-link">
+        <i class="menu-icon tf-icons bx bx-power-off"></i>
+        <div class="text-truncate" data-i18n="Documentation">Log Out</div>
+      </a>
+    </li>
+  </ul>
+  {% endif %}
 </aside>
 
 <!-- Add this script to handle sidebar dropdowns -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function () {
     // Toggle menu items
     const menuToggles = document.querySelectorAll('.menu-toggle');
-    
+
     menuToggles.forEach(toggle => {
-      toggle.addEventListener('click', function(e) {
+      toggle.addEventListener('click', function (e) {
         e.preventDefault();
         const menuItem = this.closest('.menu-item');
         const subMenu = menuItem.querySelector('.menu-sub');
-        
+
         // Close other open menus
         document.querySelectorAll('.menu-item').forEach(item => {
           if (item !== menuItem) {
@@ -211,11 +218,11 @@
             }
           }
         });
-        
+
         // Toggle current menu
         if (subMenu) {
           const isOpen = menuItem.classList.contains('open');
-          
+
           if (isOpen) {
             menuItem.classList.remove('open');
             subMenu.style.display = 'none';
@@ -226,11 +233,11 @@
         }
       });
     });
-    
+
     // Mobile menu toggle
     const layoutMenuToggle = document.querySelector('.layout-menu-toggle');
     if (layoutMenuToggle) {
-      layoutMenuToggle.addEventListener('click', function(e) {
+      layoutMenuToggle.addEventListener('click', function (e) {
         e.preventDefault();
         const wrapper = document.querySelector('.layout-wrapper');
         if (wrapper) {
@@ -238,12 +245,12 @@
         }
       });
     }
-    
+
     // Initialize menu state based on URL
     function setActiveMenu() {
       const currentPath = window.location.pathname;
       const menuItems = document.querySelectorAll('.menu-item');
-      
+
       menuItems.forEach(item => {
         const link = item.querySelector('a[href]');
         if (link) {
@@ -264,7 +271,7 @@
         }
       });
     }
-    
+
     // Call the function on page load
     setActiveMenu();
   });

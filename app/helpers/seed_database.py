@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import mysql.connector
 import requests
 import os

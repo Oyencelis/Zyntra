@@ -3,59 +3,72 @@
 
 {% block content %}
 <div class="container py-5 order-tracking-hub">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-5 gap-3">
+    <div
+        class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-5 gap-3">
         <div>
             <p class="text-muted text-uppercase mb-1 fw-semibold">Order Tracking</p>
             <h1 class="fw-bold mb-2">Manage Your Deliveries</h1>
-            <p class="text-muted mb-0">Monitor every purchase, keep tabs on shipping, and jump into reviews once items arrive.</p>
+            <p class="text-muted mb-0">Monitor every purchase, keep tabs on shipping, and jump into reviews once items
+                arrive.</p>
         </div>
         <div class="text-md-end">
             <p class="text-muted mb-1">Default Shipping Address</p>
             <h6 class="mb-0 shipping-address-display">{{ shipping_address or 'Address not available' }}</h6>
-            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill mt-3" data-bs-toggle="modal" data-bs-target="#editAddressModal">
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill mt-3" data-bs-toggle="modal"
+                data-bs-target="#editAddressModal">
                 <i class="bi bi-pencil-square me-1"></i> Edit Address
             </button>
         </div>
     </div>
 
-    <ul class="nav nav-pills rounded-pill bg-light-subtle p-2 mb-4 flex-nowrap overflow-auto gap-2" id="trackingTab" role="tablist">
+    <ul class="nav nav-pills rounded-pill bg-light-subtle p-2 mb-4 flex-nowrap overflow-auto gap-2" id="trackingTab"
+        role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active rounded-pill px-4" id="placed-tab" data-bs-toggle="pill" data-bs-target="#placed" type="button" role="tab" aria-controls="placed" aria-selected="true">
+            <button class="nav-link active rounded-pill px-4" id="placed-tab" data-bs-toggle="pill"
+                data-bs-target="#placed" type="button" role="tab" aria-controls="placed" aria-selected="true">
                 Order Placed ({{ placed_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="accepted-tab" data-bs-toggle="pill" data-bs-target="#accepted" type="button" role="tab" aria-controls="accepted" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="accepted-tab" data-bs-toggle="pill"
+                data-bs-target="#accepted" type="button" role="tab" aria-controls="accepted" aria-selected="false">
                 Accepted ({{ accepted_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="shipped-tab" data-bs-toggle="pill" data-bs-target="#shipped" type="button" role="tab" aria-controls="shipped" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="shipped-tab" data-bs-toggle="pill" data-bs-target="#shipped"
+                type="button" role="tab" aria-controls="shipped" aria-selected="false">
                 Shipped ({{ shipped_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="ofd-tab" data-bs-toggle="pill" data-bs-target="#out-for-delivery" type="button" role="tab" aria-controls="out-for-delivery" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="ofd-tab" data-bs-toggle="pill"
+                data-bs-target="#out-for-delivery" type="button" role="tab" aria-controls="out-for-delivery"
+                aria-selected="false">
                 Out for Delivery ({{ out_for_delivery_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="delivered-tab" data-bs-toggle="pill" data-bs-target="#delivered" type="button" role="tab" aria-controls="delivered" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="delivered-tab" data-bs-toggle="pill"
+                data-bs-target="#delivered" type="button" role="tab" aria-controls="delivered" aria-selected="false">
                 Delivered ({{ delivered_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="completed-tab" data-bs-toggle="pill" data-bs-target="#completed" type="button" role="tab" aria-controls="completed" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="completed-tab" data-bs-toggle="pill"
+                data-bs-target="#completed" type="button" role="tab" aria-controls="completed" aria-selected="false">
                 Completed ({{ completed_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="cancelled-tab" data-bs-toggle="pill" data-bs-target="#cancelled" type="button" role="tab" aria-controls="cancelled" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="cancelled-tab" data-bs-toggle="pill"
+                data-bs-target="#cancelled" type="button" role="tab" aria-controls="cancelled" aria-selected="false">
                 Cancelled ({{ cancelled_orders|length }})
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link rounded-pill px-4" id="rejected-tab" data-bs-toggle="pill" data-bs-target="#rejected" type="button" role="tab" aria-controls="rejected" aria-selected="false">
+            <button class="nav-link rounded-pill px-4" id="rejected-tab" data-bs-toggle="pill"
+                data-bs-target="#rejected" type="button" role="tab" aria-controls="rejected" aria-selected="false">
                 Rejected ({{ rejected_orders|length }})
             </button>
         </li>
@@ -71,9 +84,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -81,7 +96,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">Placed on {{ item.order_created_at }}</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span>₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-truck"></i> ETA {{ item.estimated_delivery }}</span>
                                 </div>
@@ -92,9 +108,11 @@
                             </div>
                         </div>
                         <div class="text-lg-end">
-                            <span class="badge rounded-pill px-3 py-2 bg-primary-subtle text-primary">Order Placed</span>
+                            <span class="badge rounded-pill px-3 py-2 bg-primary-subtle text-primary">Order
+                                Placed</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}" class="btn btn-primary rounded-pill px-4">Track Order</a>
+                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                    class="btn btn-primary rounded-pill px-4">Track Order</a>
                             </div>
                         </div>
                     </div>
@@ -119,9 +137,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -129,7 +149,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">Order accepted by seller.</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span>₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-truck"></i> ETA {{ item.estimated_delivery }}</span>
                                 </div>
@@ -142,7 +163,8 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-success-subtle text-success">Accepted</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}" class="btn btn-outline-primary rounded-pill px-4">View Details</a>
+                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                    class="btn btn-outline-primary rounded-pill px-4">View Details</a>
                             </div>
                         </div>
                     </div>
@@ -166,9 +188,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -176,7 +200,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">This item was cancelled.</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-x-circle"></i> Cancelled</span>
                                 </div>
@@ -210,9 +235,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -220,7 +247,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">This item was rejected by the seller.</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-x-circle"></i> Rejected</span>
                                 </div>
@@ -255,17 +283,21 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
                                 <p class="text-muted small mb-1">Reference</p>
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
-                                <p class="text-muted small mb-2">Your order has been delivered. Please confirm if everything looks good.</p>
+                                <p class="text-muted small mb-2">Your order has been delivered. Please confirm if
+                                    everything looks good.</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span>₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-patch-check"></i> Awaiting your confirmation</span>
                                 </div>
@@ -278,8 +310,10 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-success-subtle text-success">Delivered</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <button class="btn btn-success rounded-pill px-4" data-confirm-reference="{{ item.reference }}">Confirm Order</button>
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}" class="btn btn-outline-primary rounded-pill px-4">View Details</a>
+                                <button class="btn btn-success rounded-pill px-4"
+                                    data-confirm-reference="{{ item.reference }}">Confirm Order</button>
+                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                    class="btn btn-outline-primary rounded-pill px-4">View Details</a>
                             </div>
                         </div>
                     </div>
@@ -290,7 +324,8 @@
             <div class="text-center py-5">
                 <i class="bi bi-box2-heart display-4 text-muted"></i>
                 <h4 class="fw-bold mt-3">No delivered orders awaiting confirmation</h4>
-                <p class="text-muted">Once riders mark your packages as delivered, they will appear here so you can confirm them.</p>
+                <p class="text-muted">Once riders mark your packages as delivered, they will appear here so you can
+                    confirm them.</p>
             </div>
             {% endif %}
         </div>
@@ -304,9 +339,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -314,7 +351,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">Ready for courier pick-up</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span>₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-truck"></i> ETA {{ item.estimated_delivery }}</span>
                                 </div>
@@ -323,7 +361,8 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-info-subtle text-info">Shipped</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}" class="btn btn-outline-primary rounded-pill px-4">Track Order</a>
+                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                    class="btn btn-outline-primary rounded-pill px-4">Track Order</a>
                             </div>
                         </div>
                     </div>
@@ -348,9 +387,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -358,16 +399,19 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">Courier is en route</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span>₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-geo-alt"></i> ETA {{ item.estimated_delivery }}</span>
                                 </div>
                             </div>
                         </div>
                         <div class="text-lg-end">
-                            <span class="badge rounded-pill px-3 py-2 bg-warning-subtle text-warning">Out for Delivery</span>
+                            <span class="badge rounded-pill px-3 py-2 bg-warning-subtle text-warning">Out for
+                                Delivery</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}" class="btn btn-outline-primary rounded-pill px-4">Track Rider</a>
+                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                    class="btn btn-outline-primary rounded-pill px-4">Track Rider</a>
                             </div>
                         </div>
                     </div>
@@ -392,9 +436,11 @@
                         <div class="d-flex align-items-center gap-3 flex-grow-1">
                             <div class="order-thumb rounded-4 overflow-hidden">
                                 {% if item.attachment %}
-                                    <img src="{{ url_for('static', filename=item.attachment) }}" alt="{{ item.product_name }}" class="img-fluid">
+                                <img src="{{ item.attachment }}"
+                                    alt="{{ item.product_name }}" class="img-fluid">
                                 {% else %}
-                                    <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product" class="img-fluid">
+                                <img src="{{ url_for('static', filename='images/no-image.jpg') }}" alt="Product"
+                                    class="img-fluid">
                                 {% endif %}
                             </div>
                             <div>
@@ -402,7 +448,8 @@
                                 <h5 class="mb-1">#{{ item.reference }}</h5>
                                 <p class="text-muted small mb-2">Order completed on {{ item.estimated_delivery }}</p>
                                 <div class="d-flex flex-wrap gap-3 align-items-center text-muted small">
-                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1 else 's' }}</span>
+                                    <span><i class="bi bi-box"></i> {{ item.quantity }} item{{ '' if item.quantity == 1
+                                        else 's' }}</span>
                                     <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
                                     <span><i class="bi bi-patch-check"></i> Confirmed by you</span>
                                 </div>
@@ -415,7 +462,9 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-success-subtle text-success">Completed</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <button class="btn btn-success rounded-pill px-4" data-review-reference="{{ item.reference }}" data-product-id="{{ item.product_id }}">Write Review</button>
+                                <button class="btn btn-success rounded-pill px-4"
+                                    data-review-reference="{{ item.reference }}"
+                                    data-product-id="{{ item.product_id }}">Write Review</button>
                             </div>
                         </div>
                     </div>
@@ -439,7 +488,8 @@
         <div class="modal-content">
             <div class="modal-header border-0 pb-0">
                 <div>
-                    <h5 class="modal-title fw-bold" id="editAddressLabel">{{ shipping_address and 'Update' or 'Add' }} Shipping Address</h5>
+                    <h5 class="modal-title fw-bold" id="editAddressLabel">{{ shipping_address and 'Update' or 'Add' }}
+                        Shipping Address</h5>
                     <p class="text-muted small mb-0">Use this address for every delivery moving forward.</p>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -449,41 +499,56 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Floor / Unit / Building</label>
-                            <input type="text" class="form-control" name="floor_unit_number" value="{{ user_address.floor_unit_number if user_address else '' }}" placeholder="e.g., 2F, Unit 3B" required>
+                            <input type="text" class="form-control" name="floor_unit_number"
+                                value="{{ user_address.floor_unit_number if user_address else '' }}"
+                                placeholder="e.g., 2F, Unit 3B" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Street</label>
-                            <input type="text" class="form-control" name="street_text" value="{{ user_address.street if user_address else '' }}" placeholder="House No., Street" required>
+                            <input type="text" class="form-control" name="street_text"
+                                value="{{ user_address.street if user_address else '' }}"
+                                placeholder="House No., Street" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Region</label>
-                            <select class="form-select" id="region" name="region" data-selected="{{ user_address.region if user_address else '' }}" required></select>
-                            <input type="hidden" name="region_text" id="region-text" value="{{ address_texts.region if address_texts else '' }}">
+                            <select class="form-select" id="region" name="region"
+                                data-selected="{{ user_address.region if user_address else '' }}" required></select>
+                            <input type="hidden" name="region_text" id="region-text"
+                                value="{{ address_texts.region if address_texts else '' }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Province</label>
-                            <select class="form-select" id="province" name="province" data-selected="{{ user_address.province if user_address else '' }}" required></select>
-                            <input type="hidden" name="province_text" id="province-text" value="{{ address_texts.province if address_texts else '' }}">
+                            <select class="form-select" id="province" name="province"
+                                data-selected="{{ user_address.province if user_address else '' }}" required></select>
+                            <input type="hidden" name="province_text" id="province-text"
+                                value="{{ address_texts.province if address_texts else '' }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">City / Municipality</label>
-                            <select class="form-select" id="city" name="city" data-selected="{{ user_address.city_municipality if user_address else '' }}" required></select>
-                            <input type="hidden" name="city_text" id="city-text" value="{{ address_texts.city if address_texts else '' }}">
+                            <select class="form-select" id="city" name="city"
+                                data-selected="{{ user_address.city_municipality if user_address else '' }}"
+                                required></select>
+                            <input type="hidden" name="city_text" id="city-text"
+                                value="{{ address_texts.city if address_texts else '' }}">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Barangay</label>
-                            <select class="form-select" id="barangay" name="barangay" data-selected="{{ user_address.barangay if user_address else '' }}" required></select>
-                            <input type="hidden" name="barangay_text" id="barangay-text" value="{{ address_texts.barangay if address_texts else '' }}">
+                            <select class="form-select" id="barangay" name="barangay"
+                                data-selected="{{ user_address.barangay if user_address else '' }}" required></select>
+                            <input type="hidden" name="barangay_text" id="barangay-text"
+                                value="{{ address_texts.barangay if address_texts else '' }}">
                         </div>
                         <div class="col-12">
                             <label class="form-label fw-semibold">Other Notes (Optional)</label>
-                            <textarea class="form-control" name="other_notes" rows="2" placeholder="Directions, landmark, contact instructions">{{ user_address.other_notes if user_address else '' }}</textarea>
+                            <textarea class="form-control" name="other_notes" rows="2"
+                                placeholder="Directions, landmark, contact instructions">{{ user_address.other_notes if user_address else '' }}</textarea>
                         </div>
                     </div>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-primary w-100 rounded-pill">
                             <span class="indicator-label">Save Address</span>
-                            <span class="indicator-progress d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                            <span class="indicator-progress d-none"><span
+                                    class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
                         </button>
                     </div>
                 </form>
@@ -537,7 +602,7 @@
                             const payload = response.data || {};
                             if (payload.status === 'success') {
                                 $.SystemScript.swalAlertMessage('Confirmed', payload.message || 'Order has been marked as completed.', 'success');
-                                $('.swal2-confirm').off('click').on('click', function(){
+                                $('.swal2-confirm').off('click').on('click', function () {
                                     window.location.reload();
                                 });
                             } else {
@@ -614,7 +679,7 @@
         $.SystemScript.executePost('/details-submit', data).done((response) => {
             if (response.data.status === 'success') {
                 $.SystemScript.swalAlertMessage('Success', response.data.message, 'success');
-                $('.swal2-confirm').off('click').on('click', function(){
+                $('.swal2-confirm').off('click').on('click', function () {
                     window.location.reload();
                 });
             } else {

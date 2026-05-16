@@ -1,10 +1,14 @@
-# VerificationHelper.py (or whatever file)
 import random
+# pyrefly: ignore [missing-import]
 import bcrypt
 from datetime import datetime, timedelta
 from typing import Optional
+
+# pyrefly: ignore [missing-import]
 from flask import current_app, session
+# pyrefly: ignore [missing-import]
 from flask_mail import Message
+# pyrefly: ignore [missing-import]
 from extensions import mail
 
 def generate_otp() -> str:
