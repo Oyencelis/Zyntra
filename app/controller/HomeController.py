@@ -41,6 +41,7 @@ def notify_riders_pickup_available(suborder_id):
         executePost(insert_query, (rider.get('user_id'), order_id, title, message))
 
 from datetime import datetime, timedelta
+# pyrefly: ignore [missing-import]
 from flask import render_template, request, session, g, url_for, redirect
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string
@@ -355,6 +356,7 @@ def calculate_order_totals(cart_items):
         if group_subtotal > 0 and group_subtotal < 2000:
             shipping_fee += 79
 
+    tax_amount = (subtotal + shipping_fee) * 0.01
     total_amount = subtotal + shipping_fee + tax_amount
     return subtotal, shipping_fee, tax_amount, total_amount
 
@@ -593,8 +595,8 @@ def cart():
         subtotal, shipping_fee, tax_amount, total_amount = calculate_order_totals(cart_items)
         if seller_shipping_breakdown:
             shipping_fee = sum(entry.get('shipping_fee', 0) for entry in seller_shipping_breakdown)
-            tax_amount = 0
-            total_amount = subtotal + shipping_fee
+            tax_amount = (subtotal + shipping_fee) * 0.01
+            total_amount = subtotal + shipping_fee + tax_amount
         total_sum = total_amount
         order_totals = {
             'subtotal': subtotal,
@@ -699,6 +701,13 @@ def submitCheckout():
 
     order_id = insert_result.get('last_inserted_id')
 
+    insert_payment_query = """
+        INSERT INTO payments (order_id, payment_amount, status)
+        VALUES (%s, %s, %s)
+    """
+    payment_status = 0 if payment_method.upper() == 'COD' else 1
+    executePost(insert_payment_query, (order_id, int(total_amount), payment_status))
+
     seller_groups = group_cart_items_by_seller(cart_items)
     if not seller_groups:
         return responseData("error", "Unable to allocate items to sellers.", "", 200)
@@ -715,8 +724,8 @@ def submitCheckout():
             group_subtotal += price * quantity
 
         group_shipping_fee = 0 if group_subtotal >= 2000 or group_subtotal == 0 else 79
-        group_tax_amount = 0
-        group_total_amount = group_subtotal + group_shipping_fee
+        group_tax_amount = (group_subtotal + group_shipping_fee) * 0.01
+        group_total_amount = group_subtotal + group_shipping_fee + group_tax_amount
 
         sub_reference = f"{reference}-{index:02d}"
         insert_suborder_query = """
@@ -753,26 +762,6 @@ def submitCheckout():
                 WHERE order_items_id = %s
             """
             executePost(update_item_query, (reference, suborder_id, cart_item.get('order_items_id')))
-
-            deduct_stock_query = """
-                UPDATE products
-                SET qty = qty - %s
-                WHERE product_id = %s
-                  AND qty >= %s
-            """
-            deduct_result = executePost(deduct_stock_query, (item_quantity, product_id, item_quantity))
-
-            if isinstance(deduct_result, tuple):
-                return deduct_result
-
-            if not deduct_result or deduct_result.get('rowcount', 0) == 0:
-                product_name = cart_item.get('product_name') or 'One or more products'
-                return responseData(
-                    "error",
-                    f"Unable to reserve stock for {product_name}. Please refresh your cart and try again.",
-                    "",
-                    200
-                )
 
             item_names.append(cart_item.get('product_name') or 'Product')
 

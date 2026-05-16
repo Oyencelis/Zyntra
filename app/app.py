@@ -1,8 +1,10 @@
 # app.py or factory file
+# pyrefly: ignore [missing-import]
 from flask import Flask, session
 import os
-from flask_session import Session
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
+from flask_session import Session
 from extensions import mail
 from helpers.template_filters import register_template_filters
 

@@ -1,6 +1,7 @@
 import os
 from typing import Any, Dict, Optional, Tuple
 
+# pyrefly: ignore [missing-import]
 from supabase import Client, create_client
 
 

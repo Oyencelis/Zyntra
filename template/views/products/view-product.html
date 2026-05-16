@@ -50,6 +50,13 @@
             <!-- Product Info -->
             <div class="col-lg-6">
                 <h1 class="product-title display-3 mb-2">{{ product_name }}</h1>
+                {% if protection_show_badge %}
+                <div class="mb-2">
+                  <span class="badge bg-success-subtle text-success border rounded-pill px-3 py-2">
+                    <i class="bi bi-shield-check me-1"></i> Product Protection available at checkout
+                  </span>
+                </div>
+                {% endif %}
                 <h4 class="store-name text-muted mb-3">
                     Sold by: 
                     {% if seller_id %}
@@ -97,7 +104,7 @@
                 {% endif %}
 
                 <!-- Add to Cart Form -->
-                <form action="/add-to-cart" method="POST" onsubmit="setCartQuantity();" class="mb-4">
+                <form id="addToCartForm" action="/add-to-cart" method="POST" class="mb-4">
                     <input type="hidden" name="product_id" value="{{ product_id }}">
                     <input type="hidden" name="quantity" value="1" id="cart-quantity">
                     <input type="hidden" name="variant_selection" id="selectedVariantInput" value="">
@@ -118,7 +125,7 @@
 
                 <!-- Delivery Info -->
                 <div class="delivery-info">
-                    <p><i class="fas fa-truck"></i> Free delivery for orders above ₱500</p>
+                    <p><i class="fas fa-truck"></i> Free delivery for qualifying carts (per seller) over ₱{{ '{:,.0f}'.format(free_shipping_threshold or 2000) }}</p>
                     <p><i class="fas fa-clock"></i> Estimated delivery: 3-5 business days</p>
                     <p><i class="fas fa-undo"></i> 30-day easy returns</p>
                 </div>
@@ -167,7 +174,10 @@
                                 {% for review in reviews %}
                                 <div class="border rounded-3 p-3">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <strong>{{ review.reviewer_name }}</strong>
+                                        <div>
+                                          <strong>{{ review.reviewer_name }}</strong>
+                                          <span class="badge bg-primary-subtle text-primary ms-2 small">Verified purchase</span>
+                                        </div>
                                         <small class="text-muted">{{ review.created_at }}</small>
                                     </div>
                                     <div class="mb-2 text-warning small">
@@ -179,7 +189,21 @@
                                             {% endif %}
                                         {% endfor %}
                                     </div>
-                                    <p class="mb-0">{{ review.comment }}</p>
+                                    <p class="mb-2">{{ review.comment }}</p>
+                                    {% if review.review_photos %}
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                      {% for p in review.review_photos %}
+                                      <a href="{{ url_for('static', filename=p) }}" target="_blank" rel="noopener">
+                                        <img src="{{ url_for('static', filename=p) }}" alt="" class="rounded-2" style="width:72px;height:72px;object-fit:cover;">
+                                      </a>
+                                      {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    {% if review.seller_response %}
+                                    <div class="mt-2 p-2 bg-light rounded-2 small">
+                                      <strong class="text-primary">Seller reply:</strong> {{ review.seller_response }}
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 {% endfor %}
                             </div>
@@ -207,7 +231,7 @@
                                 </div>
 
                                 {% if auth_user and can_review %}
-                                <form id="productReviewForm" class="vstack gap-2">
+                                <form id="productReviewForm" class="vstack gap-2" enctype="multipart/form-data">
                                     <input type="hidden" name="product_id" value="{{ product_id }}">
                                     <div>
                                         <label class="form-label small mb-1">Your rating</label>
@@ -221,6 +245,10 @@
                                     <div>
                                         <label class="form-label small mb-1">Your review</label>
                                         <textarea name="comment" class="form-control form-control-sm" rows="3" required></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="form-label small mb-1">Photos (optional, up to 3)</label>
+                                        <input type="file" name="review_photos" class="form-control form-control-sm" accept="image/*" multiple>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm rounded-pill mt-1">Submit Review</button>
                                     <small class="text-muted d-block mt-1">You can review this product because you completed an order for it.</small>
@@ -348,8 +376,14 @@
       resizeTimeout = setTimeout(checkDescriptionOverflow, 200);
     });
 
-    $("form[action='/add-to-cart']").on('submit', function(e) {
+    $(document).on('submit', '#addToCartForm', function(e) {
       e.preventDefault();
+      
+      var quantityInput = document.getElementById('quantity');
+      var cartQuantityInput = document.getElementById('cart-quantity');
+      if (cartQuantityInput) {
+        cartQuantityInput.value = (quantityInput && quantityInput.value) ? quantityInput.value : cartQuantityInput.value || '1';
+      }
 
       const data = $(this).serialize();
       const url = $(this).attr('action');

@@ -1,6 +1,15 @@
+# pyrefly: ignore [missing-import]
 from flask import render_template, request, session, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
+
+
+def _require_admin():
+    auth = getattr(g, 'authenticated', None) or {}
+    if auth.get('role_id') != 1:
+        return responseData("error", "Unauthorized", "", 403)
+    return None
+
 
 def seller():
     active_menu = ['users', 'seller']
@@ -38,6 +47,9 @@ def getSellers(condition, params=None):
 
 
 def updateSeller():
+    err = _require_admin()
+    if err:
+        return err
     user_id = request.args.get('user_id')
     status_to = request.args.get('status_to')
 
@@ -79,6 +91,9 @@ def getBuyers(condition, params=None):
     return results
 
 def updateBuyer():
+    err = _require_admin()
+    if err:
+        return err
     user_id = request.args.get('user_id')
     status_to = request.args.get('status_to')
 
@@ -131,6 +146,9 @@ def getRiders(condition, params=None):
     return results
 
 def updateRider():
+    err = _require_admin()
+    if err:
+        return err
     user_id = request.values.get('user_id')
     status_to = request.values.get('status_to')
 

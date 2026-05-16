@@ -1,14 +1,19 @@
+# pyrefly: ignore [missing-import]
 from flask import render_template, session, g, request, redirect, url_for
+import html
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename
 from helpers.SupabaseStorage import upload_file_to_supabase, resolve_storage_url
+from helpers.delivery_media import save_compressed_proof
+from helpers.marketplace_settings import get_bool_setting, get_float_setting
 import os
+import json
+# pyrefly: ignore [missing-import]
 from werkzeug.utils import secure_filename
 import uuid
 from controller.HomeController import getCategoriesInHome, get_user_wishlist_ids
 from controller.UserController import getSellers
 import locale
-from flask import has_request_context
 import re
 
 locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
@@ -349,6 +354,7 @@ def viewProduct(product_id):
                 p.qty, 
                 p.variant_type,
                 p.variant_values,
+                COALESCE(p.protection_eligible, TRUE) AS protection_eligible,
                 COALESCE(pa.attachment, 'no-image.jpg') as attachment,
                 sd.store_name,
                 sd.description AS store_description
@@ -411,6 +417,10 @@ def viewProduct(product_id):
 
         reviews, review_count, average_rating = _get_product_reviews(product_id)
         can_review = _buyer_can_review_product(user_id, product_id) if user_id else False
+        protection_show_badge = bool(product.get("protection_eligible", True)) and get_bool_setting(
+            "protection_enabled", True
+        )
+        free_ship = int(get_float_setting("shipping_free_threshold", 2000))
 
         return render_template('views/Products/view-product.html',
                              product_name=product['product_name'],
@@ -432,7 +442,9 @@ def viewProduct(product_id):
                              average_rating=average_rating,
                              can_review=can_review,
                              variant_type=variant_type,
-                             variant_values=variant_values)
+                             variant_values=variant_values,
+                             protection_show_badge=protection_show_badge,
+                             free_shipping_threshold=free_ship)
     except Exception as e:
         print(f"Error in viewProduct: {str(e)}")
         return render_template('views/404.html'), 404
@@ -562,16 +574,6 @@ def getCategories(condition):
         results = executeGet(query)
     return results
 
-def getCategoriesByField(field, condition):
-    query = f"SELECT {field} FROM categories {condition}"
-    results = executeGet(query)
-    return results
-
-def getProductsByField(field, condition):
-    query = f"SELECT {field} FROM products {condition}"
-    results = executeGet(query)
-    return results
-
 def addCategories():
     # user_id = g.authenticated.get('user_id')
     category_name = request.form.get('catname')
@@ -579,8 +581,10 @@ def addCategories():
     if category_name is None or category_name == "":
         return responseData("error", "Category field is required", "", 200)
 
-    categories = getCategoriesByField("category_name",
-                                      f"WHERE category_name = '{category_name}'")
+    categories = executeGet(
+        "SELECT category_name FROM categories WHERE category_name = %s",
+        (category_name,),
+    )
 
     if categories:
         return responseData("error", "Category name is already exist", "", 200)
@@ -603,8 +607,10 @@ def updateCategories():
     if category_name is None or category_name == "":
         return responseData("error", "Category field is required", "", 200)
 
-    categories = getCategoriesByField("category_name",
-                                      f"WHERE category_name = '{category_name}'")
+    categories = executeGet(
+        "SELECT category_name FROM categories WHERE category_name = %s",
+        (category_name,),
+    )
 
     if categories:
         return responseData("error", "Category name is already exist", "", 200)
@@ -637,6 +643,12 @@ def updateProducts():
         if not value:
             return responseData("error", f"{field_name} is required", "", 200)
 
+    try:
+        product_id_int = int(product_id)
+        category_id_int = int(category_id)
+    except (TypeError, ValueError):
+        return responseData("error", "Invalid product or category identifier.", "", 400)
+
     variant_columns = _variant_columns_available()
 
     if variant_type not in ALLOWED_VARIANT_TYPES or not variant_columns:
@@ -649,19 +661,31 @@ def updateProducts():
             return responseData("error", "Please provide at least one variant option.", "", 200)
 
     # Get the current product to check if the name is being changed
-    current_product = getProductsByField("product_name, category_id", f"WHERE product_id = {product_id}")
-    
+    current_product = executeGet(
+        "SELECT product_name, category_id FROM products WHERE product_id = %s",
+        (product_id_int,),
+    )
+
     if not current_product:
         return responseData("error", "Product not found", "", 404)
-        
+
     current_name = current_product[0]['product_name']
     current_category = current_product[0]['category_id']
-    
+
     # Only check for duplicate name if the name or category has changed
-    if product_name != current_name or int(category_id) != int(current_category):
-        # Check for existing product name in the same category, excluding the current product
-        products = getProductsByField("product_id", 
-            f"WHERE product_name = '{product_name}' AND category_id = {category_id} AND product_id != {product_id}")
+    try:
+        current_category_int = int(current_category)
+    except (TypeError, ValueError):
+        return responseData("error", "Invalid stored category for this product.", "", 500)
+
+    if product_name != current_name or category_id_int != current_category_int:
+        products = executeGet(
+            """
+            SELECT product_id FROM products
+            WHERE product_name = %s AND category_id = %s AND product_id != %s
+            """,
+            (product_name, category_id_int, product_id_int),
+        )
         if products:
             return responseData("error", "Product name already exists in this category", "", 200)
 
@@ -679,7 +703,16 @@ def updateProducts():
                     variant_values = %s
                 WHERE product_id = %s
             """
-            params = (product_name, category_id, description, price, quantity, variant_type, normalized_variant_values, product_id)
+            params = (
+                product_name,
+                category_id_int,
+                description,
+                price,
+                quantity,
+                variant_type,
+                normalized_variant_values,
+                product_id_int,
+            )
         else:
             query = """
                 UPDATE products 
@@ -690,7 +723,14 @@ def updateProducts():
                     qty = %s
                 WHERE product_id = %s
             """
-            params = (product_name, category_id, description, price, quantity, product_id)
+            params = (
+                product_name,
+                category_id_int,
+                description,
+                price,
+                quantity,
+                product_id_int,
+            )
 
         executePost(query, params)
         return responseData("success", "Product has been updated successfully.", "", 200)
@@ -783,6 +823,7 @@ def addToCart():
         update_result = executePost(update_query, (new_quantity, existing_item[0]['order_items_id'], user_id))
         if isinstance(update_result, tuple):
             return update_result
+        executePost("UPDATE products SET qty = qty - %s WHERE product_id = %s", (quantity, product_id))
     else:
         insert_query = """
             INSERT INTO order_items (product_id, user_id, quantity, reference, status, variant_type, variant_value)
@@ -794,6 +835,7 @@ def addToCart():
         )
         if isinstance(insert_result, tuple):
             return insert_result
+        executePost("UPDATE products SET qty = qty - %s WHERE product_id = %s", (quantity, product_id))
 
     counts = {
         "cart_count": _get_cart_count(user_id),
@@ -807,6 +849,10 @@ def removeFromCart():
 
     if not order_item_id or not user_id:
         return redirect(url_for('cart_page'))
+
+    item = executeGet("SELECT product_id, quantity FROM order_items WHERE order_items_id = %s", (order_item_id,))
+    if item:
+        executePost("UPDATE products SET qty = qty + %s WHERE product_id = %s", (item[0]['quantity'], item[0]['product_id']))
 
     query = """
         DELETE FROM order_items
@@ -824,6 +870,16 @@ def updateCart():
     user_id = g.authenticated.get('user_id')
 
     if user_id and order_item_id and quantity is not None:
+        item = executeGet("SELECT product_id, quantity FROM order_items WHERE order_items_id = %s", (order_item_id,))
+        if item:
+            item_qty = item[0]['quantity']
+            prod_id = item[0]['product_id']
+            diff = quantity - item_qty
+            if diff > 0:
+                executePost("UPDATE products SET qty = qty - %s WHERE product_id = %s", (diff, prod_id))
+            elif diff < 0:
+                executePost("UPDATE products SET qty = qty + %s WHERE product_id = %s", (-diff, prod_id))
+
         # Update the quantity in the order_items table
         update_query = """
             UPDATE order_items
@@ -955,6 +1011,7 @@ def wishlistMoveToCart():
             SELECT order_items_id, quantity
             FROM order_items
             WHERE user_id = %s AND product_id = %s AND status = 1
+              AND (reference = '' OR reference IS NULL)
         """,
         (user_id, product_id)
     )
@@ -966,8 +1023,15 @@ def wishlistMoveToCart():
     if cart_item:
         new_quantity = int(cart_item[0]['quantity'] or 0) + 1
         update_cart_result = executePost(
-            "UPDATE order_items SET quantity = %s WHERE order_items_id = %s",
-            (new_quantity, cart_item[0]['order_items_id'])
+            """
+            UPDATE order_items
+            SET quantity = %s
+            WHERE order_items_id = %s
+              AND user_id = %s
+              AND status = 1
+              AND (reference = '' OR reference IS NULL)
+            """,
+            (new_quantity, cart_item[0]['order_items_id'], user_id)
         )
         if isinstance(update_cart_result, tuple):
             return update_cart_result
@@ -1005,11 +1069,22 @@ def _get_product_reviews(product_id):
                r.rating,
                r.comment,
                r.created_at,
+               r.seller_response,
+               r.moderation_status,
                u.firstname,
-               u.lastname
+               u.lastname,
+               COALESCE(
+                   (
+                       SELECT json_agg(pr.image_path ORDER BY pr.photo_id)
+                       FROM product_review_photos pr
+                       WHERE pr.review_id = r.review_id
+                   ),
+                   '[]'::json
+               ) AS photo_paths
         FROM product_reviews r
         LEFT JOIN users u ON r.user_id = u.user_id
         WHERE r.product_id = %s
+          AND COALESCE(r.moderation_status, 'approved') = 'approved'
         ORDER BY r.created_at DESC
     """
     rows = executeGet(query, (product_id,)) or []
@@ -1024,10 +1099,28 @@ def _get_product_reviews(product_id):
         except (TypeError, ValueError):
             row['rating'] = 0
         total_rating += row['rating']
+        ph = row.get("photo_paths")
+        if isinstance(ph, str):
+            try:
+                ph = json.loads(ph)
+            except Exception:
+                ph = []
+        elif ph is None:
+            ph = []
+        elif not isinstance(ph, list):
+            ph = list(ph) if ph else []
+        row["review_photos"] = ph
 
     count = len(rows)
     avg = (total_rating / count) if count else 0.0
     return rows, count, avg
+
+
+def _review_spam_score(comment: str) -> float:
+    words = re.findall(r"\w+", (comment or "").lower())
+    if len(words) < 6:
+        return 0.0
+    return 1.0 - (len(set(words)) / len(words))
 
 
 def _buyer_can_review_product(user_id, product_id):
@@ -1073,13 +1166,17 @@ def submitProductReview():
 
     product_id = request.form.get('product_id', type=int)
     rating = request.form.get('rating', type=int)
-    comment = (request.form.get('comment') or '').strip()
+    comment_raw = (request.form.get('comment') or '').strip()
+    comment = html.escape(comment_raw)[:8000]
 
     if not product_id or not rating or rating < 1 or rating > 5:
         return responseData("error", "Invalid review data.", "", 400)
 
-    if not comment:
+    if not comment_raw:
         return responseData("error", "Please enter a review comment.", "", 400)
+
+    spam_score = _review_spam_score(comment_raw)
+    moderation_status = "pending" if spam_score > 0.82 else "approved"
 
     # Ensure product exists
     product_rows = executeGet("SELECT product_id FROM products WHERE product_id = %s AND status = 1", (product_id,))
@@ -1125,10 +1222,46 @@ def submitProductReview():
         return responseData("error", "You have already submitted a review for this product.", "", 409)
 
     insert_query = """
-        INSERT INTO product_reviews (product_id, user_id, order_items_id, reference, rating, comment)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO product_reviews (product_id, user_id, order_items_id, reference, rating, comment, moderation_status, spam_score)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
-    executePost(insert_query, (product_id, user_id, order_items_id, reference, rating, comment))
+    ins = executePost(
+        insert_query,
+        (
+            product_id,
+            user_id,
+            order_items_id,
+            reference,
+            rating,
+            comment,
+            moderation_status,
+            f"{spam_score:.4f}",
+        ),
+    )
+    if isinstance(ins, tuple):
+        insert_query = """
+            INSERT INTO product_reviews (product_id, user_id, order_items_id, reference, rating, comment)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        ins = executePost(insert_query, (product_id, user_id, order_items_id, reference, rating, comment))
+        moderation_status = "approved"
+
+    review_id = (ins or {}).get("last_inserted_id") if not isinstance(ins, tuple) else None
+
+    if review_id and request.files:
+        uploaded = 0
+        for f in request.files.getlist("review_photos"):
+            if uploaded >= 3:
+                break
+            rel = save_compressed_proof(f, subdir="review_photos")
+            if not rel:
+                continue
+            photo_ins = executePost(
+                "INSERT INTO product_review_photos (review_id, image_path) VALUES (%s, %s)",
+                (review_id, rel),
+            )
+            if not isinstance(photo_ins, tuple):
+                uploaded += 1
 
     reviews, review_count, average_rating = _get_product_reviews(product_id)
     payload = {
@@ -1136,8 +1269,10 @@ def submitProductReview():
         "review_count": review_count,
         "average_rating": average_rating,
         "reviews": reviews,
+        "moderation_status": moderation_status,
     }
-    return responseData("success", "Review submitted.", payload, 200)
+    msg = "Review submitted." if moderation_status == "approved" else "Review received and is pending moderation."
+    return responseData("success", msg, payload, 200)
 
 
 def checkout():

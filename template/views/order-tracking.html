@@ -2,19 +2,19 @@
 {% block title %}Order Tracking{% endblock %}
 
 {% set status_map = {
-    1: ('badge rounded-pill bg-soft-primary text-primary', 'Order Placed'),
-    2: ('badge rounded-pill bg-soft-info text-info', 'Shipped'),
-    3: ('badge rounded-pill bg-soft-warning text-warning', 'Out for Delivery'),
-    4: ('badge rounded-pill bg-soft-success text-success', 'Delivered'),
-    5: ('badge rounded-pill bg-soft-danger text-danger', 'Cancelled'),
-    6: ('badge rounded-pill bg-soft-success text-success', 'Completed')
+1: ('badge rounded-pill bg-soft-primary text-primary', 'Order Placed'),
+2: ('badge rounded-pill bg-soft-info text-info', 'Shipped'),
+3: ('badge rounded-pill bg-soft-warning text-warning', 'Out for Delivery'),
+4: ('badge rounded-pill bg-soft-success text-success', 'Delivered'),
+5: ('badge rounded-pill bg-soft-danger text-danger', 'Cancelled'),
+6: ('badge rounded-pill bg-soft-success text-success', 'Completed')
 } %}
 
 {% set timeline_template = [
-    {'title': 'Order Placed', 'description': 'We received your order and shared it with the seller.'},
-    {'title': 'Shipped', 'description': 'Seller handed off your package to the courier.'},
-    {'title': 'Out for Delivery', 'description': 'Your rider is on the way.'},
-    {'title': 'Delivered', 'description': 'Package has been delivered to the destination.'}
+{'title': 'Order Placed', 'description': 'We received your order and shared it with the seller.'},
+{'title': 'Shipped', 'description': 'Seller handed off your package to the courier.'},
+{'title': 'Out for Delivery', 'description': 'Your rider is on the way.'},
+{'title': 'Delivered', 'description': 'Package has been delivered to the destination.'}
 ] %}
 
 
@@ -24,7 +24,8 @@
         <div>
             <p class="text-muted text-uppercase small mb-1">Order</p>
             <h1 class="fw-bold mb-1">Order #{{ order_summary.reference }}</h1>
-            <p class="text-muted mb-0">Ordered on {{ order_summary.created_at }} · ETA {{ order_summary.estimated_delivery }}</p>
+            <p class="text-muted mb-0">Ordered on {{ order_summary.created_at }} · ETA {{
+                order_summary.estimated_delivery }}</p>
         </div>
     </div>
 
@@ -43,46 +44,51 @@
                     </div>
 
                     {% if order_items %}
-                        <div class="vstack gap-3">
-                            {% for item in order_items %}
-                            {% set pill = status_map.get(item.status, ('badge rounded-pill bg-soft-secondary text-secondary', item.status_text)) %}
-                            <div class="product-track-card border rounded-4 p-3">
-                                <div class="d-flex flex-column flex-md-row gap-3">
-                                    <div class="track-thumb rounded-4 overflow-hidden" style="width: 110px; height: 110px;">
-                                        <img src="{{ url_for('static', filename=item.attachment) if item.attachment else url_for('static', filename='images/no-image.jpg') }}" alt="{{ item.product_name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div class="vstack gap-3">
+                        {% for item in order_items %}
+                        {% set pill = status_map.get(item.status, ('badge rounded-pill bg-soft-secondary
+                        text-secondary', item.status_text)) %}
+                        <div class="product-track-card border rounded-4 p-3">
+                            <div class="d-flex flex-column flex-md-row gap-3">
+                                <div class="track-thumb rounded-4 overflow-hidden" style="width: 110px; height: 110px;">
+                                    <img src="{{ item.attachment if item.attachment else url_for('static', filename='images/no-image.jpg') }}"
+                                        alt="{{ item.product_name }}"
+                                        style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                        <div>
+                                            <p class="text-muted small text-uppercase mb-1">Product</p>
+                                            <h5 class="mb-1">{{ item.product_name }}</h5>
+                                            <small class="text-muted">Sub-ref {{ item.sub_reference }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="{{ pill[0] }} mb-2 d-inline-block">{{ pill[1] }}</span>
+                                            {% if item.status == 1 %}
+                                            <button class="btn btn-sm btn-outline-danger" data-cancel-item
+                                                data-item-id="{{ item.order_items_id }}">
+                                                Cancel Item
+                                            </button>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex justify-content-between align-items-start gap-3">
-                                            <div>
-                                                <p class="text-muted small text-uppercase mb-1">Product</p>
-                                                <h5 class="mb-1">{{ item.product_name }}</h5>
-                                                <small class="text-muted">Sub-ref {{ item.sub_reference }}</small>
-                                            </div>
-                                            <div class="text-end">
-                                                <span class="{{ pill[0] }} mb-2 d-inline-block">{{ pill[1] }}</span>
-                                                {% if item.status == 1 %}
-                                                <button class="btn btn-sm btn-outline-danger" data-cancel-item data-item-id="{{ item.order_items_id }}">
-                                                    Cancel Item
-                                                </button>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-4 mt-3 text-muted small">
-                                            <span><i class="bi bi-shop"></i> {{ item.store_name }}</span>
-                                            <span><i class="bi bi-box"></i> Qty {{ item.quantity }}</span>
-                                            <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
-                                            <span><i class="bi bi-truck"></i> ETA {{ order_summary.estimated_delivery }}</span>
-                                        </div>
+                                    <div class="d-flex flex-wrap gap-4 mt-3 text-muted small">
+                                        <span><i class="bi bi-shop"></i> {{ item.store_name }}</span>
+                                        <span><i class="bi bi-box"></i> Qty {{ item.quantity }}</span>
+                                        <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
+                                        <span><i class="bi bi-truck"></i> ETA {{ order_summary.estimated_delivery
+                                            }}</span>
                                     </div>
                                 </div>
                             </div>
-                            {% endfor %}
                         </div>
+                        {% endfor %}
+                    </div>
                     {% else %}
-                        <div class="text-center py-4 text-muted">
-                            <i class="bi bi-inboxes display-6 d-block mb-2"></i>
-                            <p class="mb-0">No products found for this order.</p>
-                        </div>
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-inboxes display-6 d-block mb-2"></i>
+                        <p class="mb-0">No products found for this order.</p>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -98,10 +104,13 @@
                         {% set is_active = current_status == step_number %}
                         <li class="timeline-item">
                             <div class="timeline-node">
-                                <span class="timeline-dot {% if is_complete %}complete{% elif is_active %}active{% endif %}"></span>
+                                <span
+                                    class="timeline-dot {% if is_complete %}complete{% elif is_active %}active{% endif %}"></span>
                             </div>
                             <div>
-                                <p class="mb-1 fw-semibold {% if is_complete %}text-success{% elif is_active %}text-primary{% endif %}">{{ step.title }}</p>
+                                <p
+                                    class="mb-1 fw-semibold {% if is_complete %}text-success{% elif is_active %}text-primary{% endif %}">
+                                    {{ step.title }}</p>
                                 <p class="mb-0 text-muted small">{{ step.description }}</p>
                             </div>
                         </li>
@@ -113,68 +122,71 @@
 
         <div class="col-lg-4">
             {% if order_items %}
-                {% set item_count = order_items|length %}
-                {% set convenience_share_raw = (order_summary.tax_amount_raw or 0) / (item_count if item_count > 0 else 1) %}
-                {% for item in order_items %}
-                {% set item_shipping_fee = item.shipping_fee_raw or 0 %}
-                {% set shipping_label = 'Free' if item_shipping_fee == 0 else '₱{:,.2f}'.format(item_shipping_fee) %}
-                {% set item_subtotal_raw = item.line_total_raw or 0 %}
-                {% set total_with_fees = item_subtotal_raw + item_shipping_fee + convenience_share_raw %}
-                <div class="summary-card border-0 shadow-sm mb-4">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <p class="text-muted small mb-1">Order Summary</p>
-                                <h5 class="mb-0">Order #{{ order_summary.reference }}</h5>
-                                <small class="text-muted">Seller · {{ item.store_name }}</small>
-                            </div>
+            {% set item_count = order_items|length %}
+            {% set convenience_share_raw = (order_summary.tax_amount_raw or 0) / (item_count if item_count > 0 else 1)
+            %}
+            {% for item in order_items %}
+            {% set item_shipping_fee = item.shipping_fee_raw or 0 %}
+            {% set shipping_label = 'Free' if item_shipping_fee == 0 else '₱{:,.2f}'.format(item_shipping_fee) %}
+            {% set item_subtotal_raw = item.line_total_raw or 0 %}
+            {% set total_with_fees = item_subtotal_raw + item_shipping_fee + convenience_share_raw %}
+            <div class="summary-card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <p class="text-muted small mb-1">Order Summary</p>
+                            <h5 class="mb-0">Order #{{ order_summary.reference }}</h5>
+                            <small class="text-muted">Seller · {{ item.store_name }}</small>
                         </div>
+                    </div>
 
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                            <div class="order-item-thumb">
-                                <img src="{{ url_for('static', filename=item.attachment) if item.attachment else url_for('static', filename='images/no-image.jpg') }}" alt="{{ item.product_name }}">
-                            </div>
-                            <div class="flex-grow-1">
-                                <p class="mb-1 fw-semibold">{{ item.product_name }}</p>
-                                <small class="text-muted">Qty {{ item.quantity }} · {{ order_summary.payment_method }}</small>
-                            </div>
-                            <div class="text-end">
-                                <p class="mb-0 fw-semibold">₱{{ item.formatted_total }}</p>
-                            </div>
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="order-item-thumb">
+                            <img src="{{ item.attachment if item.attachment else url_for('static', filename='images/no-image.jpg') }}"
+                                alt="{{ item.product_name }}">
                         </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-1 fw-semibold">{{ item.product_name }}</p>
+                            <small class="text-muted">Qty {{ item.quantity }} · {{ order_summary.payment_method
+                                }}</small>
+                        </div>
+                        <div class="text-end">
+                            <p class="mb-0 fw-semibold">₱{{ item.formatted_total }}</p>
+                        </div>
+                    </div>
 
-                        <div class="vstack gap-2 small text-muted">
-                            <div class="d-flex justify-content-between">
-                                <span>Quantity</span>
-                                <span>{{ item.quantity }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Item Subtotal</span>
-                                <span>₱{{ item.formatted_total }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Convenience Fee</span>
-                                <span>₱{{ '{:,.2f}'.format(convenience_share_raw) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between fw-semibold text-body">
-                                <span>Total (incl. fees)</span>
-                                <span>₱{{ '{:,.2f}'.format(total_with_fees) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Payment Method</span>
-                                <span class="fw-semibold">{{ order_summary.payment_method }}</span>
-                            </div>
+                    <div class="vstack gap-2 small text-muted">
+                        <div class="d-flex justify-content-between">
+                            <span>Quantity</span>
+                            <span>{{ item.quantity }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Item Subtotal</span>
+                            <span>₱{{ item.formatted_total }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Convenience Fee</span>
+                            <span>₱{{ '{:,.2f}'.format(convenience_share_raw) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-semibold text-body">
+                            <span>Total (incl. fees)</span>
+                            <span>₱{{ '{:,.2f}'.format(total_with_fees) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Payment Method</span>
+                            <span class="fw-semibold">{{ order_summary.payment_method }}</span>
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
+            {% endfor %}
             {% else %}
-                <div class="summary-card border-0 shadow-sm mb-4">
-                    <div class="card-body text-center">
-                        <p class="text-muted small mb-1">Order Summary</p>
-                        <h6 class="mb-0">No items found for this order.</h6>
-                    </div>
+            <div class="summary-card border-0 shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <p class="text-muted small mb-1">Order Summary</p>
+                    <h6 class="mb-0">No items found for this order.</h6>
                 </div>
+            </div>
             {% endif %}
 
             <div class="shipping-card border-0 shadow-sm mb-4">
@@ -191,11 +203,11 @@
                         {% for status_id in [1, 2, 3, 4] %}
                         {% set count = (suborders | selectattr('status', 'equalto', status_id) | list | length) %}
                         {% if count > 0 %}
-                            <span class="status-pill">{{ count }} {{ status_map[status_id][1] }}</span>
+                        <span class="status-pill">{{ count }} {{ status_map[status_id][1] }}</span>
                         {% endif %}
                         {% endfor %}
                         {% if (suborders | length) == 0 %}
-                            <span class="text-muted small">No shipments yet</span>
+                        <span class="text-muted small">No shipments yet</span>
                         {% endif %}
                     </div>
                 </div>
@@ -209,17 +221,18 @@
                     </p>
 
                     {% if g.authenticated and g.authenticated.role_id == 2 and seller_chat_seller_id %}
-                        <button class="btn btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#orderSellerChatModal">
-                            <i class="bi bi-chat-dots me-2"></i>Message {{ seller_chat_seller_name or 'Seller' }}
-                        </button>
+                    <button class="btn btn-outline-primary rounded-pill" data-bs-toggle="modal"
+                        data-bs-target="#orderSellerChatModal">
+                        <i class="bi bi-chat-dots me-2"></i>Message {{ seller_chat_seller_name or 'Seller' }}
+                    </button>
                     {% elif not g.authenticated %}
-                        <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('login_page') }}">
-                            <i class="bi bi-person-check me-2"></i>Login to Chat
-                        </a>
+                    <a class="btn btn-outline-primary rounded-pill" href="{{ url_for('login_page') }}">
+                        <i class="bi bi-person-check me-2"></i>Login to Chat
+                    </a>
                     {% else %}
-                        <div class="alert alert-info mb-0 p-2 px-3">
-                            Chat is available to buyer accounts.
-                        </div>
+                    <div class="alert alert-info mb-0 p-2 px-3">
+                        Chat is available to buyer accounts.
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -232,13 +245,14 @@
                     <p class="text-muted small mb-2">
                         {{ rider_chat.rider_name or 'Assigned rider' }}
                         {% if rider_chat.rider_vehicle or rider_chat.rider_plate %}
-                            · {{ rider_chat.rider_vehicle or '' }} {{ rider_chat.rider_plate or '' }}
+                        · {{ rider_chat.rider_vehicle or '' }} {{ rider_chat.rider_plate or '' }}
                         {% endif %}
                     </p>
                     {% if rider_chat.rider_phone %}
-                        <p class="text-muted small mb-3">Contact: {{ rider_chat.rider_phone }}</p>
+                    <p class="text-muted small mb-3">Contact: {{ rider_chat.rider_phone }}</p>
                     {% endif %}
-                    <button class="btn btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#orderRiderChatModal">
+                    <button class="btn btn-outline-primary rounded-pill" data-bs-toggle="modal"
+                        data-bs-target="#orderRiderChatModal">
                         <i class="bi bi-chat-dots me-2"></i>Message Rider
                     </button>
                 </div>
@@ -251,9 +265,9 @@
 
 {% block script %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-cancel-order]').forEach((btn) => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const reference = this.getAttribute('data-reference');
                 Swal.fire({
                     title: 'Cancel this order?',
@@ -289,7 +303,7 @@
         });
 
         document.querySelectorAll('[data-cancel-item]').forEach((btn) => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function () {
                 const itemId = this.getAttribute('data-item-id');
                 if (!itemId) {
                     return;
@@ -331,208 +345,210 @@
 </script>
 {% if g.authenticated and g.authenticated.role_id == 2 and seller_chat_seller_id %}
 <!-- Seller Chat Modal -->
-<div class="modal fade" id="orderSellerChatModal" tabindex="-1" aria-labelledby="orderSellerChatModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div>
-          <h5 class="modal-title" id="orderSellerChatModalLabel">Chat with {{ seller_chat_seller_name or 'Seller' }}</h5>
-          <small class="text-muted">Questions about Order #{{ order_summary.reference }}.</small>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="orderSellerChatWidget" class="store-chat-modal-body d-flex flex-column"
-             data-chat-role="{{ g.authenticated.role_id }}"
-             data-chat-user="{{ g.authenticated.user_id }}"
-             data-chat-counterpart="{{ seller_chat_seller_id }}"
-             data-chat-order="{{ order_summary.order_id }}">
-          <div class="alert alert-warning py-2 px-3 d-none" data-chat="status"></div>
-          <div class="chat-messages flex-grow-1 mb-3" data-chat="messages"></div>
-          <form data-chat="message-form">
-            <div class="input-group chat-input-group">
-              <input type="text" class="form-control" placeholder="Type your message" data-chat="message-input" autocomplete="off">
-              <button class="btn btn-primary" type="submit">
-                <i class="bi bi-send"></i>
-              </button>
+<div class="modal fade" id="orderSellerChatModal" tabindex="-1" aria-labelledby="orderSellerChatModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="orderSellerChatModalLabel">Chat with {{ seller_chat_seller_name or
+                        'Seller' }}</h5>
+                    <small class="text-muted">Questions about Order #{{ order_summary.reference }}.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-          </form>
+            <div class="modal-body">
+                <div id="orderSellerChatWidget" class="store-chat-modal-body d-flex flex-column"
+                    data-chat-role="{{ g.authenticated.role_id }}" data-chat-user="{{ g.authenticated.user_id }}"
+                    data-chat-counterpart="{{ seller_chat_seller_id }}" data-chat-order="{{ order_summary.order_id }}">
+                    <div class="alert alert-warning py-2 px-3 d-none" data-chat="status"></div>
+                    <div class="chat-messages flex-grow-1 mb-3" data-chat="messages"></div>
+                    <form data-chat="message-form">
+                        <div class="input-group chat-input-group">
+                            <input type="text" class="form-control" placeholder="Type your message"
+                                data-chat="message-input" autocomplete="off">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 {% endif %}
 
 {% if g.authenticated and g.authenticated.role_id == 2 and rider_chat and order_summary.status != 5 %}
 <!-- Rider Chat Modal -->
-<div class="modal fade" id="orderRiderChatModal" tabindex="-1" aria-labelledby="orderRiderChatModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div>
-          <h5 class="modal-title" id="orderRiderChatModalLabel">Chat with your rider</h5>
-          <small class="text-muted">
-            {{ rider_chat.rider_name or 'Assigned rider' }}
-            {% if rider_chat.rider_vehicle or rider_chat.rider_plate %}
-              · {{ rider_chat.rider_vehicle or '' }} {{ rider_chat.rider_plate or '' }}
-            {% endif %}
-          </small>
-        </div>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div id="orderRiderChatWidget" class="store-chat-modal-body d-flex flex-column"
-             data-chat-role="{{ g.authenticated.role_id }}"
-             data-chat-user="{{ g.authenticated.user_id }}"
-             data-chat-counterpart="{{ rider_chat.rider_user_id }}"
-             data-chat-order="{{ order_summary.order_id }}">
-          <div class="alert alert-warning py-2 px-3 d-none" data-chat="status"></div>
-          <div class="chat-messages flex-grow-1 mb-3" data-chat="messages"></div>
-          <form data-chat="message-form">
-            <div class="input-group chat-input-group">
-              <input type="text" class="form-control" placeholder="Type your message" data-chat="message-input" autocomplete="off">
-              <button class="btn btn-primary" type="submit">
-                <i class="bi bi-send"></i>
-              </button>
+<div class="modal fade" id="orderRiderChatModal" tabindex="-1" aria-labelledby="orderRiderChatModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="orderRiderChatModalLabel">Chat with your rider</h5>
+                    <small class="text-muted">
+                        {{ rider_chat.rider_name or 'Assigned rider' }}
+                        {% if rider_chat.rider_vehicle or rider_chat.rider_plate %}
+                        · {{ rider_chat.rider_vehicle or '' }} {{ rider_chat.rider_plate or '' }}
+                        {% endif %}
+                    </small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-          </form>
+            <div class="modal-body">
+                <div id="orderRiderChatWidget" class="store-chat-modal-body d-flex flex-column"
+                    data-chat-role="{{ g.authenticated.role_id }}" data-chat-user="{{ g.authenticated.user_id }}"
+                    data-chat-counterpart="{{ rider_chat.rider_user_id }}"
+                    data-chat-order="{{ order_summary.order_id }}">
+                    <div class="alert alert-warning py-2 px-3 d-none" data-chat="status"></div>
+                    <div class="chat-messages flex-grow-1 mb-3" data-chat="messages"></div>
+                    <form data-chat="message-form">
+                        <div class="input-group chat-input-group">
+                            <input type="text" class="form-control" placeholder="Type your message"
+                                data-chat="message-input" autocomplete="off">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-send"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
 </div>
 {% endif %}
 
 {% if g.authenticated and g.authenticated.role_id == 2 %}
 <script src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    if (!window.ChatWidget) {
-      return;
-    }
-
-    const orderId = parseInt('{{ order_summary.order_id }}' || '0', 10);
-
-    // Seller chat
-    const sellerRoot = document.getElementById('orderSellerChatWidget');
-    const sellerModal = document.getElementById('orderSellerChatModal');
-    if (sellerRoot && sellerModal) {
-      const roleId = parseInt(sellerRoot.dataset.chatRole || '0', 10);
-      const userId = parseInt(sellerRoot.dataset.chatUser || '0', 10);
-      const counterpartId = parseInt(sellerRoot.dataset.chatCounterpart || '0', 10);
-
-      if (roleId && userId && counterpartId) {
-        const sellerChat = new ChatWidget({
-          root: sellerRoot,
-          roleId,
-          userId,
-          counterpartLabel: 'Seller',
-          counterpartListEnabled: false,
-          fixedCounterpartId: counterpartId,
-          fixedCounterpartName: '{{ seller_chat_seller_name or "Seller" }}',
-          conversationFilter: function (conversation) {
-            return (
-              conversation &&
-              conversation.seller_id === counterpartId &&
-              conversation.order_id === orderId
-            );
-          },
-        });
-
-        let sellerChatInitialized = false;
-
-        async function ensureSellerChatSession() {
-          if (!sellerChatInitialized) {
-            sellerChat.init();
-            sellerChatInitialized = true;
-          }
-          try {
-            // The widget will send buyer_id/seller_id; we rely on backend to also store order_id
-            const payload = new URLSearchParams();
-            payload.append('buyer_id', userId);
-            payload.append('seller_id', counterpartId);
-            if (orderId) {
-              payload.append('order_id', orderId);
-            }
-
-            const res = await fetch('/api/chat/conversations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: payload,
-            });
-            const data = await res.json();
-            if (data.status === 'success' && data.data && data.data.conversation_id) {
-              await sellerChat.openConversation(data.data.conversation_id);
-            }
-          } catch (error) {
-            console.error('Unable to start seller chat conversation', error);
-          }
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!window.ChatWidget) {
+            return;
         }
 
-        sellerModal.addEventListener('shown.bs.modal', ensureSellerChatSession);
-      }
-    }
+        const orderId = parseInt('{{ order_summary.order_id }}' || '0', 10);
 
-    // Rider chat
-    const riderRoot = document.getElementById('orderRiderChatWidget');
-    const riderModal = document.getElementById('orderRiderChatModal');
-    if (riderRoot && riderModal) {
-      const roleId = parseInt(riderRoot.dataset.chatRole || '0', 10);
-      const userId = parseInt(riderRoot.dataset.chatUser || '0', 10);
-      const counterpartId = parseInt(riderRoot.dataset.chatCounterpart || '0', 10);
+        // Seller chat
+        const sellerRoot = document.getElementById('orderSellerChatWidget');
+        const sellerModal = document.getElementById('orderSellerChatModal');
+        if (sellerRoot && sellerModal) {
+            const roleId = parseInt(sellerRoot.dataset.chatRole || '0', 10);
+            const userId = parseInt(sellerRoot.dataset.chatUser || '0', 10);
+            const counterpartId = parseInt(sellerRoot.dataset.chatCounterpart || '0', 10);
 
-      if (roleId && userId && counterpartId) {
-        const riderChat = new ChatWidget({
-          root: riderRoot,
-          roleId,
-          userId,
-          counterpartLabel: 'Rider',
-          counterpartListEnabled: false,
-          fixedCounterpartId: counterpartId,
-          fixedCounterpartName: '{{ rider_chat.rider_name if rider_chat else "Rider" }}',
-          conversationFilter: function (conversation) {
-            return (
-              conversation &&
-              conversation.seller_id === counterpartId &&
-              conversation.order_id === orderId
-            );
-          },
-        });
+            if (roleId && userId && counterpartId) {
+                const sellerChat = new ChatWidget({
+                    root: sellerRoot,
+                    roleId,
+                    userId,
+                    counterpartLabel: 'Seller',
+                    counterpartListEnabled: false,
+                    fixedCounterpartId: counterpartId,
+                    fixedCounterpartName: '{{ seller_chat_seller_name or "Seller" }}',
+                    conversationFilter: function (conversation) {
+                        return (
+                            conversation &&
+                            conversation.seller_id === counterpartId &&
+                            conversation.order_id === orderId
+                        );
+                    },
+                });
 
-        let riderChatInitialized = false;
+                let sellerChatInitialized = false;
 
-        async function ensureRiderChatSession() {
-          if (!riderChatInitialized) {
-            riderChat.init();
-            riderChatInitialized = true;
-          }
-          try {
-            const payload = new URLSearchParams();
-            payload.append('buyer_id', userId);
-            payload.append('seller_id', counterpartId);
-            if (orderId) {
-              payload.append('order_id', orderId);
+                async function ensureSellerChatSession() {
+                    if (!sellerChatInitialized) {
+                        sellerChat.init();
+                        sellerChatInitialized = true;
+                    }
+                    try {
+                        // The widget will send buyer_id/seller_id; we rely on backend to also store order_id
+                        const payload = new URLSearchParams();
+                        payload.append('buyer_id', userId);
+                        payload.append('seller_id', counterpartId);
+                        if (orderId) {
+                            payload.append('order_id', orderId);
+                        }
+
+                        const res = await fetch('/api/chat/conversations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: payload,
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success' && data.data && data.data.conversation_id) {
+                            await sellerChat.openConversation(data.data.conversation_id);
+                        }
+                    } catch (error) {
+                        console.error('Unable to start seller chat conversation', error);
+                    }
+                }
+
+                sellerModal.addEventListener('shown.bs.modal', ensureSellerChatSession);
             }
-
-            const res = await fetch('/api/chat/conversations', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: payload,
-            });
-            const data = await res.json();
-            if (data.status === 'success' && data.data && data.data.conversation_id) {
-              await riderChat.openConversation(data.data.conversation_id);
-            }
-          } catch (error) {
-            console.error('Unable to start rider chat conversation', error);
-          }
         }
 
-        riderModal.addEventListener('shown.bs.modal', ensureRiderChatSession);
-      }
-    }
-  });
+        // Rider chat
+        const riderRoot = document.getElementById('orderRiderChatWidget');
+        const riderModal = document.getElementById('orderRiderChatModal');
+        if (riderRoot && riderModal) {
+            const roleId = parseInt(riderRoot.dataset.chatRole || '0', 10);
+            const userId = parseInt(riderRoot.dataset.chatUser || '0', 10);
+            const counterpartId = parseInt(riderRoot.dataset.chatCounterpart || '0', 10);
+
+            if (roleId && userId && counterpartId) {
+                const riderChat = new ChatWidget({
+                    root: riderRoot,
+                    roleId,
+                    userId,
+                    counterpartLabel: 'Rider',
+                    counterpartListEnabled: false,
+                    fixedCounterpartId: counterpartId,
+                    fixedCounterpartName: '{{ rider_chat.rider_name if rider_chat else "Rider" }}',
+                    conversationFilter: function (conversation) {
+                        return (
+                            conversation &&
+                            conversation.seller_id === counterpartId &&
+                            conversation.order_id === orderId
+                        );
+                    },
+                });
+
+                let riderChatInitialized = false;
+
+                async function ensureRiderChatSession() {
+                    if (!riderChatInitialized) {
+                        riderChat.init();
+                        riderChatInitialized = true;
+                    }
+                    try {
+                        const payload = new URLSearchParams();
+                        payload.append('buyer_id', userId);
+                        payload.append('seller_id', counterpartId);
+                        if (orderId) {
+                            payload.append('order_id', orderId);
+                        }
+
+                        const res = await fetch('/api/chat/conversations', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: payload,
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success' && data.data && data.data.conversation_id) {
+                            await riderChat.openConversation(data.data.conversation_id);
+                        }
+                    } catch (error) {
+                        console.error('Unable to start rider chat conversation', error);
+                    }
+                }
+
+                riderModal.addEventListener('shown.bs.modal', ensureRiderChatSession);
+            }
+        }
+    });
 </script>
 {% endif %}
 {% endblock %}

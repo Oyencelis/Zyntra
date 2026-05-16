@@ -204,6 +204,7 @@
 
     if (orderRefEl) orderRefEl.textContent = detail.order_reference || '-';
     if (subRefEl) subRefEl.textContent = detail.sub_reference || '-';
+    if (modalEl) modalEl.dataset.proofCount = String(detail.delivery_proof_count || 0);
     if (buyerNameEl) buyerNameEl.textContent = detail.buyer_name || 'Buyer';
     if (buyerPhoneEl) buyerPhoneEl.textContent = detail.buyer_phone || 'N/A';
     if (buyerAddressEl) buyerAddressEl.textContent = detail.buyer_address || 'No address on file';
@@ -217,6 +218,60 @@
         4: 'Delivered - completed delivery.',
       };
       statusHintEl.textContent = labels[pickupStatus] || '';
+    }
+
+    const proofBox = modalEl.querySelector('[data-detail="proof-upload"]');
+    const proofFile = modalEl.querySelector('[data-detail="proof-file"]');
+    const proofSave = modalEl.querySelector('[data-detail="proof-save"]');
+    if (proofBox) {
+      const needProofUi = pickupStatus >= 2 && pickupStatus <= 3;
+      proofBox.style.display = needProofUi ? 'block' : 'none';
+    }
+    if (proofFile) proofFile.value = '';
+    if (proofSave) {
+      proofSave.onclick = function () {
+        if (!suborderId) return;
+        if (!proofFile || !proofFile.files || !proofFile.files[0]) {
+          alert('Please choose a photo first.');
+          return;
+        }
+        const fd = new FormData();
+        fd.append('proof_image', proofFile.files[0]);
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              fd.append('latitude', String(pos.coords.latitude));
+              fd.append('longitude', String(pos.coords.longitude));
+              postProof();
+            },
+            () => postProof(),
+            { timeout: 8000 }
+          );
+        } else {
+          postProof();
+        }
+        function postProof() {
+          setButtonLoading(proofSave, true);
+          fetch(`/api/rider/pickups/${suborderId}/delivery-proof`, { method: 'POST', body: fd })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data.status === 'success') {
+                alert('Proof saved.');
+                fetch(`${API_BASE}/${suborderId}/details`)
+                  .then((r) => r.json())
+                  .then((d) => {
+                    if (d.status === 'success' && d.data) {
+                      renderAssignmentDetail(modalEl, d.data, suborderId);
+                    }
+                  });
+              } else {
+                alert(data.message || 'Unable to upload proof.');
+              }
+            })
+            .catch(() => alert('Network error uploading proof.'))
+            .finally(() => setButtonLoading(proofSave, false));
+        }
+      };
     }
 
     statusButtons.forEach((btn) => {
@@ -247,6 +302,14 @@
 
       btn.onclick = function () {
         if (!suborderId) return;
+        const targetStatus = parseInt(btn.dataset.status || '0', 10);
+        if (targetStatus === 4) {
+          const proofCount = parseInt(modalEl.dataset.proofCount || '0', 10);
+          if (proofCount < 1) {
+            alert('Please save a delivery proof photo before marking delivered.');
+            return;
+          }
+        }
         const formData = new FormData();
         formData.append('status', String(targetStatus));
         setButtonLoading(btn, true);

@@ -1,6 +1,9 @@
+# pyrefly: ignore [missing-import]
 from flask import render_template, request, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
+from helpers.delivery_media import save_compressed_proof
+from helpers.wallet_finance import credit_rider_commission_for_suborder
 from controller.HomeController import get_user_address_details, build_product_image_url
 
 
@@ -14,7 +17,17 @@ def riderPickupDashboard():
     rider, error = _ensure_rider_auth()
     if error:
         return error
-    return render_template('views/dashboard/rider-pickups.html', menu=['rider', 'assigned-deliveries'])
+        
+    from helpers.wallet_finance import available_balance
+    bal = available_balance(rider['user_id'], 'rider')
+    
+    rows = executeGet(
+        "SELECT COALESCE(SUM(amount), 0) AS total_commission FROM wallet_ledger WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind = 'rider_commission_delivery'",
+        (rider['user_id'],)
+    )
+    total_commission = rows[0].get('total_commission', 0) if rows else 0
+
+    return render_template('views/dashboard/rider-pickups.html', menu=['rider', 'assigned-deliveries'], wallet_balance=bal, total_commission=total_commission)
 
 
 def _pickup_query(scope):
@@ -152,6 +165,20 @@ def updatePickupStatus(suborder_id):
     if current_status not in allowed_previous.get(new_status, ()): 
         return responseData("error", "Invalid pickup status transition.", "", 409)
 
+    if new_status == 4:
+        proof_rows = executeGet(
+            "SELECT COUNT(*) AS c FROM delivery_proofs WHERE suborder_id = %s",
+            (suborder_id,),
+        ) or []
+        proof_count = int(proof_rows[0].get("c") or 0) if proof_rows else 0
+        if proof_count < 1:
+            return responseData(
+                "error",
+                "Please upload a delivery proof photo before marking this order as delivered.",
+                "",
+                400,
+            )
+
     set_clauses = ["pickup_status = %s", "updated_at = NOW()"]
     params = [new_status]
 
@@ -189,9 +216,49 @@ def updatePickupStatus(suborder_id):
             WHERE suborder_id = %s AND status <> 5
         """
         executePost(item_update_query, (suborder_id,))
+        credit_rider_commission_for_suborder(suborder_id)
 
     detail = _fetch_pickup_detail(suborder_id)
     return responseData("success", "Pickup status updated.", detail, 200)
+
+
+def uploadDeliveryProof(suborder_id):
+    rider, error = _ensure_rider_auth()
+    if error:
+        return error
+
+    detail = _fetch_pickup_detail(suborder_id)
+    if not detail:
+        return responseData("error", "Pickup not found.", "", 404)
+
+    if detail.get("pickup_rider_id") != rider["user_id"]:
+        return responseData("error", "You are not assigned to this pickup.", "", 403)
+
+    file = request.files.get("proof_image")
+    rel_path = save_compressed_proof(file)
+    if not rel_path:
+        return responseData("error", "Invalid image file.", "", 400)
+
+    lat = request.form.get("latitude")
+    lng = request.form.get("longitude")
+    try:
+        lat_val = float(lat) if lat not in (None, "") else None
+    except (TypeError, ValueError):
+        lat_val = None
+    try:
+        lng_val = float(lng) if lng not in (None, "") else None
+    except (TypeError, ValueError):
+        lng_val = None
+
+    insert_q = """
+        INSERT INTO delivery_proofs (suborder_id, rider_user_id, image_path, latitude, longitude)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    ins = executePost(insert_q, (suborder_id, rider["user_id"], rel_path, lat_val, lng_val))
+    if isinstance(ins, tuple):
+        return responseData("error", "Unable to save delivery proof.", "", 500)
+
+    return responseData("success", "Delivery proof saved.", {"image_path": rel_path}, 200)
 
 
 def _fetch_pickup_detail(suborder_id):
@@ -290,5 +357,11 @@ def getPickupDetail(suborder_id):
     payload = dict(summary)
     payload['items'] = items
     payload['buyer_address'] = buyer_address
+
+    proof_rows = executeGet(
+        "SELECT COUNT(*) AS c FROM delivery_proofs WHERE suborder_id = %s",
+        (suborder_id,),
+    ) or []
+    payload["delivery_proof_count"] = int(proof_rows[0].get("c") or 0) if proof_rows else 0
 
     return responseData("success", "Pickup details fetched.", payload, 200)

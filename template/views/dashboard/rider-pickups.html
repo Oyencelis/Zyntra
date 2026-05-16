@@ -15,6 +15,10 @@
           <div class="text-md-end mt-3 mt-md-0">
             <p class="mb-0 opacity-75">Active Rider</p>
             <h5 class="mb-0">{{ g.authenticated.firstname }} {{ g.authenticated.lastname }}</h5>
+            <div class="mt-2 text-white">
+              <span class="badge bg-success me-2 fs-6">₱{{ '{:,.2f}'.format(wallet_balance|default(0, true)) }} Available</span>
+              <span class="badge bg-info fs-6">₱{{ '{:,.2f}'.format(total_commission|default(0, true)) }} Total Earnings</span>
+            </div>
           </div>
         </div>
       </div>
@@ -107,6 +111,12 @@
               <p class="mb-1 small"><strong>Contact:</strong> <span data-detail="buyer-phone">-</span></p>
               <p class="mb-1 small"><strong>Address:</strong></p>
               <p class="mb-0 small" data-detail="buyer-address">-</p>
+              <div class="mt-3" data-detail="proof-upload" style="display:none;">
+                <label class="form-label small mb-1">Delivery proof photo</label>
+                <input type="file" class="form-control form-control-sm" accept="image/*" capture="environment" data-detail="proof-file">
+                <button type="button" class="btn btn-sm btn-outline-secondary mt-2" data-detail="proof-save">Save proof</button>
+                <small class="text-muted d-block mt-1">Required before marking delivered.</small>
+              </div>
               <hr class="my-3">
               <p class="mb-1 small"><strong>Store:</strong> <span data-detail="seller-store">-</span></p>
               <hr class="my-3">

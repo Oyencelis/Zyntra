@@ -6,6 +6,36 @@
 
 {% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
+  {% if wallet_role %}
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body d-flex flex-column flex-md-row justify-content-between gap-3">
+      <div>
+        <h5 class="mb-1">Wallet balance</h5>
+        <p class="text-muted small mb-0">Available after deliveries and completed buyer confirmations (COD).</p>
+      </div>
+      <div class="text-md-end">
+        <div class="fw-bold fs-4">₱{{ '{:,.2f}'.format(wallet_available or 0) }}</div>
+        <small class="text-muted">Pending withdrawals: ₱{{ '{:,.2f}'.format(wallet_pending or 0) }}</small>
+      </div>
+    </div>
+    <div class="card-footer bg-white border-0 pt-0">
+      <form class="row g-2 align-items-end" id="walletWithdrawForm">
+        <div class="col-md-4">
+          <label class="form-label small mb-1">Withdraw amount</label>
+          <input type="number" step="0.01" min="1" class="form-control" name="amount" required>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small mb-1">Payout notes (bank / e-wallet)</label>
+          <input type="text" class="form-control" name="payout_notes" placeholder="Account name & number" required>
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">Request withdrawal</button>
+        </div>
+      </form>
+      <small class="text-muted d-block mt-2">Withdrawals are reviewed by admins. Funds are reserved while pending.</small>
+    </div>
+  </div>
+  {% endif %}
   <div class="payout-hero p-4 p-lg-5 mb-4 shadow-sm">
     <div class="row align-items-center g-4">
       <div class="col-lg-7">
@@ -92,4 +122,28 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block script %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('walletWithdrawForm');
+  if (!form) return;
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const fd = new FormData(form);
+    fetch('/api/wallet/withdraw', { method: 'POST', body: fd })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'success') {
+          alert(data.message || 'Submitted.');
+          window.location.reload();
+        } else {
+          alert(data.message || 'Unable to submit.');
+        }
+      })
+      .catch(() => alert('Network error.'));
+  });
+});
+</script>
 {% endblock %}

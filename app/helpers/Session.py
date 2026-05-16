@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import session, g
 
 def setSession(session_name, object):
