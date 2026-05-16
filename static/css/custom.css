@@ -137,6 +137,10 @@
   color: #201a2c;
 }
 
+.status-panel,
+.timeline-card,
+.order-summary-card,
+.delivery-proof-card,
 .tracking-header,
 .suborder-card,
 .summary-card,
@@ -146,6 +150,34 @@
   border-radius: 24px;
   border: 1px solid #f0e9ff;
   background: #fff;
+}
+
+.status-panel,
+.timeline-card,
+.order-summary-card,
+.delivery-proof-card,
+.support-card,
+.shipping-card,
+.status-card {
+  overflow: hidden;
+}
+
+.status-panel .card-body,
+.timeline-card .card-body,
+.order-summary-card .card-body,
+.delivery-proof-card .card-body,
+.shipping-card .card-body,
+.status-card .card-body,
+.support-card .card-body {
+  padding: 1.5rem;
+}
+
+.order-summary-card .card-header {
+  border-bottom: 1px solid #f0e9ff;
+}
+
+.delivery-proof-card img {
+  display: block;
 }
 
 .tracking-header {
@@ -381,6 +413,10 @@
   .timeline-card {
     display: none;
   }
+
+  .delivery-proof-card {
+    display: block;
+  }
   
   .timeline-card .card-body {
     padding: 1.5rem;
@@ -421,6 +457,7 @@
   
   /* Sidebar cards */
   .summary-card,
+  .order-summary-card,
   .shipping-card,
   .status-card,
   .support-card {
@@ -429,6 +466,7 @@
   }
   
   .summary-card .card-body,
+  .order-summary-card .card-body,
   .shipping-card .card-body,
   .status-card .card-body,
   .support-card .card-body {
@@ -522,6 +560,8 @@
   
   .timeline-card .card-body,
   .summary-card .card-body,
+  .order-summary-card .card-body,
+  .delivery-proof-card .card-body,
   .shipping-card .card-body,
   .status-card .card-body,
   .support-card .card-body {

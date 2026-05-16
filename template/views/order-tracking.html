@@ -31,7 +31,7 @@
 
 
 
-    <div class="row g-4">
+    <div class="row g-4 align-items-start">
         <div class="col-lg-8">
             <div class="status-panel card border-0 shadow-sm rounded-4">
                 <div class="card-body">
@@ -118,49 +118,6 @@
                     </ul>
                 </div>
             </div>
-
-            {% set proof_suborders = namespace(items=[]) %}
-            {% for suborder in suborders %}
-            {% if suborder.delivery_proof_image and suborder.status in [4, 6] %}
-            {% set _ = proof_suborders.items.append(suborder) %}
-            {% endif %}
-            {% endfor %}
-            {% if proof_suborders.items %}
-            <div class="timeline-card card border-0 shadow-sm rounded-4 mt-4">
-                <div class="card-body">
-                    <p class="text-muted small mb-1">Delivery Proof</p>
-                    <h5 class="mb-3">Rider confirmation for delivered item{{ 's' if proof_suborders.items|length > 1 else '' }}</h5>
-                    <div class="row g-3">
-                        {% for suborder in proof_suborders.items %}
-                        <div class="col-md-6">
-                            <div class="border rounded-4 h-100 overflow-hidden bg-white">
-                                <img src="{{ suborder.delivery_proof_image }}" alt="Delivery proof for {{ suborder.sub_reference }}"
-                                    style="width: 100%; height: 220px; object-fit: cover;">
-                                <div class="p-3">
-                                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
-                                        <div>
-                                            <p class="text-muted small text-uppercase mb-1">Sub-order</p>
-                                            <h6 class="mb-1">{{ suborder.sub_reference }}</h6>
-                                        </div>
-                                        <span class="badge rounded-pill bg-soft-success text-success">{{ 'Completed' if suborder.status == 6 else 'Delivered' }}</span>
-                                    </div>
-                                    <div class="small text-muted">
-                                        <div><strong>Seller:</strong> {{ suborder.store_name }}</div>
-                                        {% if suborder.rider_name %}
-                                        <div><strong>Rider:</strong> {{ suborder.rider_name }}</div>
-                                        {% endif %}
-                                        {% if suborder.delivery_proof_captured_at %}
-                                        <div><strong>Captured:</strong> {{ suborder.delivery_proof_captured_at }}</div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
         <div class="col-lg-4">
@@ -301,6 +258,53 @@
             {% endif %}
         </div>
     </div>
+
+    {% set proof_suborders = namespace(items=[]) %}
+    {% for suborder in suborders %}
+    {% if suborder.delivery_proof_image and suborder.status in [4, 6] %}
+    {% set _ = proof_suborders.items.append(suborder) %}
+    {% endif %}
+    {% endfor %}
+    {% if proof_suborders.items %}
+    <div class="row g-4 mt-1">
+        <div class="col-12">
+            <div class="delivery-proof-card card border-0 shadow-sm rounded-4">
+                <div class="card-body">
+                    <p class="text-muted small mb-1">Delivery Proof</p>
+                    <h5 class="mb-3">Rider confirmation for delivered item{{ 's' if proof_suborders.items|length > 1 else '' }}</h5>
+                    <div class="row g-3">
+                        {% for suborder in proof_suborders.items %}
+                        <div class="col-md-6 col-xl-4">
+                            <div class="border rounded-4 h-100 overflow-hidden bg-white">
+                                <img src="{{ suborder.delivery_proof_image }}" alt="Delivery proof for {{ suborder.sub_reference }}"
+                                    style="width: 100%; height: 220px; object-fit: cover;">
+                                <div class="p-3">
+                                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                        <div>
+                                            <p class="text-muted small text-uppercase mb-1">Sub-order</p>
+                                            <h6 class="mb-1">{{ suborder.sub_reference }}</h6>
+                                        </div>
+                                        <span class="badge rounded-pill bg-soft-success text-success">{{ 'Completed' if suborder.status == 6 else 'Delivered' }}</span>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <div><strong>Seller:</strong> {{ suborder.store_name }}</div>
+                                        {% if suborder.rider_name %}
+                                        <div><strong>Rider:</strong> {{ suborder.rider_name }}</div>
+                                        {% endif %}
+                                        {% if suborder.delivery_proof_captured_at %}
+                                        <div><strong>Captured:</strong> {{ suborder.delivery_proof_captured_at }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}
 
