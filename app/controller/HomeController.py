@@ -824,6 +824,16 @@ def build_order_summary(order_row):
     tax_amount = _to_float(order_row.get('tax_amount'))
     total_amount = _to_float(order_row.get('total_amount'))
 
+    base_total = subtotal + shipping_fee
+    computed_tax_amount = round(base_total * 0.01, 2) if base_total > 0 else 0.0
+
+    if base_total > 0 and tax_amount <= 0:
+        tax_amount = computed_tax_amount
+
+    expected_total_amount = subtotal + shipping_fee + tax_amount
+    if base_total > 0 and (total_amount <= 0 or abs(total_amount - base_total) < 0.01):
+        total_amount = expected_total_amount
+
     payment_method_raw = (order_row.get('cash_type') or order_row.get('payment_method') or 'cod').strip()
     payment_method = payment_method_raw.upper() if payment_method_raw else 'COD'
 
