@@ -85,6 +85,35 @@ def build_product_image_url(attachment):
 
     return f"/static/uploads/products/{clean_path}"
 
+def build_delivery_proof_image_url(image_path):
+    if not image_path:
+        return None
+
+    if not isinstance(image_path, str):
+        image_path = str(image_path)
+
+    image_path = image_path.strip()
+    if not image_path:
+        return None
+
+    if image_path.startswith(('http://', 'https://')):
+        return resolve_storage_url(image_path) or image_path
+
+    clean_path = image_path.replace('\\', '/').lstrip('/')
+    if clean_path.startswith('static/'):
+        return '/' + clean_path
+
+    if clean_path.startswith('uploads/'):
+        return f"/static/{clean_path}"
+
+    if clean_path.startswith('delivery_proofs/'):
+        bucket_name = os.environ.get('SUPABASE_STORAGE_BUCKET', 'zyntra-uploads')
+        storage_path = f"{bucket_name}/{clean_path}"
+        return resolve_storage_url(storage_path, bucket_name=bucket_name) or f"/static/uploads/{clean_path}"
+
+    bucket_name = os.environ.get('SUPABASE_STORAGE_BUCKET', 'zyntra-uploads')
+    return resolve_storage_url(clean_path, bucket_name=bucket_name) or image_path
+
 def load_location_cache(filename, code_key, name_key):
     cache_key = filename
     if cache_key not in LOCATION_CACHE:
@@ -1387,7 +1416,7 @@ def get_suborders_for_order(order_id):
                 'rider_phone': row.get('rider_phone'),
                 'rider_vehicle': row.get('rider_vehicle_type'),
                 'rider_plate': row.get('rider_plate_number'),
-                'delivery_proof_image': build_product_image_url(row.get('delivery_proof_image')) if row.get('delivery_proof_image') else None,
+                'delivery_proof_image': build_delivery_proof_image_url(row.get('delivery_proof_image')),
                 'delivery_proof_captured_at': delivery_proof_captured_at,
                 'items': [],
                 'shipping_fee': float(row.get('sub_shipping_fee') or 0)
