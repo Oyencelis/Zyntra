@@ -150,7 +150,7 @@ def products():
         images = executeGet(query, (product_id,))
         product['images'] = [img['attachment'] for img in images]
     
-    return render_template('/views/Products/index.html', 
+    return render_template('views/products/index.html', 
                          menu=active_menu, 
                          categories=categories, 
                          products=products,
@@ -422,7 +422,7 @@ def viewProduct(product_id):
         )
         free_ship = int(get_float_setting("shipping_free_threshold", 2000))
 
-        return render_template('views/Products/view-product.html',
+        return render_template('views/products/view-product.html',
                              product_name=product['product_name'],
                              product_description=product['description'],
                              product_price=product['price'],
@@ -555,7 +555,7 @@ def storeProducts(seller_id):
     }
 
     return render_template(
-        'views/Products/store.html',
+        'views/products/store.html',
         store=store,
         products=seller_products,
         stats=stats,
