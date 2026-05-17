@@ -89,7 +89,13 @@ def _serialize_pickup(row):
     seller_name = f"{row.get('seller_firstname', '')} {row.get('seller_lastname', '')}".strip()
     buyer_name = f"{row.get('buyer_firstname', '')} {row.get('buyer_lastname', '')}".strip()
     pickup_state = row.get('pickup_status') or 0
-    projected_commission = calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))
+    shipping_fee = float(row.get('shipping_fee') or 0)
+    subtotal = float(row.get('subtotal') or 0)
+    convenience_fee = float(row.get('tax_amount') or 0)
+    pickup_total = float(row.get('total_amount') or 0)
+    if pickup_total <= 0:
+        pickup_total = round(subtotal + shipping_fee + convenience_fee, 2)
+    projected_commission = calculate_rider_commission_amount(shipping_fee, subtotal)
     actual_commission = row.get('actual_commission')
     display_commission = float(actual_commission) if actual_commission is not None else projected_commission
     commission_label = 'Credited commission' if actual_commission is not None else ('Projected commission' if pickup_state in (2, 3) else 'Queued commission')
@@ -110,8 +116,10 @@ def _serialize_pickup(row):
         "buyer_id": row.get('buyer_id'),
         "buyer_name": buyer_name or 'Buyer',
         "buyer_phone": row.get('buyer_phone'),
-        "shipping_fee": float(row.get('shipping_fee') or 0),
-        "subtotal": float(row.get('subtotal') or 0),
+        "shipping_fee": shipping_fee,
+        "subtotal": subtotal,
+        "convenience_fee": convenience_fee,
+        "pickup_total": pickup_total,
         "projected_commission": projected_commission,
         "actual_commission": float(actual_commission) if actual_commission is not None else None,
         "display_commission": display_commission,
@@ -291,6 +299,8 @@ def _fetch_pickup_detail(suborder_id):
             os.status,
             os.shipping_fee,
             os.subtotal,
+            os.tax_amount,
+            os.total_amount,
             os.pickup_status,
             os.pickup_rider_id,
             os.pickup_claimed_at,

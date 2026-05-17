@@ -203,6 +203,10 @@
     const buyerPhoneEl = modalEl.querySelector('[data-detail="buyer-phone"]');
     const buyerAddressEl = modalEl.querySelector('[data-detail="buyer-address"]');
     const sellerStoreEl = modalEl.querySelector('[data-detail="seller-store"]');
+    const subtotalAmountEl = modalEl.querySelector('[data-detail="subtotal-amount"]');
+    const shippingFeeEl = modalEl.querySelector('[data-detail="shipping-fee"]');
+    const convenienceFeeEl = modalEl.querySelector('[data-detail="convenience-fee"]');
+    const pickupTotalEl = modalEl.querySelector('[data-detail="pickup-total"]');
     const commissionAmountEl = modalEl.querySelector('[data-detail="commission-amount"]');
     const commissionLabelEl = modalEl.querySelector('[data-detail="commission-label"]');
     const itemsRoot = modalEl.querySelector('[data-detail="items"]');
@@ -216,6 +220,10 @@
     if (buyerPhoneEl) buyerPhoneEl.textContent = detail.buyer_phone || 'N/A';
     if (buyerAddressEl) buyerAddressEl.textContent = detail.buyer_address || 'No address on file';
     if (sellerStoreEl) sellerStoreEl.textContent = detail.seller_store || detail.seller_name || 'Seller';
+    if (subtotalAmountEl) subtotalAmountEl.textContent = formatCurrency(detail.subtotal);
+    if (shippingFeeEl) shippingFeeEl.textContent = Number(detail.shipping_fee || 0) === 0 ? 'Free' : formatCurrency(detail.shipping_fee);
+    if (convenienceFeeEl) convenienceFeeEl.textContent = formatCurrency(detail.convenience_fee);
+    if (pickupTotalEl) pickupTotalEl.textContent = formatCurrency(detail.pickup_total);
     if (commissionAmountEl) commissionAmountEl.textContent = formatCurrency(detail.display_commission);
     if (commissionLabelEl) commissionLabelEl.textContent = detail.commission_label || 'Projected commission';
 
