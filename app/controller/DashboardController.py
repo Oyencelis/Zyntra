@@ -245,6 +245,7 @@ def _build_seller_context(user_id):
             SUM(CASE WHEN status IN (1,2,3) THEN 1 ELSE 0 END) AS processing_orders,
             SUM(CASE WHEN status IN (5,8) THEN 1 ELSE 0 END) AS cancelled_orders,
             SUM(CASE WHEN status IN (4,6,7) THEN total_amount ELSE 0 END) AS completed_revenue,
+            SUM(CASE WHEN status IN (4,6,7) THEN subtotal ELSE 0 END) AS completed_payout,
             SUM(CASE WHEN status IN (1,2,3) THEN total_amount ELSE 0 END) AS processing_revenue,
             SUM(CASE WHEN status IN (5,8) THEN total_amount ELSE 0 END) AS cancelled_revenue
         FROM order_suborders
@@ -327,7 +328,7 @@ def _build_seller_context(user_id):
     progress_cards = [
         {
             'label': 'Ready for release',
-            'amount': _format_currency(aggregates.get('completed_revenue')),
+            'amount': _format_currency(aggregates.get('completed_payout')),
             'caption': _percent(aggregates.get('completed_orders'), total_orders),
             'badge_class': 'bg-label-success'
         },
@@ -409,7 +410,7 @@ def _build_seller_context(user_id):
         'title': f"{store.get('store_name') or 'Your store'} at a glance",
         'subtitle': 'See orders, balances, and catalog health in real time.',
         'meta_label': 'Ready for release',
-        'meta_value': _format_currency(aggregates.get('completed_revenue')),
+        'meta_value': _format_currency(aggregates.get('completed_payout')),
         'cta_label': 'Manage products',
         'cta_href': '/product'
     }

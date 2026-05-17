@@ -116,6 +116,7 @@ def _get_seller_aggregates(user_id):
             COUNT(*) AS total_orders,
             SUM(total_amount) AS total_revenue,
             SUM(CASE WHEN status IN (4, 6, 7) THEN total_amount ELSE 0 END) AS completed_revenue,
+            SUM(CASE WHEN status IN (4, 6, 7) THEN subtotal ELSE 0 END) AS completed_payout,
             SUM(CASE WHEN status IN (1, 2, 3) THEN total_amount ELSE 0 END) AS processing_revenue,
             SUM(CASE WHEN status IN (5, 8) THEN total_amount ELSE 0 END) AS cancelled_revenue,
             SUM(CASE WHEN status IN (4, 6, 7) THEN 1 ELSE 0 END) AS completed_orders,
@@ -135,6 +136,7 @@ def _get_seller_aggregates(user_id):
 
     total_revenue = _safe_number(row.get('total_revenue'))
     completed_revenue = _safe_number(row.get('completed_revenue'))
+    completed_payout = _safe_number(row.get('completed_payout'))
     processing_revenue = _safe_number(row.get('processing_revenue'))
     cancelled_revenue = _safe_number(row.get('cancelled_revenue'))
     accounted_revenue = completed_revenue + processing_revenue + cancelled_revenue
@@ -148,6 +150,7 @@ def _get_seller_aggregates(user_id):
         'remaining_orders': remaining_orders,
         'total_revenue': total_revenue,
         'completed_revenue': completed_revenue,
+        'completed_payout': completed_payout,
         'processing_revenue': processing_revenue,
         'cancelled_revenue': cancelled_revenue,
         'remaining_revenue': remaining_revenue,
@@ -231,7 +234,7 @@ def _build_seller_breakdown_cards(aggregates):
     return [
         {
             'label': 'Ready for release',
-            'amount': _format_currency(aggregates.get('completed_revenue')),
+            'amount': _format_currency(aggregates.get('completed_payout')),
             'caption': f"{aggregates.get('completed_orders', 0):,} orders completed",
             'badge_class': 'bg-label-success'
         },
