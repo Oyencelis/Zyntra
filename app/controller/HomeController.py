@@ -1259,6 +1259,7 @@ def getSellerOrderItems(seller_id):
             os.reference AS sub_reference,
             os.status AS sub_status,
             os.shipping_fee AS sub_shipping_fee,
+            os.tax_amount AS sub_tax_amount,
             os.updated_at AS sub_updated_at,
             os.created_at AS sub_created_at,
             o.reference AS order_reference,
@@ -1311,15 +1312,19 @@ def getSellerOrderItems(seller_id):
                 'updated_at': row.get('sub_updated_at') or row.get('sub_created_at'),
                 'item_list': [],
                 'group_status': row.get('sub_status') or 1,
-                'shipping_fee': float(row.get('sub_shipping_fee') or 0)
+                'shipping_fee': float(row.get('sub_shipping_fee') or 0),
+                'tax_amount': float(row.get('sub_tax_amount') or 0)
             }
 
+        unit_price = float(row.get('unit_price') or 0)
+        quantity = int(row.get('quantity') or 0)
         item_payload = {
             'order_items_id': row.get('order_items_id'),
             'product_name': row.get('product_name'),
-            'quantity': row.get('quantity'),
+            'quantity': quantity,
             'status': row.get('item_status') or 1,
-            'unit_price': row.get('unit_price') or 0,
+            'unit_price': unit_price,
+            'line_total': unit_price * quantity,
             'product_image': build_product_image_url(row.get('product_image') or ''),
             'reference': row.get('order_reference'),
             'updated_at': row.get('sub_updated_at') or row.get('order_created_at')

@@ -94,6 +94,7 @@
           {% set pill = status_map.get(group.group_status or 1) %}
           {% set item_count = group.item_list|length %}
           {% set per_item_shipping = (group.shipping_fee / item_count) if item_count > 0 else 0 %}
+          {% set per_item_convenience = (group.tax_amount / item_count) if item_count > 0 else 0 %}
       <div class="border rounded-3 p-3 p-md-4 mb-4 group-card" data-text="{{ (group.reference ~ ' ' ~ (group.buyer_name or '') ) | lower }}">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
           <div>
@@ -121,22 +122,28 @@
         <div class="mt-4">
           {% for item in group.item_list %}
             {% set item_pill = status_map.get(item.status or 1) %}
+            {% set item_total_payment = (item.line_total|float) + per_item_shipping + per_item_convenience %}
           <div class="order-item-row row g-3 align-items-center mb-3 border rounded-3 p-3">
             <div class="col-md-5 d-flex align-items-center gap-3">
               <img src="{{ item.product_image or '/static/images/no-image.jpg' }}" alt="{{ item.product_name }}" width="64" height="64" class="rounded border">
               <div>
                 <p class="mb-1 fw-semibold">{{ item.product_name }}</p>
                 <small class="text-muted d-block">₱{{ '{:,.2f}'.format(item.unit_price|float) }} · {{ item.quantity }} pc(s)</small>
-                <small class="text-muted">
-                  Shipping:
-                  {% if group.shipping_fee == 0 %}
-                    Free
-                  {% elif item_count > 1 %}
-                    ₱{{ '{:,.2f}'.format(per_item_shipping) }} share
-                  {% else %}
-                    ₱{{ '{:,.2f}'.format(group.shipping_fee|float) }}
-                  {% endif %}
-                </small>
+                <div class="small text-muted mt-2">
+                  <div><strong class="text-body">Item Price:</strong> ₱{{ '{:,.2f}'.format(item.line_total|float) }}</div>
+                  <div>
+                    <strong class="text-body">Shipping Fee:</strong>
+                    {% if group.shipping_fee == 0 %}
+                      <span class="text-success">Free</span>
+                    {% elif item_count > 1 %}
+                      ₱{{ '{:,.2f}'.format(per_item_shipping) }}
+                    {% else %}
+                      ₱{{ '{:,.2f}'.format(group.shipping_fee|float) }}
+                    {% endif %}
+                  </div>
+                  <div><strong class="text-body">Convenience Fee:</strong> ₱{{ '{:,.2f}'.format(per_item_convenience) }}</div>
+                  <div><strong class="text-body">Total Payment:</strong> ₱{{ '{:,.2f}'.format(item_total_payment) }}</div>
+                </div>
               </div>
             </div>
             <div class="col-md-3">
