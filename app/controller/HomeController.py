@@ -1604,16 +1604,84 @@ def getSellerOrderItems(seller_id):
             'unit_price': unit_price,
             'line_total': unit_price * quantity,
             'product_image': build_product_image_url(row.get('product_image') or ''),
-            'reference': row.get('order_reference'),
+            'reference': row.get('reference') or row.get('sub_reference') or row.get('order_reference'),
+            'line_reference': f"{row.get('sub_reference') or row.get('order_reference') or 'ORD'}-ITEM-{row.get('order_items_id')}",
             'updated_at': row.get('sub_updated_at') or row.get('order_created_at')
         }
         grouped_orders[suborder_id]['item_list'].append(item_payload)
 
-        if (row.get('item_status') or 1) > grouped_orders[suborder_id]['group_status']:
-            grouped_orders[suborder_id]['group_status'] = row.get('item_status') or 1
-
     ordered_groups = sorted(grouped_orders.values(), key=lambda entry: entry.get('updated_at') or datetime.utcnow(), reverse=True)
     return ordered_groups
+
+
+def _sync_suborder_status_from_items(suborder_id):
+    if not suborder_id:
+        return None
+
+    items_query = """
+        SELECT status
+        FROM order_items
+        WHERE suborder_id = %s
+        ORDER BY order_items_id ASC
+    """
+    item_rows = executeGet(items_query, (suborder_id,)) or []
+    if not item_rows:
+        return None
+
+    item_statuses = [int(row.get('status') or 1) for row in item_rows]
+    active_statuses = [status for status in item_statuses if status not in (5, 8)]
+
+    next_status = 1
+    next_pickup_status = 0
+
+    if not active_statuses:
+        next_status = 8 if any(status == 8 for status in item_statuses) else 5
+    elif any(status == 1 for status in active_statuses):
+        next_status = 1
+    elif any(status == 7 for status in active_statuses):
+        next_status = 7
+    else:
+        next_status = 2
+        next_pickup_status = 1
+
+    current_query = """
+        SELECT pickup_status
+        FROM order_suborders
+        WHERE suborder_id = %s
+        LIMIT 1
+    """
+    current_rows = executeGet(current_query, (suborder_id,)) or []
+    previous_pickup_status = int(current_rows[0].get('pickup_status') or 0) if current_rows else 0
+
+    update_query = """
+        UPDATE order_suborders
+        SET status = %s,
+            pickup_status = %s,
+            pickup_rider_id = CASE WHEN %s = 1 THEN NULL ELSE pickup_rider_id END,
+            pickup_claimed_at = CASE WHEN %s = 1 THEN NULL ELSE pickup_claimed_at END,
+            pickup_completed_at = CASE WHEN %s = 1 THEN NULL ELSE pickup_completed_at END,
+            updated_at = NOW()
+        WHERE suborder_id = %s
+    """
+    executePost(
+        update_query,
+        (
+            next_status,
+            next_pickup_status,
+            next_pickup_status,
+            next_pickup_status,
+            next_pickup_status,
+            suborder_id,
+        )
+    )
+
+    if next_pickup_status == 1 and previous_pickup_status != 1:
+        notify_riders_pickup_available(suborder_id)
+
+    return {
+        'status': next_status,
+        'pickup_status': next_pickup_status,
+    }
 
 
 def get_suborders_for_order(order_id):
@@ -1739,72 +1807,56 @@ def updateSuborderStatus():
         return responseData("error", "Unauthorized", "", 401)
 
     seller_id = g.authenticated.get('user_id')
+    order_item_id = request.form.get('order_item_id', type=int)
     suborder_id = request.form.get('suborder_id', type=int)
     status = request.form.get('status', type=int)
 
     # Allow seller to mark suborders as Shipped, Out for Delivery, Delivered,
     # Accepted, or Rejected. Accepted/Rejected do not affect rider pickup state.
-    if not suborder_id or status not in (2, 3, 4, 7, 8):
+    if not suborder_id or not order_item_id or status not in (2, 7, 8):
         return responseData("error", "Invalid request payload", "", 400)
 
     ownership_query = """
-        SELECT suborder_id
-        FROM order_suborders
-        WHERE suborder_id = %s AND seller_id = %s
+        SELECT oi.order_items_id,
+               oi.status,
+               oi.suborder_id
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+        WHERE oi.order_items_id = %s
+          AND oi.suborder_id = %s
+          AND os.seller_id = %s
+        LIMIT 1
     """
-    ownership = executeGet(ownership_query, (suborder_id, seller_id))
+    ownership = executeGet(ownership_query, (order_item_id, suborder_id, seller_id))
     if not ownership:
-        return responseData("error", "Sub-order not found or you do not have permission to update it.", "", 404)
+        return responseData("error", "Order item not found or you do not have permission to update it.", "", 404)
 
-    pickup_clauses = []
-    pickup_params = []
-
-    if status == 2:
-        # Seller marked as shipped; make available for riders again
-        pickup_clauses.extend([
-            "pickup_status = %s",
-            "pickup_rider_id = NULL",
-            "pickup_claimed_at = NULL",
-            "pickup_completed_at = NULL"
-        ])
-        pickup_params.append(1)  # awaiting pickup
-    elif status == 3:
-        pickup_clauses.append("pickup_status = %s")
-        pickup_params.append(3)  # in transit
-    elif status == 4:
-        pickup_clauses.append("pickup_status = %s")
-        pickup_clauses.append("pickup_completed_at = NOW()")
-        pickup_params.append(4)  # delivered
-
-    set_clauses = ["status = %s", "updated_at = NOW()"] + pickup_clauses
-
-    update_suborder_query = f"""
-        UPDATE order_suborders
-        SET {', '.join(set_clauses)}
-        WHERE suborder_id = %s
-    """
-
-    suborder_params = [status] + pickup_params + [suborder_id]
-    suborder_result = executePost(update_suborder_query, tuple(suborder_params))
-    if isinstance(suborder_result, tuple):
-        return suborder_result
+    current_status = int(ownership[0].get('status') or 1)
+    allowed_transitions = {
+        1: (7, 8),
+        7: (2,),
+    }
+    if status not in allowed_transitions.get(current_status, ()): 
+        return responseData("error", "This item can no longer be updated to the selected status.", "", 400)
 
     update_items_query = """
         UPDATE order_items
         SET status = %s
-        WHERE suborder_id = %s
+        WHERE order_items_id = %s AND suborder_id = %s
     """
-    executePost(update_items_query, (status, suborder_id))
+    item_update_result = executePost(update_items_query, (status, order_item_id, suborder_id))
+    if isinstance(item_update_result, tuple):
+        return item_update_result
+
+    _sync_suborder_status_from_items(suborder_id)
 
     status_labels = {
         2: 'Shipped',
-        3: 'Out for Delivery',
-        4: 'Delivered',
         7: 'Accepted',
         8: 'Rejected'
     }
 
-    return responseData("success", f"Sub-order marked as {status_labels.get(status, 'updated')}.", "", 200)
+    return responseData("success", f"Item marked as {status_labels.get(status, 'updated')}.", {"order_item_id": order_item_id, "suborder_id": suborder_id}, 200)
 
 
 def orderTracking(reference):

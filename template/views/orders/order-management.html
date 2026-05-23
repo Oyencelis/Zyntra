@@ -153,14 +153,15 @@
             </div>
             <div class="col-md-2">
               <small class="text-muted d-block">Line ref</small>
-              <p class="mb-0 fw-medium">{{ item.reference }}</p>
+              <p class="mb-0 fw-medium">{{ item.line_reference or item.reference }}</p>
             </div>
             <div class="col-md-2 text-md-end">
               {% if item.status in [1, 7] %}
               <button
                 class="btn btn-sm btn-primary manage-shipping w-100 w-md-auto"
+                data-order-item-id="{{ item.order_items_id }}"
                 data-suborder="{{ group.suborder_id }}"
-                data-reference="{{ group.sub_reference or group.reference }}"
+                data-reference="{{ item.line_reference or item.reference or group.sub_reference or group.reference }}"
                 data-status="{{ item.status }}"
               >
                 <i class='bx bx-package me-1'></i> Manage
@@ -218,6 +219,7 @@
     const modalEl = document.getElementById('manageShippingModal');
     const modal = modalEl ? new bootstrap.Modal(modalEl) : null;
     const formEl = document.getElementById('manageShippingForm');
+    const orderItemInput = document.getElementById('modalOrderItemId');
     const suborderInput = document.getElementById('modalSuborderId');
     const referenceLabel = document.getElementById('modalReference');
     const optionRows = modalEl?.querySelectorAll('.shipping-option') || [];
@@ -226,14 +228,16 @@
 
     document.querySelectorAll('.manage-shipping').forEach(button => {
       button.addEventListener('click', function () {
+        const orderItemId = this.getAttribute('data-order-item-id');
         const suborderId = this.getAttribute('data-suborder');
         const reference = this.getAttribute('data-reference') || '';
         const statusStr = this.getAttribute('data-status');
         const currentStatus = parseInt(statusStr || '0', 10);
 
-        if (!suborderId || !modal || !formEl) return;
+        if (!orderItemId || !suborderId || !modal || !formEl) return;
 
         formEl.reset();
+        orderItemInput.value = orderItemId;
         suborderInput.value = suborderId;
         referenceLabel.textContent = reference || 'N/A';
 
@@ -279,10 +283,11 @@
 
     formEl?.addEventListener('submit', function (event) {
       event.preventDefault();
+      const orderItemId = orderItemInput.value;
       const suborderId = suborderInput.value;
       const status = document.querySelector('input[name="shippingStatus"]:checked')?.value;
 
-      if (!suborderId || !status) {
+      if (!orderItemId || !suborderId || !status) {
         $.SystemScript?.swalAlertMessage('Missing selection', 'Select a shipping status first.', 'warning');
         return;
       }
@@ -290,7 +295,7 @@
       const submitBtn = formEl.querySelector('button[type="submit"]');
       submitBtn?.setAttribute('disabled', 'disabled');
 
-      $.post('/suborders/update-status', { suborder_id: suborderId, status: status })
+      $.post('/suborders/update-status', { order_item_id: orderItemId, suborder_id: suborderId, status: status })
         .done(function(response) {
           if (response.status === 'success') {
             $.SystemScript.swalAlertMessage('Updated', response.message, 'success').done(() => window.location.reload());
@@ -319,9 +324,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <form id="manageShippingForm" class="modal-body">
+        <input type="hidden" id="modalOrderItemId">
         <input type="hidden" id="modalSuborderId">
         <div class="mb-3">
-          <small class="text-muted text-uppercase">Order Reference</small>
+          <small class="text-muted text-uppercase">Line Reference</small>
           <p class="fw-semibold mb-0" id="modalReference">N/A</p>
         </div>
         <div class="mb-3">
