@@ -56,7 +56,8 @@
             <div class="card border-0 shadow-sm rounded-3 overflow-hidden mb-4">
                 <div class="card-body p-0">
                     {% for item in cart_items %}
-                    <div class="cart-item p-4 border-bottom" data-order-item-id="{{ item.get('order_items_id') }}">
+                    <div class="cart-item p-4 border-bottom" data-order-item-id="{{ item.get('order_items_id') }}"
+                        data-seller-id="{{ item.get('seller_id') }}">
                         <div class="row align-items-center">
                             <div class="col-3 col-md-2">
                                 <a href="/product/view/{{ item.get('product_id', '') }}" class="d-block">
@@ -140,25 +141,37 @@
                 </div>
                 <div class="card-body">
                     {% if order_totals %}
+                    <div class="mb-3">
+                        {% for item in cart_items %}
+                        <div class="d-flex justify-content-between align-items-start small mb-2 order-summary-product"
+                            data-summary-order-item-id="{{ item.get('order_items_id') }}">
+                            <span class="text-muted pe-2">
+                                {{ item.get('product_name', '') }}
+                                <span class="summary-product-quantity">x{{ item.get('quantity', 1) }}</span>
+                            </span>
+                            <span class="text-nowrap summary-product-total">₱{{ item.get('total_price', '0.00') }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted">Subtotal</span>
-                        <span>₱{{ order_totals.formatted_subtotal }}</span>
+                        <span id="summary-subtotal">₱{{ order_totals.formatted_subtotal }}</span>
                     </div>
                     {% set shipping_breakdown = order_totals.shipping_breakdown or [] %}
                     {% if shipping_breakdown %}
-                    <div class="mb-2 small text-muted">
+                    <div class="mb-2 small text-muted" id="shipping-breakdown">
                         {% for seller in shipping_breakdown %}
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between" data-shipping-seller-id="{{ seller.seller_id }}">
                             <span>Shipping · {{ seller.store_name }}</span>
                             {% set fee = seller.shipping_fee or 0 %}
-                            <span>{% if fee == 0 %}Free{% else %}₱{{ '%.2f' % fee }}{% endif %}</span>
+                            <span class="{% if fee == 0 %}text-success{% endif %}" data-shipping-amount>{% if fee == 0 %}Free{% else %}₱{{ '%.2f' % fee }}{% endif %}</span>
                         </div>
                         {% endfor %}
                     </div>
                     {% endif %}
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted">Convenience Fee</span>
-                        <span>₱{{ order_totals.formatted_tax }}</span>
+                        <span id="summary-tax">₱{{ order_totals.formatted_tax }}</span>
                     </div>
                     {% else %}
                     <div class="d-flex justify-content-between mb-2">
@@ -205,8 +218,9 @@
                 <div class="card-body">
                     <h6 class="mb-3">We Accept</h6>
                     <div class="d-flex gap-2">
-                        <img src="{{ url_for('static', filename='images/payment/cod.png') }}" alt="Cash on Delivery"
-                            style="height: 30px;">
+                        <span class="badge bg-light text-dark border rounded-pill px-3 py-2">
+                            <i class="bx bx-money me-1"></i> Cash on Delivery
+                        </span>
                     </div>
                 </div>
             </div>
@@ -228,7 +242,7 @@
                             <i class="fas fa-info-circle me-2 mt-1"></i>
                             <div>
                                 <h6 class="alert-heading mb-1">Order Reference: #{{ random_order_reference }}</h6>
-                                <p class="mb-0 small">Shipping Fee: <span
+                                <p class="mb-0 small">Shipping Fee: <span id="checkout-shipping-fee"
                                         class="{{ 'text-success' if order_totals.is_shipping_free else '' }}">
                                         {% if order_totals.is_shipping_free %}Free{% else %}₱{{
                                         order_totals.formatted_shipping }}{% endif %}
@@ -256,8 +270,10 @@
                                     <label for="cod"
                                         class="payment-option-label d-flex align-items-center p-3 border rounded-3">
                                         <div class="payment-icon me-3">
-                                            <img src="{{ url_for('static', filename='images/payment/cod.png') }}"
-                                                alt="Cash on Delivery" style="height: 24px;">
+                                            <span class="rounded-circle bg-success-subtle text-success d-inline-flex align-items-center justify-content-center"
+                                                style="width: 40px; height: 40px;">
+                                                <i class="bx bx-money fs-4"></i>
+                                            </span>
                                         </div>
                                         <div class="payment-details">
                                             <h6 class="mb-0">Cash on Delivery</h6>
@@ -271,7 +287,7 @@
                             </div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold">
-                            Place Order{% if order_totals %} - ₱{{ order_totals.formatted_total }}{% endif %}
+                            Place Order{% if order_totals %} - ₱<span id="checkout-place-order-total">{{ order_totals.formatted_total }}</span>{% endif %}
                         </button>
                     </form>
                 </div>
@@ -409,6 +425,14 @@
             totalElement.textContent = `₱${formattedTotal}`;
         }
 
+        const summaryProduct = document.querySelector(`.order-summary-product[data-summary-order-item-id="${orderItemId}"]`);
+        if (summaryProduct) {
+            const summaryQuantity = summaryProduct.querySelector('.summary-product-quantity');
+            const summaryTotal = summaryProduct.querySelector('.summary-product-total');
+            if (summaryQuantity) summaryQuantity.textContent = `x${quantity}`;
+            if (summaryTotal) summaryTotal.textContent = `₱${formattedTotal}`;
+        }
+
         updateCartTotal();
     }
 
@@ -453,14 +477,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    if (data.data && data.data.total_price) {
-                        const totalPriceElement = document.getElementById('total-price');
-                        if (totalPriceElement) {
-                            totalPriceElement.textContent = formatNumberWithCommas(
-                                parseFloat(data.data.total_price).toFixed(2)
-                            );
-                        }
-                    }
+                    updateCartTotal();
                 } else {
                     console.error('Error updating quantity:', data.message);
                     // Revert to last known good value
@@ -487,10 +504,12 @@
     // ─────────────────────────────────────────────
     function updateCartTotal() {
         let subtotal = 0;
+        const sellerSubtotals = {};
         let isValid = true;
 
         document.querySelectorAll('.cart-item').forEach(item => {
             const orderItemId = item.getAttribute('data-order-item-id');
+            const sellerId = item.getAttribute('data-seller-id') || 'default';
             const quantityInput = document.getElementById(`quantity-${orderItemId}`);
             const priceElement = document.querySelector(`.item-price[data-order-item-id="${orderItemId}"]`);
 
@@ -500,7 +519,9 @@
                 const price = parseFloat(priceText);
 
                 if (!isNaN(price) && !isNaN(quantity)) {
-                    subtotal += price * quantity;
+                    const lineTotal = price * quantity;
+                    subtotal += lineTotal;
+                    sellerSubtotals[sellerId] = (sellerSubtotals[sellerId] || 0) + lineTotal;
                 } else {
                     isValid = false;
                 }
@@ -509,7 +530,25 @@
 
         if (!isValid) return;
 
-        const shipping = subtotal < 2000 ? 79 : 0;
+        let shipping = 0;
+        Object.keys(sellerSubtotals).forEach(sellerId => {
+            const sellerSubtotal = sellerSubtotals[sellerId];
+            const sellerShipping = sellerSubtotal > 0 && sellerSubtotal < 2000 ? 79 : 0;
+            shipping += sellerShipping;
+
+            const shippingRow = document.querySelector(`[data-shipping-seller-id="${sellerId}"]`);
+            const shippingAmount = shippingRow ? shippingRow.querySelector('[data-shipping-amount]') : null;
+            if (shippingAmount) {
+                if (sellerShipping === 0) {
+                    shippingAmount.textContent = 'Free';
+                    shippingAmount.classList.add('text-success');
+                } else {
+                    shippingAmount.textContent = `₱${formatNumberWithCommas(sellerShipping.toFixed(2))}`;
+                    shippingAmount.classList.remove('text-success');
+                }
+            }
+        });
+
         const totalBeforeTax = subtotal + shipping;
         const tax = totalBeforeTax * 0.01;
         const total = totalBeforeTax + tax;
@@ -519,25 +558,27 @@
         const formattedTax = formatNumberWithCommas(tax.toFixed(2));
         const formattedTotal = formatNumberWithCommas(total.toFixed(2));
 
-        const subtotalElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:first-child span:last-child');
-        const shippingElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-2:nth-child(2) span:last-child');
-        const taxElement = document.querySelector('.card-body > .d-flex.justify-content-between.mb-3 span:last-child');
+        const subtotalElement = document.getElementById('summary-subtotal');
+        const taxElement = document.getElementById('summary-tax');
         const totalElement = document.getElementById('total-price');
+        const checkoutShippingElement = document.getElementById('checkout-shipping-fee');
+        const checkoutPlaceOrderTotal = document.getElementById('checkout-place-order-total');
 
         if (subtotalElement) subtotalElement.textContent = `₱${formattedSubtotal}`;
 
-        if (shippingElement) {
-            if (subtotal >= 2000) {
-                shippingElement.textContent = 'Free';
-                shippingElement.className = 'text-success';
+        if (checkoutShippingElement) {
+            if (shipping === 0) {
+                checkoutShippingElement.textContent = 'Free';
+                checkoutShippingElement.classList.add('text-success');
             } else {
-                shippingElement.textContent = `₱${formattedShipping}`;
-                shippingElement.className = '';
+                checkoutShippingElement.textContent = `₱${formattedShipping}`;
+                checkoutShippingElement.classList.remove('text-success');
             }
         }
 
         if (taxElement) taxElement.textContent = `₱${formattedTax}`;
         if (totalElement) totalElement.textContent = formattedTotal;
+        if (checkoutPlaceOrderTotal) checkoutPlaceOrderTotal.textContent = formattedTotal;
 
         return { subtotal, shipping, tax, total };
     }
