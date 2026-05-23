@@ -66,6 +66,7 @@
 {% endblock %}
 
 {% block script %}
+<script src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const messagesRoot = document.getElementById('dashboardMessages');
@@ -85,9 +86,10 @@
       userId,
       counterpartLabel: roleId === 3 ? 'Buyer' : 'Seller',
       counterpartListEnabled: true,
+      autoRefreshIntervalMs: 3000,
+      autoOpenFirstConversation: true,
     });
     dashboardChat.init();
   });
 </script>
-<script src="{{ url_for('static', filename='js/chat-widget.js') }}" defer></script>
 {% endblock %}

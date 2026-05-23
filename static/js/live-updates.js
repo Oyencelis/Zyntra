@@ -121,13 +121,13 @@
         return ['messages'];
       }
       if (path === '/order-list' || path === '/order-management') {
-        return ['seller_orders', 'messages', 'notifications'];
+        return ['seller_orders', 'notifications'];
       }
       if (path === '/rider') {
-        return ['rider_pickups', 'messages', 'notifications'];
+        return ['rider_pickups', 'notifications'];
       }
       if (path.startsWith('/order-tracking')) {
-        return ['buyer_orders', 'messages', 'notifications'];
+        return ['buyer_orders', 'notifications'];
       }
       return [];
     },

@@ -11,9 +11,15 @@
           fixedCounterpartId: null,
           fixedCounterpartName: null,
           conversationFilter: null,
+          autoRefreshIntervalMs: 5000,
+          autoOpenFirstConversation: false,
         },
         options || {}
       );
+      this.initialized = false;
+      this.autoRefreshTimerId = null;
+      this.visibilityHandler = null;
+      this.liveUpdateHandler = null;
       this.state = {
         conversations: [],
         counterparts: [],
@@ -21,6 +27,7 @@
         messages: [],
         loadingMessages: false,
         sending: false,
+        refreshingLive: false,
       };
 
       this.elements = {
@@ -35,16 +42,23 @@
     }
 
     init() {
+      if (this.initialized) {
+        return;
+      }
+
+      this.initialized = true;
       this.bindEvents();
       this.refreshData();
-      document.addEventListener('zyntra:live-update', (event) => {
+      this.liveUpdateHandler = (event) => {
         const changedTokens = event?.detail?.changedTokens || {};
         if (!changedTokens.messages) {
           return;
         }
 
         this.liveRefresh();
-      });
+      };
+      document.addEventListener('zyntra:live-update', this.liveUpdateHandler);
+      this.startAutoRefresh();
     }
 
     bindEvents() {
@@ -56,9 +70,10 @@
       }
     }
 
-    refreshData() {
-      this.fetchConversations();
-      this.fetchCounterparts();
+    async refreshData() {
+      await this.fetchConversations();
+      this.autoOpenConversationIfNeeded();
+      await this.fetchCounterparts();
     }
 
     async fetchConversations() {
@@ -71,6 +86,10 @@
             list = list.filter(this.options.conversationFilter);
           }
           this.state.conversations = list;
+          if (this.state.activeConversationId && !list.some((item) => item.conversation_id === this.state.activeConversationId)) {
+            this.state.activeConversationId = null;
+            this.state.messages = [];
+          }
           this.renderConversations();
         } else {
           this.setStatus(data.message || 'Unable to load conversations');
@@ -79,6 +98,34 @@
         console.error(error);
         this.setStatus('Network error while loading conversations');
       }
+    }
+
+    autoOpenConversationIfNeeded() {
+      const preferredConversationId = this.getPreferredConversationId();
+      if (preferredConversationId && preferredConversationId !== this.state.activeConversationId) {
+        this.openConversation(preferredConversationId);
+      }
+    }
+
+    getPreferredConversationId() {
+      const list = this.state.conversations || [];
+      if (!list.length) {
+        return null;
+      }
+
+      if (this.state.activeConversationId && list.some((item) => item.conversation_id === this.state.activeConversationId)) {
+        return this.state.activeConversationId;
+      }
+
+      if (this.options.fixedCounterpartId) {
+        return list[0].conversation_id;
+      }
+
+      if (this.options.autoOpenFirstConversation) {
+        return list[0].conversation_id;
+      }
+
+      return null;
     }
 
     async fetchCounterparts() {
@@ -314,10 +361,66 @@
     }
 
     async liveRefresh() {
-      await this.fetchConversations();
-      if (this.state.activeConversationId) {
-        await this.fetchMessages(this.state.activeConversationId);
+      if (this.state.refreshingLive) {
+        return;
       }
+
+      this.state.refreshingLive = true;
+      try {
+        await this.fetchConversations();
+        this.autoOpenConversationIfNeeded();
+        if (this.state.activeConversationId) {
+          await this.fetchMessages(this.state.activeConversationId);
+        }
+      } finally {
+        this.state.refreshingLive = false;
+      }
+    }
+
+    startAutoRefresh() {
+      if (this.autoRefreshTimerId || !this.options.autoRefreshIntervalMs) {
+        return;
+      }
+
+      this.autoRefreshTimerId = window.setInterval(() => {
+        if (!this.shouldAutoRefresh()) {
+          return;
+        }
+
+        this.liveRefresh();
+      }, this.options.autoRefreshIntervalMs);
+
+      this.visibilityHandler = () => {
+        if (document.visibilityState === 'visible' && this.shouldAutoRefresh()) {
+          this.liveRefresh();
+        }
+      };
+      document.addEventListener('visibilitychange', this.visibilityHandler);
+    }
+
+    shouldAutoRefresh() {
+      if (document.visibilityState === 'hidden') {
+        return false;
+      }
+
+      if (this.state.sending || this.state.loadingMessages) {
+        return false;
+      }
+
+      if (
+        this.elements.messageInput
+        && document.activeElement === this.elements.messageInput
+        && (this.elements.messageInput.value || '').trim()
+      ) {
+        return false;
+      }
+
+      const modal = this.root.closest('.modal');
+      if (modal) {
+        return modal.classList.contains('show');
+      }
+
+      return !!(this.root.offsetParent || this.root.getClientRects().length);
     }
 
     setStatus(message) {

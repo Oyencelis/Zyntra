@@ -461,6 +461,7 @@
                     userId,
                     counterpartLabel: 'Seller',
                     counterpartListEnabled: false,
+                    autoRefreshIntervalMs: 3000,
                     fixedCounterpartId: counterpartId,
                     fixedCounterpartName: '{{ seller_chat_seller_name or "Seller" }}',
                     conversationFilter: function (conversation) {
@@ -521,6 +522,7 @@
                     userId,
                     counterpartLabel: 'Rider',
                     counterpartListEnabled: false,
+                    autoRefreshIntervalMs: 3000,
                     fixedCounterpartId: counterpartId,
                     fixedCounterpartName: '{{ rider_chat.rider_name if rider_chat else "Rider" }}',
                     conversationFilter: function (conversation) {
