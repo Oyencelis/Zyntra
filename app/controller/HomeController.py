@@ -700,7 +700,16 @@ def create_order_notifications(order_id, reference, buyer_name, suborders_payloa
 
 def home():
     categories = getCategoriesInHome("WHERE status = 1")
-    products = getProductsInHome("WHERE p.status = 1 AND p.qty > 0", page=1, per_page=12)
+    search_query = (request.args.get('query') or '').strip()
+    product_condition = "WHERE p.status = 1 AND p.qty > 0"
+    product_params = None
+
+    if search_query:
+        search_term = f"%{search_query}%"
+        product_condition += " AND (p.product_name LIKE %s OR p.description LIKE %s OR c.category_name LIKE %s)"
+        product_params = [search_term, search_term, search_term]
+
+    products = getProductsInHome(product_condition, page=1, per_page=12, params=product_params)
     cart_items = session.get('cart', {})
 
     wishlist_ids = set()
