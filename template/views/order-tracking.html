@@ -361,9 +361,9 @@
 </script>
 {% if g.authenticated and g.authenticated.role_id == 2 and seller_chat_seller_id %}
 <!-- Seller Chat Modal -->
-<div class="modal fade" id="orderSellerChatModal" tabindex="-1" aria-labelledby="orderSellerChatModalLabel"
+<div class="modal fade store-chat-modal" id="orderSellerChatModal" tabindex="-1" aria-labelledby="orderSellerChatModalLabel"
     aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -373,7 +373,7 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body overflow-hidden">
                 <div id="orderSellerChatWidget" class="store-chat-modal-body d-flex flex-column"
                     data-chat-role="{{ g.authenticated.role_id }}" data-chat-user="{{ g.authenticated.user_id }}"
                     data-chat-counterpart="{{ seller_chat_seller_id }}" data-chat-order="{{ order_summary.order_id }}">
@@ -397,9 +397,9 @@
 
 {% if g.authenticated and g.authenticated.role_id == 2 and rider_chat and order_summary.status != 5 %}
 <!-- Rider Chat Modal -->
-<div class="modal fade" id="orderRiderChatModal" tabindex="-1" aria-labelledby="orderRiderChatModalLabel"
+<div class="modal fade store-chat-modal" id="orderRiderChatModal" tabindex="-1" aria-labelledby="orderRiderChatModalLabel"
     aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
@@ -413,7 +413,7 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body overflow-hidden">
                 <div id="orderRiderChatWidget" class="store-chat-modal-body d-flex flex-column"
                     data-chat-role="{{ g.authenticated.role_id }}" data-chat-user="{{ g.authenticated.user_id }}"
                     data-chat-counterpart="{{ rider_chat.rider_user_id }}"

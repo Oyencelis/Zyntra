@@ -280,10 +280,14 @@
       await this.fetchMessages(conversationId);
     }
 
-    async fetchMessages(conversationId) {
+    async fetchMessages(conversationId, options = {}) {
       if (!conversationId) return;
-      this.state.loadingMessages = true;
-      this.renderMessages();
+      const background = options.background === true;
+      const stickToBottom = options.stickToBottom === true || (background && this.isNearBottom());
+      if (!background) {
+        this.state.loadingMessages = true;
+        this.renderMessages({ stickToBottom });
+      }
       try {
         const res = await fetch(`/api/chat/conversations/${conversationId}/messages`);
         const data = await res.json();
@@ -296,15 +300,18 @@
         console.error(error);
         this.setStatus('Network error while loading messages');
       } finally {
-        this.state.loadingMessages = false;
-        this.renderMessages();
+        if (!background) {
+          this.state.loadingMessages = false;
+        }
+        this.renderMessages({ stickToBottom });
       }
     }
 
-    renderMessages() {
+    renderMessages(options = {}) {
       if (!this.elements.messagesContainer) return;
+      const stickToBottom = options.stickToBottom === true;
       if (this.state.loadingMessages) {
-        this.elements.messagesContainer.innerHTML = '<p class="text-muted small">Loading messages...</p>';
+        this.elements.messagesContainer.innerHTML = '';
         return;
       }
 
@@ -329,7 +336,19 @@
         })
         .join('');
 
-      this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+      if (stickToBottom) {
+        this.elements.messagesContainer.scrollTop = this.elements.messagesContainer.scrollHeight;
+      }
+    }
+
+    isNearBottom() {
+      if (!this.elements.messagesContainer) {
+        return true;
+      }
+
+      const container = this.elements.messagesContainer;
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      return distanceFromBottom <= 72;
     }
 
     async submitMessage() {
@@ -347,7 +366,7 @@
         const data = await res.json();
         if (data.status === 'success') {
           this.elements.messageInput.value = '';
-          await this.fetchMessages(this.state.activeConversationId);
+          await this.fetchMessages(this.state.activeConversationId, { stickToBottom: true });
           await this.fetchConversations();
         } else {
           this.setStatus(data.message || 'Unable to send message');
@@ -370,7 +389,7 @@
         await this.fetchConversations();
         this.autoOpenConversationIfNeeded();
         if (this.state.activeConversationId) {
-          await this.fetchMessages(this.state.activeConversationId);
+          await this.fetchMessages(this.state.activeConversationId, { background: true });
         }
       } finally {
         this.state.refreshingLive = false;
