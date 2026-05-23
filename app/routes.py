@@ -94,6 +94,9 @@ def setup_routes(app: Flask):
     @app.before_request
     def load_user():
         g.authenticated = session.get('authenticated', None)
+
+        if request.endpoint == 'static':
+            return
         
         # Load cart items for the current user
         if g.authenticated and g.authenticated.get('user_id'):
@@ -101,35 +104,35 @@ def setup_routes(app: Flask):
             user_id = g.authenticated['user_id']
 
             cart_query = """
-                SELECT COUNT(oi.order_items_id) AS item_count
-                FROM order_items oi
-                WHERE oi.user_id = %s
-                  AND oi.status = 1
-                  AND (oi.reference = '' OR oi.reference IS NULL)
+                SELECT
+                    (
+                        SELECT COUNT(oi.order_items_id)
+                        FROM order_items oi
+                        WHERE oi.user_id = %s
+                          AND oi.status = 1
+                          AND (oi.reference = '' OR oi.reference IS NULL)
+                    ) AS item_count,
+                    (
+                        SELECT COUNT(w.wishlist_id)
+                        FROM wishlists w
+                        WHERE w.user_id = %s
+                    ) AS wishlist_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM conversation_messages cm
+                        JOIN conversations c ON cm.conversation_id = c.conversation_id
+                        WHERE cm.is_read = 0
+                          AND (
+                                (c.buyer_id = %s AND cm.sender_id != %s)
+                             OR (c.seller_id = %s AND cm.sender_id != %s)
+                          )
+                    ) AS unread_count
             """
-            cart_result = executeGet(cart_query, (user_id,))
-            g.cart_item_count = cart_result[0]['item_count'] if cart_result else 0
-
-            wishlist_query = """
-                SELECT COUNT(w.wishlist_id) as wishlist_count
-                FROM wishlists w
-                WHERE w.user_id = %s
-            """
-            wishlist_result = executeGet(wishlist_query, (user_id,))
-            g.wishlist_count = wishlist_result[0]['wishlist_count'] if wishlist_result else 0
-
-            unread_messages_query = """
-                SELECT COUNT(*) AS unread_count
-                FROM conversation_messages cm
-                JOIN conversations c ON cm.conversation_id = c.conversation_id
-                WHERE cm.is_read = 0
-                  AND (
-                        (c.buyer_id = %s AND cm.sender_id != %s)
-                     OR (c.seller_id = %s AND cm.sender_id != %s)
-                  )
-            """
-            unread_result = executeGet(unread_messages_query, (user_id, user_id, user_id, user_id))
-            g.messages_unread_count = unread_result[0]['unread_count'] if unread_result else 0
+            header_counts = executeGet(cart_query, (user_id, user_id, user_id, user_id, user_id, user_id))
+            header_count = header_counts[0] if header_counts else {}
+            g.cart_item_count = header_count.get('item_count', 0) or 0
+            g.wishlist_count = header_count.get('wishlist_count', 0) or 0
+            g.messages_unread_count = header_count.get('unread_count', 0) or 0
         else:
             g.cart_item_count = 0
             g.wishlist_count = 0

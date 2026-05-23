@@ -1,11 +1,31 @@
 from connection.db import get_db_connection 
 from helpers.HelperFunction import responseData
+from flask import g, has_request_context
+
+
+def _get_connection():
+    if has_request_context():
+        conn = getattr(g, '_db_connection', None)
+        if conn is None or getattr(conn, 'closed', 1):
+            conn = get_db_connection()
+            g._db_connection = conn
+        return conn
+    return get_db_connection()
+
+
+def close_request_connection(exception=None):
+    conn = getattr(g, '_db_connection', None) if has_request_context() else None
+    if conn is not None:
+        try:
+            conn.close()
+        finally:
+            g._db_connection = None
 
 def executePost(query, params=()):
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
+        conn = _get_connection()
         if conn is None:
             return responseData("error", "Database connection is not available.", "", 500)
 
@@ -39,7 +59,7 @@ def executeGet(query, params=None):
     conn = None
     cursor = None
     try:
-        conn = get_db_connection()
+        conn = _get_connection()
         if conn is None:
             return []
 
