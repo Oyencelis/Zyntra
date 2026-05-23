@@ -10,7 +10,7 @@ from helpers.Session import sessionRemove
 from helpers.HelperFunction import responseData
 
 # Controllers
-from controller.HomeController import home, loadMoreProducts, categoryPage, getCategoriesInHome, cart, checkout, submitCheckout, shop, orderTracking, orderTrackingLatest, cancelOrder, orderTrackingHub, orderList, orderManagement, updateSuborderStatus, getNotifications, markNotificationRead, markAllNotificationsRead, wishlistPage, confirmOrder, cancelOrderItem
+from controller.HomeController import home, loadMoreProducts, categoryPage, getCategoriesInHome, cart, checkout, submitCheckout, shop, orderTracking, orderTrackingLatest, cancelOrder, orderTrackingHub, orderList, orderManagement, updateSuborderStatus, getNotifications, markNotificationRead, markAllNotificationsRead, wishlistPage, confirmOrder, cancelOrderItem, liveState
 
 from controller.LoginController import (
     login,
@@ -352,6 +352,11 @@ def setup_routes(app: Flask):
     @login_required
     def notifications_index():
         return getNotifications()
+
+    @app.route('/api/live/state', methods=['GET'])
+    @login_required
+    def api_live_state():
+        return liveState()
 
     @app.route('/notifications/read/<int:notification_id>', methods=['POST'])
     @login_required

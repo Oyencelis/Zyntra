@@ -240,7 +240,133 @@ $.SystemScript = (function() {
             wishlistBadge.textContent = wishlistCount > 0 ? wishlistCount : '';
             wishlistBadge.classList.toggle('d-none', wishlistCount === 0);
         }
+
+        let dashboardMessageBadges = document.querySelectorAll('#layout-menu a[href="/messages"] .badge');
+        dashboardMessageBadges.forEach(function(badge) {
+            let unreadCount = parseInt(data.messages_unread_count, 10) || 0;
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+                badge.textContent = '';
+            }
+        });
     }
+
+    let __dispatchLiveUpdate = function(detail) {
+        document.dispatchEvent(new CustomEvent('zyntra:live-update', {
+            detail: detail || {}
+        }));
+    }
+
+    let __createLiveUpdatesManager = function() {
+        let state = {
+            started: false,
+            timerId: null,
+            inFlight: false,
+            intervalMs: 15000,
+            previousTokens: {},
+            authenticated: false,
+        };
+
+        let notifyChanges = function(payload) {
+            let nextTokens = (payload && payload.tokens) ? payload.tokens : {};
+            let changedTokens = {};
+
+            Object.keys(nextTokens).forEach(function(key) {
+                let nextValue = nextTokens[key] || '';
+                let prevValue = state.previousTokens[key] || '';
+                if (nextValue && nextValue !== prevValue) {
+                    changedTokens[key] = {
+                        previous: prevValue,
+                        current: nextValue,
+                    };
+                }
+            });
+
+            state.previousTokens = nextTokens;
+
+            if (Object.keys(changedTokens).length) {
+                __dispatchLiveUpdate({
+                    payload: payload,
+                    changedTokens: changedTokens,
+                });
+            }
+        }
+
+        let fetchState = function() {
+            if (state.inFlight) {
+                return;
+            }
+
+            state.inFlight = true;
+            axios.get('/api/live/state')
+                .then(function(response) {
+                    let payload = (response && response.data && response.data.data) ? response.data.data : {};
+                    state.authenticated = !!payload.authenticated;
+
+                    if (payload && payload.poll_interval_ms) {
+                        let nextInterval = parseInt(payload.poll_interval_ms, 10) || 15000;
+                        if (nextInterval > 0 && nextInterval !== state.intervalMs) {
+                            state.intervalMs = nextInterval;
+                            if (state.timerId) {
+                                clearInterval(state.timerId);
+                                state.timerId = setInterval(fetchState, state.intervalMs);
+                            }
+                        }
+                    }
+
+                    if (payload && payload.counts) {
+                        __updateNavbarCounts(payload.counts);
+                    }
+
+                    notifyChanges(payload);
+                })
+                .catch(function(error) {
+                    if (error && error.response && error.response.status === 401) {
+                        state.authenticated = false;
+                        if (state.timerId) {
+                            clearInterval(state.timerId);
+                            state.timerId = null;
+                        }
+                    }
+                })
+                .finally(function() {
+                    state.inFlight = false;
+                });
+        }
+
+        let start = function() {
+            if (state.started || typeof axios === 'undefined') {
+                return;
+            }
+
+            let userAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.getAttribute('content') === 'true'
+                || !!document.querySelector('[data-notification-root]')
+                || !!document.querySelector('[data-cart-count]')
+                || !!document.querySelector('#layout-menu');
+
+            if (!userAuthenticated) {
+                return;
+            }
+
+            state.started = true;
+            fetchState();
+            state.timerId = setInterval(fetchState, state.intervalMs);
+        }
+
+        let forceRefresh = function() {
+            fetchState();
+        }
+
+        return {
+            start: start,
+            forceRefresh: forceRefresh,
+        }
+    }
+
+    let __liveUpdates = __createLiveUpdatesManager();
 
     let __bindGlobalAjaxForms = function() {
         document.addEventListener('submit', function(event) {

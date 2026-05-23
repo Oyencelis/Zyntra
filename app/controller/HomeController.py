@@ -186,6 +186,226 @@ def prepare_address_for_shipping(user_address):
     shipping_address['city_municipality'] = resolve_location_name(user_address.get('city_municipality'), 'city.json', 'city_code', 'city_name') or user_address.get('city_municipality')
     return shipping_address
 
+def _scalar_result(query, params=()):
+    rows = executeGet(query, params)
+    if isinstance(rows, tuple):
+        return {}
+    if isinstance(rows, list) and rows:
+        return rows[0] or {}
+    return {}
+
+def _tokenize_state(prefix, *parts):
+    normalized = []
+    for part in parts:
+        if isinstance(part, datetime):
+            normalized.append(part.isoformat())
+        elif part is None:
+            normalized.append('')
+        else:
+            normalized.append(str(part))
+    return f"{prefix}:" + ':'.join(normalized)
+
+def liveState():
+    user = g.authenticated if g.authenticated else None
+    if not user or not user.get('user_id'):
+        return responseData(
+            "success",
+            "Live state fetched.",
+            {
+                'authenticated': False,
+                'poll_interval_ms': 15000,
+                'counts': {
+                    'cart_count': 0,
+                    'wishlist_count': 0,
+                    'messages_unread_count': 0,
+                    'notifications_unread_count': 0,
+                },
+                'tokens': {}
+            },
+            200
+        )
+
+    user_id = user.get('user_id')
+    role_id = int(user.get('role_id') or 0)
+
+    header_counts = _scalar_result(
+        """
+            SELECT
+                (
+                    SELECT COUNT(oi.order_items_id)
+                    FROM order_items oi
+                    WHERE oi.user_id = %s
+                      AND oi.status = 1
+                      AND (oi.reference = '' OR oi.reference IS NULL)
+                ) AS item_count,
+                (
+                    SELECT COUNT(w.wishlist_id)
+                    FROM wishlists w
+                    WHERE w.user_id = %s
+                ) AS wishlist_count,
+                (
+                    SELECT COUNT(*)
+                    FROM conversation_messages cm
+                    JOIN conversations c ON cm.conversation_id = c.conversation_id
+                    WHERE cm.is_read = 0
+                      AND (
+                            (c.buyer_id = %s AND cm.sender_id != %s)
+                         OR (c.seller_id = %s AND cm.sender_id != %s)
+                      )
+                ) AS unread_count
+        """,
+        (user_id, user_id, user_id, user_id, user_id, user_id)
+    )
+
+    notification_row = _scalar_result(
+        """
+            SELECT COUNT(*) FILTER (WHERE is_read = 0) AS unread_count,
+                   MAX(created_at) AS latest_created_at,
+                   MAX(notification_id) AS latest_id
+            FROM notifications
+            WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    message_row = _scalar_result(
+        """
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE cm.is_read = 0
+                      AND (
+                            (c.buyer_id = %s AND cm.sender_id != %s)
+                         OR (c.seller_id = %s AND cm.sender_id != %s)
+                      )
+                ) AS unread_count,
+                MAX(cm.created_at) AS latest_message_at,
+                MAX(cm.message_id) AS latest_message_id
+            FROM conversation_messages cm
+            JOIN conversations c ON cm.conversation_id = c.conversation_id
+            WHERE c.buyer_id = %s OR c.seller_id = %s
+        """,
+        (user_id, user_id, user_id, user_id, user_id)
+    )
+
+    cart_row = _scalar_result(
+        """
+            SELECT COUNT(order_items_id) AS item_count,
+                   COALESCE(SUM(quantity), 0) AS total_quantity,
+                   MAX(order_items_id) AS latest_item_id
+            FROM order_items
+            WHERE user_id = %s
+              AND status = 1
+              AND (reference = '' OR reference IS NULL)
+        """,
+        (user_id,)
+    )
+
+    wishlist_row = _scalar_result(
+        """
+            SELECT COUNT(wishlist_id) AS item_count,
+                   MAX(wishlist_id) AS latest_id
+            FROM wishlists
+            WHERE user_id = %s
+        """,
+        (user_id,)
+    )
+
+    buyer_order_row = _scalar_result(
+        """
+            SELECT COUNT(DISTINCT o.order_id) AS item_count,
+                   MAX(COALESCE(os.updated_at, o.updated_at, o.created_at)) AS latest_updated_at,
+                   MAX(os.suborder_id) AS latest_id
+            FROM orders o
+            LEFT JOIN order_suborders os ON os.order_id = o.order_id
+            WHERE o.user_id = %s
+        """,
+        (user_id,)
+    )
+
+    seller_order_row = {}
+    if role_id == 3:
+        seller_order_row = _scalar_result(
+            """
+                SELECT COUNT(*) AS item_count,
+                       MAX(updated_at) AS latest_updated_at,
+                       MAX(suborder_id) AS latest_id
+                FROM order_suborders
+                WHERE seller_id = %s
+            """,
+            (user_id,)
+        )
+
+    rider_pickup_row = {}
+    if role_id == 4:
+        rider_pickup_row = _scalar_result(
+            """
+                SELECT COUNT(*) AS item_count,
+                       MAX(updated_at) AS latest_updated_at,
+                       MAX(suborder_id) AS latest_id
+                FROM order_suborders
+                WHERE pickup_status = 1
+                   OR pickup_rider_id = %s
+            """,
+            (user_id,)
+        )
+
+    data = {
+        'authenticated': True,
+        'role_id': role_id,
+        'poll_interval_ms': 15000,
+        'counts': {
+            'cart_count': int(header_counts.get('item_count') or 0),
+            'wishlist_count': int(header_counts.get('wishlist_count') or 0),
+            'messages_unread_count': int(message_row.get('unread_count') or header_counts.get('unread_count') or 0),
+            'notifications_unread_count': int(notification_row.get('unread_count') or 0),
+        },
+        'tokens': {
+            'notifications': _tokenize_state(
+                'notifications',
+                notification_row.get('unread_count') or 0,
+                notification_row.get('latest_id') or 0,
+                notification_row.get('latest_created_at') or ''
+            ),
+            'messages': _tokenize_state(
+                'messages',
+                message_row.get('unread_count') or 0,
+                message_row.get('latest_message_id') or 0,
+                message_row.get('latest_message_at') or ''
+            ),
+            'cart': _tokenize_state(
+                'cart',
+                cart_row.get('item_count') or 0,
+                cart_row.get('total_quantity') or 0,
+                cart_row.get('latest_item_id') or 0
+            ),
+            'wishlist': _tokenize_state(
+                'wishlist',
+                wishlist_row.get('item_count') or 0,
+                wishlist_row.get('latest_id') or 0
+            ),
+            'buyer_orders': _tokenize_state(
+                'buyer_orders',
+                buyer_order_row.get('item_count') or 0,
+                buyer_order_row.get('latest_id') or 0,
+                buyer_order_row.get('latest_updated_at') or ''
+            ),
+            'seller_orders': _tokenize_state(
+                'seller_orders',
+                seller_order_row.get('item_count') or 0,
+                seller_order_row.get('latest_id') or 0,
+                seller_order_row.get('latest_updated_at') or ''
+            ) if role_id == 3 else '',
+            'rider_pickups': _tokenize_state(
+                'rider_pickups',
+                rider_pickup_row.get('item_count') or 0,
+                rider_pickup_row.get('latest_id') or 0,
+                rider_pickup_row.get('latest_updated_at') or ''
+            ) if role_id == 4 else '',
+        }
+    }
+
+    return responseData("success", "Live state fetched.", data, 200)
+
 def getNotifications():
     user_id = g.authenticated.get('user_id') if g.authenticated else None
     if not user_id:

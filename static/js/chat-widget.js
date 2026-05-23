@@ -37,6 +37,14 @@
     init() {
       this.bindEvents();
       this.refreshData();
+      document.addEventListener('zyntra:live-update', (event) => {
+        const changedTokens = event?.detail?.changedTokens || {};
+        if (!changedTokens.messages) {
+          return;
+        }
+
+        this.liveRefresh();
+      });
     }
 
     bindEvents() {
@@ -302,6 +310,13 @@
         this.setStatus('Network error while sending message');
       } finally {
         this.state.sending = false;
+      }
+    }
+
+    async liveRefresh() {
+      await this.fetchConversations();
+      if (this.state.activeConversationId) {
+        await this.fetchMessages(this.state.activeConversationId);
       }
     }
 

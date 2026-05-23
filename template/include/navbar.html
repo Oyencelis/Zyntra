@@ -200,6 +200,8 @@
   </div>
 </nav>
 
+<script src="{{ url_for('static', filename='js/live-updates.js') }}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const homePath = "{{ url_for('home_page') }}";

@@ -46,9 +46,7 @@
         <i class="menu-icon tf-icons bx bx-message-dots"></i>
         <div class="text-truncate d-flex align-items-center justify-content-between w-100">
           <span>Messages</span>
-          {% if unread_messages %}
-          <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
-              {% endif %}
+          <span class="badge bg-danger ms-2{% if not unread_messages %} d-none{% endif %}" data-messages-count>{{ (unread_messages if unread_messages <= 99 else '99+') if unread_messages else '' }}</span>
         </div>
       </a>
     </li>
@@ -135,9 +133,7 @@
         <i class="menu-icon tf-icons bx bx-message-dots"></i>
         <div class="text-truncate d-flex align-items-center justify-content-between w-100">
           <span>Messages</span>
-          {% if unread_messages %}
-          <span class="badge bg-danger ms-2">{{ unread_messages if unread_messages <= 99 else '99+' }}</span>
-              {% endif %}
+          <span class="badge bg-danger ms-2{% if not unread_messages %} d-none{% endif %}" data-messages-count>{{ (unread_messages if unread_messages <= 99 else '99+') if unread_messages else '' }}</span>
         </div>
       </a>
     </li>

@@ -447,6 +447,10 @@
       });
   }
 
+  window.RiderPickups = {
+    refreshLists,
+  };
+
   function refreshLists() {
     Promise.all([fetchPickupScope('available'), fetchPickupScope('mine')])
       .then(([available, mine]) => {
@@ -535,6 +539,17 @@
     }
 
     chatModal.addEventListener('shown.bs.modal', ensureRiderBuyerChatSession);
+  });
+
+  document.addEventListener('zyntra:live-update', function (event) {
+    const changedTokens = event?.detail?.changedTokens || {};
+    if (!changedTokens.rider_pickups) {
+      return;
+    }
+
+    if (document.getElementById('riderPickupRoot')) {
+      refreshLists();
+    }
   });
 
 })(window, document);

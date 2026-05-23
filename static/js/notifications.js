@@ -277,4 +277,15 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => NotificationCenter.init());
+    document.addEventListener('zyntra:live-update', (event) => {
+        const changedTokens = event?.detail?.changedTokens || {};
+        if (!changedTokens.notifications) {
+            return;
+        }
+
+        if (NotificationCenter.root) {
+            NotificationCenter.shouldRefresh = true;
+            NotificationCenter.loadNotifications();
+        }
+    });
 })();
