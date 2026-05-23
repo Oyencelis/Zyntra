@@ -1301,10 +1301,10 @@ def detailsSubmit():
 
     # Retrieve form data
     floor_unit_number = request.form.get('floor_unit_number')
-    region = request.form.get('region')
-    province = request.form.get('province')
-    city = request.form.get('city')
-    barangay = request.form.get('barangay')
+    region = request.form.get('region_text') or request.form.get('region')
+    province = request.form.get('province_text') or request.form.get('province')
+    city = request.form.get('city_text') or request.form.get('city')
+    barangay = request.form.get('barangay_text') or request.form.get('barangay')
     street = request.form.get('street_text')  # Ensure this matches the name attribute
     other_notes = request.form.get('other_notes')  # Ensure this matches the name attribute
 

@@ -2,7 +2,11 @@
 {% block title %}My Shopping Cart - Zyntra{% endblock %}
 {% block content %}
 
-<div class="container py-5 cart-page">
+<div class="container py-5 cart-page" id="cart-pricing-context"
+    data-shipping-settings='{{ shipping_settings|default({})|tojson }}'
+    data-buyer-region="{{ shipping_address.region if shipping_address else '' }}"
+    data-buyer-province="{{ shipping_address.province if shipping_address else '' }}"
+    data-buyer-city="{{ shipping_address.city_municipality if shipping_address else '' }}">
     <div class="row">
         <div class="col-12 mb-4">
             <h1 class="fw-bold mb-1">Shopping Cart</h1>
@@ -57,7 +61,10 @@
                 <div class="card-body p-0">
                     {% for item in cart_items %}
                     <div class="cart-item p-4 border-bottom" data-order-item-id="{{ item.get('order_items_id') }}"
-                        data-seller-id="{{ item.get('seller_id') }}">
+                        data-seller-id="{{ item.get('seller_id') }}"
+                        data-seller-region="{{ item.get('seller_region', '') }}"
+                        data-seller-province="{{ item.get('seller_province', '') }}"
+                        data-seller-city="{{ item.get('seller_city', '') }}">
                         <div class="row align-items-center">
                             <div class="col-3 col-md-2">
                                 <a href="/product/view/{{ item.get('product_id', '') }}" class="d-block">
@@ -390,6 +397,49 @@
         return parseFloat(str.replace(/,/g, ''));
     }
 
+    const pricingContext = document.getElementById('cart-pricing-context');
+    const shippingSettings = pricingContext ? JSON.parse(pricingContext.dataset.shippingSettings || '{}') : {};
+    const buyerLocation = {
+        region: pricingContext ? pricingContext.dataset.buyerRegion : '',
+        province: pricingContext ? pricingContext.dataset.buyerProvince : '',
+        city: pricingContext ? pricingContext.dataset.buyerCity : ''
+    };
+
+    function normalizeLocationValue(value) {
+        return (value || '').toString().trim().toLowerCase();
+    }
+
+    function calculateSellerShipping(sellerSubtotal, sellerLocation) {
+        const freeThreshold = parseFloat(shippingSettings.shipping_free_threshold ?? 2000);
+        if (sellerSubtotal >= freeThreshold || sellerSubtotal <= 0) {
+            return 0;
+        }
+
+        const buyerRegion = normalizeLocationValue(buyerLocation.region);
+        const buyerProvince = normalizeLocationValue(buyerLocation.province);
+        const buyerCity = normalizeLocationValue(buyerLocation.city);
+        const sellerRegion = normalizeLocationValue(sellerLocation.region);
+        const sellerProvince = normalizeLocationValue(sellerLocation.province);
+        const sellerCity = normalizeLocationValue(sellerLocation.city);
+
+        if (buyerRegion && sellerRegion && buyerRegion === sellerRegion &&
+            buyerProvince && sellerProvince && buyerProvince === sellerProvince &&
+            buyerCity && sellerCity && buyerCity === sellerCity) {
+            return parseFloat(shippingSettings.shipping_same_city ?? 49);
+        }
+
+        if (buyerRegion && sellerRegion && buyerRegion === sellerRegion &&
+            buyerProvince && sellerProvince && buyerProvince === sellerProvince) {
+            return parseFloat(shippingSettings.shipping_same_province ?? 65);
+        }
+
+        if (buyerRegion && sellerRegion && buyerRegion === sellerRegion) {
+            return parseFloat(shippingSettings.shipping_same_region ?? 79);
+        }
+
+        return parseFloat(shippingSettings.shipping_cross_region ?? 99);
+    }
+
     // ─────────────────────────────────────────────
     // updateItemTotal
     // Only updates the displayed per-item total.
@@ -505,6 +555,7 @@
     function updateCartTotal() {
         let subtotal = 0;
         const sellerSubtotals = {};
+        const sellerLocations = {};
         let isValid = true;
 
         document.querySelectorAll('.cart-item').forEach(item => {
@@ -522,6 +573,11 @@
                     const lineTotal = price * quantity;
                     subtotal += lineTotal;
                     sellerSubtotals[sellerId] = (sellerSubtotals[sellerId] || 0) + lineTotal;
+                    sellerLocations[sellerId] = {
+                        region: item.getAttribute('data-seller-region') || '',
+                        province: item.getAttribute('data-seller-province') || '',
+                        city: item.getAttribute('data-seller-city') || ''
+                    };
                 } else {
                     isValid = false;
                 }
@@ -533,7 +589,7 @@
         let shipping = 0;
         Object.keys(sellerSubtotals).forEach(sellerId => {
             const sellerSubtotal = sellerSubtotals[sellerId];
-            const sellerShipping = sellerSubtotal > 0 && sellerSubtotal < 2000 ? 79 : 0;
+            const sellerShipping = calculateSellerShipping(sellerSubtotal, sellerLocations[sellerId] || {});
             shipping += sellerShipping;
 
             const shippingRow = document.querySelector(`[data-shipping-seller-id="${sellerId}"]`);

@@ -1,28 +1,13 @@
-"""Shipping estimates: geo distance when coordinates exist, otherwise region/province/city tiers."""
+"""Shipping estimates based on region/province/city tiers."""
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from helpers.marketplace_settings import get_float_setting
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    r = 6371.0
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlmb = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
-    return 2 * r * math.asin(min(1.0, math.sqrt(a)))
-
-
-def _num(val: Any) -> float | None:
-    try:
-        if val is None or val == "":
-            return None
-        return float(val)
-    except (TypeError, ValueError):
-        return None
+def _norm(val: Any) -> str:
+    return str(val or "").strip().lower()
 
 
 def estimate_shipping_for_seller_group(
@@ -39,26 +24,13 @@ def estimate_shipping_for_seller_group(
     if group_subtotal >= threshold or group_subtotal <= 0:
         return 0.0, "free_threshold"
 
-    bla = _num((buyer_address or {}).get("latitude"))
-    blo = _num((buyer_address or {}).get("longitude"))
-    sla = _num((seller_geo or {}).get("latitude"))
-    slo = _num((seller_geo or {}).get("longitude"))
+    br = _norm((buyer_address or {}).get("region"))
+    bp = _norm((buyer_address or {}).get("province"))
+    bc = _norm((buyer_address or {}).get("city_municipality"))
 
-    if None not in (bla, blo, sla, slo):
-        dist = _haversine_km(bla, blo, sla, slo)
-        base = get_float_setting("distance_shipping_base", 39.0)
-        per_km = get_float_setting("distance_shipping_per_km", 12.0)
-        cap = get_float_setting("distance_shipping_max", 250.0)
-        fee = min(cap, base + per_km * max(dist, 0.5))
-        return round(fee, 2), f"distance_{dist:.1f}km"
-
-    br = str((buyer_address or {}).get("region") or "")
-    bp = str((buyer_address or {}).get("province") or "")
-    bc = str((buyer_address or {}).get("city_municipality") or "")
-
-    sr = str((seller_geo or {}).get("region") or "")
-    sp = str((seller_geo or {}).get("province") or "")
-    sc = str((seller_geo or {}).get("city") or "")
+    sr = _norm((seller_geo or {}).get("region"))
+    sp = _norm((seller_geo or {}).get("province"))
+    sc = _norm((seller_geo or {}).get("city"))
 
     if br and sr and br == sr and bp and sp and bp == sp and bc and sc and bc == sc:
         fee = get_float_setting("shipping_same_city", 49.0)
@@ -67,8 +39,8 @@ def estimate_shipping_for_seller_group(
         fee = get_float_setting("shipping_same_province", 65.0)
         return round(fee, 2), "tier_same_province"
     if br and sr and br == sr:
-        fee = get_float_setting("shipping_same_region", 85.0)
+        fee = get_float_setting("shipping_same_region", 79.0)
         return round(fee, 2), "tier_same_region"
 
-    fee = get_float_setting("shipping_cross_region", 120.0)
+    fee = get_float_setting("shipping_cross_region", 99.0)
     return round(fee, 2), "tier_cross_region"
