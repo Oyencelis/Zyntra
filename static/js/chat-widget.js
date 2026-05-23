@@ -366,8 +366,18 @@
         const data = await res.json();
         if (data.status === 'success') {
           this.elements.messageInput.value = '';
-          await this.fetchMessages(this.state.activeConversationId, { stickToBottom: true });
+          const newMessage = data.data || null;
+          if (newMessage && newMessage.message_id) {
+            const exists = this.state.messages.some((msg) => msg.message_id === newMessage.message_id);
+            if (!exists) {
+              this.state.messages = [...this.state.messages, newMessage];
+            }
+            this.renderMessages({ stickToBottom: true });
+          } else {
+            await this.fetchMessages(this.state.activeConversationId, { background: true, stickToBottom: true });
+          }
           await this.fetchConversations();
+          await this.fetchMessages(this.state.activeConversationId, { background: true, stickToBottom: true });
         } else {
           this.setStatus(data.message || 'Unable to send message');
         }
