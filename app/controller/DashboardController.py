@@ -51,21 +51,29 @@ def _build_admin_context():
     counts = (executeGet("""
         SELECT 
             COUNT(*) AS total_users,
-            SUM(role_id = 3) AS sellers,
-            SUM(role_id = 4) AS riders,
-            SUM(role_id = 2) AS buyers
+            SUM(CASE WHEN role_id = 3 THEN 1 ELSE 0 END) AS sellers,
+            SUM(CASE WHEN role_id = 4 THEN 1 ELSE 0 END) AS riders,
+            SUM(CASE WHEN role_id = 2 THEN 1 ELSE 0 END) AS buyers
         FROM users
         WHERE status = 1
     """) or [{}])[0]
 
     summary = (executeGet("""
+        WITH item_values AS (
+            SELECT
+                oi.order_items_id,
+                oi.status,
+                COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0) AS line_total
+            FROM order_items oi
+            LEFT JOIN products p ON p.product_id = oi.product_id
+        )
         SELECT
-            COUNT(*) AS total_suborders,
-            COALESCE(SUM(total_amount), 0) AS gross_merchandise,
-            SUM(CASE WHEN status IN (1,2,3) THEN 1 ELSE 0 END) AS processing_orders,
-            SUM(CASE WHEN status IN (4,6,7) THEN 1 ELSE 0 END) AS completed_orders,
-            SUM(CASE WHEN status IN (5,8) THEN 1 ELSE 0 END) AS cancelled_orders
-        FROM order_suborders
+            COUNT(*) AS total_items,
+            COALESCE(SUM(line_total), 0) AS gross_merchandise,
+            SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) AS completed_orders,
+            SUM(CASE WHEN status NOT IN (5, 6, 8) THEN 1 ELSE 0 END) AS processing_orders,
+            SUM(CASE WHEN status IN (5, 8) THEN 1 ELSE 0 END) AS cancelled_orders
+        FROM item_values
     """) or [{}])[0]
 
     today = (executeGet("""
@@ -82,10 +90,22 @@ def _build_admin_context():
             o.total_amount,
             o.created_at,
             CONCAT(COALESCE(u.firstname, ''), ' ', COALESCE(u.lastname, '')) AS customer_name,
-            MIN(os.status) AS sub_status
+            COALESCE(SUM(GREATEST(COALESCE(oi.quantity, 0), 0)), 0) AS item_count,
+            CASE
+                WHEN COUNT(oi.order_items_id) = 0 THEN 1
+                WHEN BOOL_AND(oi.status IN (5, 8)) THEN 5
+                WHEN BOOL_AND(oi.status = 6) THEN 6
+                WHEN BOOL_OR(oi.status = 4) THEN 4
+                WHEN BOOL_OR(oi.status = 3) THEN 3
+                WHEN BOOL_OR(oi.status = 7) THEN 7
+                WHEN BOOL_OR(oi.status = 2) THEN 2
+                ELSE 1
+            END AS order_status
         FROM orders o
         LEFT JOIN users u ON o.user_id = u.user_id
         LEFT JOIN order_suborders os ON os.order_id = o.order_id
+        LEFT JOIN order_items oi ON oi.suborder_id = os.suborder_id
+        GROUP BY o.order_id, o.reference, o.total_amount, o.created_at, u.firstname, u.lastname
         ORDER BY o.created_at DESC
         LIMIT 6
     """) or []
@@ -93,13 +113,15 @@ def _build_admin_context():
     top_sellers = executeGet("""
         SELECT 
             COALESCE(sd.store_name, CONCAT('Seller ', u.firstname)) AS store_name,
-            COUNT(os.suborder_id) AS order_count,
-            COALESCE(SUM(os.total_amount), 0) AS revenue
-        FROM order_suborders os
+            COUNT(oi.order_items_id) AS order_count,
+            COALESCE(SUM(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0)), 0) AS revenue
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
         LEFT JOIN seller_details sd ON sd.user_id = os.seller_id
         LEFT JOIN users u ON u.user_id = os.seller_id
-        GROUP BY os.seller_id
-        ORDER BY revenue DESC
+        GROUP BY os.seller_id, sd.store_name, u.firstname
+        ORDER BY revenue DESC, order_count DESC
         LIMIT 4
     """) or []
 
@@ -145,10 +167,10 @@ def _build_admin_context():
         },
     ]
 
-    total_orders = max(_safe_int(summary.get('total_suborders')), 1)
+    total_orders = max(_safe_int(summary.get('total_items')), 1)
     progress_cards = [
         {
-            'label': 'Completed orders',
+            'label': 'Completed items',
             'amount': f"{_safe_int(summary.get('completed_orders')):,}",
             'caption': _percent(summary.get('completed_orders'), total_orders),
             'badge_class': 'bg-label-success'
@@ -172,6 +194,7 @@ def _build_admin_context():
         'columns': [
             {'key': 'reference', 'label': 'Order Ref'},
             {'key': 'customer', 'label': 'Customer'},
+            {'key': 'items', 'label': 'Items'},
             {'key': 'amount', 'label': 'Amount'},
             {'key': 'status', 'label': 'Status'},
             {'key': 'created_at', 'label': 'Created'},
@@ -180,8 +203,9 @@ def _build_admin_context():
             {
                 'reference': row.get('reference'),
                 'customer': row.get('customer_name').strip() or 'Guest',
+                'items': f"{_safe_int(row.get('item_count'))} item(s)",
                 'amount': _format_currency(row.get('total_amount')),
-                'status': _status_badge(row.get('sub_status'), ORDER_STATUS_BADGES),
+                'status': _status_badge(row.get('order_status'), ORDER_STATUS_BADGES),
                 'created_at': _format_datetime(row.get('created_at')),
             } for row in recent_orders
         ],
@@ -195,7 +219,7 @@ def _build_admin_context():
                 {
                     'primary': seller.get('store_name') or 'Seller',
                     'secondary': _format_currency(seller.get('revenue')),
-                    'meta': f"{_safe_int(seller.get('order_count')):,} orders"
+                    'meta': f"{_safe_int(seller.get('order_count')):,} items"
                 } for seller in top_sellers
             ]
         }
@@ -213,7 +237,7 @@ def _build_admin_context():
         'eyebrow': 'Platform health',
         'title': 'Operational overview',
         'subtitle': 'Monitor buyers, sellers, and riders from one command center.',
-        'meta_label': 'Lifetime GMV',
+        'meta_label': 'Lifetime item sales',
         'meta_value': _format_currency(summary.get('gross_merchandise')),
         'cta_label': 'View orders',
         'cta_href': '/order-list'
