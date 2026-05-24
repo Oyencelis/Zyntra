@@ -72,14 +72,43 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2 small text-muted">You are about to claim this sub-order for delivery.</p>
-        <ul class="list-unstyled mb-0 small">
-          <li><strong>Order:</strong> <span data-claim="order-ref">–</span></li>
-          <li><strong>Sub-order:</strong> <span data-claim="sub-ref">–</span></li>
-          <li><strong>Seller:</strong> <span data-claim="seller">–</span></li>
-          <li><strong>Buyer:</strong> <span data-claim="buyer">–</span></li>
-          <li><strong>Buyer Contact:</strong> <span data-claim="buyer-phone">–</span></li>
-        </ul>
+        <p class="mb-3 small text-muted">Review the key route and payout details before claiming this pickup.</p>
+        <div class="border rounded-3 p-3 bg-light-subtle small">
+          <div class="row g-3">
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small">Order</div>
+              <div class="fw-semibold" data-claim="order-ref">–</div>
+            </div>
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small">Sub-order</div>
+              <div class="fw-semibold" data-claim="sub-ref">–</div>
+            </div>
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small">Seller</div>
+              <div class="fw-semibold" data-claim="seller">–</div>
+            </div>
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small">Drop-off recipient</div>
+              <div class="fw-semibold" data-claim="buyer">–</div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted text-uppercase small">Pickup location</div>
+              <div class="fw-semibold" data-claim="pickup-location">–</div>
+            </div>
+            <div class="col-12">
+              <div class="text-muted text-uppercase small">Drop-off location</div>
+              <div class="fw-semibold" data-claim="dropoff-location">–</div>
+            </div>
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small">Pickup total</div>
+              <div class="fw-semibold" data-claim="pickup-total">–</div>
+            </div>
+            <div class="col-sm-6">
+              <div class="text-muted text-uppercase small" data-claim="commission-label">Queued commission</div>
+              <div class="fw-semibold text-primary" data-claim="commission-amount">–</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-claim="cancel" data-bs-dismiss="modal">Cancel</button>

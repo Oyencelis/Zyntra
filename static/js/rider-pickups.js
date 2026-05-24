@@ -23,7 +23,11 @@
             data-sub-ref="${escapeHtml(data.sub_reference || '')}"
             data-seller="${escapeHtml(data.seller_store || 'Seller')}"
             data-buyer-name="${escapeHtml(data.buyer_name || 'Buyer')}"
-            data-buyer-phone="${escapeHtml(data.buyer_phone || '')}">
+            data-pickup-location="${pickupLocation}"
+            data-dropoff-location="${dropoffLocation}"
+            data-pickup-total="${pickupTotalText}"
+            data-commission-label="${commissionLabel}"
+            data-commission-amount="${commissionText}">
            Claim Pickup
          </button>`
       );
@@ -119,7 +123,11 @@
         modalEl.querySelector('[data-claim="sub-ref"]').textContent = btn.dataset.subRef || '-';
         modalEl.querySelector('[data-claim="seller"]').textContent = btn.dataset.seller || 'Seller';
         modalEl.querySelector('[data-claim="buyer"]').textContent = btn.dataset.buyerName || 'Buyer';
-        modalEl.querySelector('[data-claim="buyer-phone"]').textContent = btn.dataset.buyerPhone || 'N/A';
+        modalEl.querySelector('[data-claim="pickup-location"]').textContent = btn.dataset.pickupLocation || 'Pickup location unavailable';
+        modalEl.querySelector('[data-claim="dropoff-location"]').textContent = btn.dataset.dropoffLocation || 'Drop-off location unavailable';
+        modalEl.querySelector('[data-claim="pickup-total"]').textContent = btn.dataset.pickupTotal || formatCurrency(0);
+        modalEl.querySelector('[data-claim="commission-label"]').textContent = btn.dataset.commissionLabel || 'Queued commission';
+        modalEl.querySelector('[data-claim="commission-amount"]').textContent = btn.dataset.commissionAmount || formatCurrency(0);
 
         const confirmBtn = modalEl.querySelector('[data-claim="confirm"]');
         const cancelBtn = modalEl.querySelector('[data-claim="cancel"]');
