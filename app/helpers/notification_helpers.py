@@ -10,17 +10,18 @@ ORDER_ITEM_STATUS_META = {
 }
 
 
-def create_notification(user_id: int, order_id: int | None, title: str, message: str, notification_type: str = "order") -> None:
+def create_notification(user_id: int, order_id: int | None, title: str, message: str, notification_type: str = "order") -> bool:
     if not user_id or not title or not message:
-        return
+        return False
 
-    executePost(
+    result = executePost(
         """
         INSERT INTO notifications (user_id, order_id, title, message, notification_type, is_read, created_at)
         VALUES (%s, %s, %s, %s, %s, 0, NOW())
         """,
         (user_id, order_id, title[:255], message[:2000], notification_type),
     )
+    return not isinstance(result, tuple)
 
 
 
@@ -46,17 +47,14 @@ def notify_buyer_order_item_status(order_item_id: int, status: int) -> None:
     if not order_item_id or status not in ORDER_ITEM_STATUS_META:
         return
 
-    rows = executeGet(
+    item_rows = executeGet(
         """
         SELECT
-            o.user_id AS buyer_user_id,
-            o.order_id,
-            o.reference AS order_reference,
-            os.reference AS sub_reference,
+            oi.user_id AS buyer_user_id,
+            oi.reference AS order_reference,
+            oi.suborder_id,
             COALESCE(p.product_name, 'Product') AS product_name
         FROM order_items oi
-        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
-        INNER JOIN orders o ON o.order_id = os.order_id
         LEFT JOIN products p ON p.product_id = oi.product_id
         WHERE oi.order_items_id = %s
         LIMIT 1
@@ -64,15 +62,46 @@ def notify_buyer_order_item_status(order_item_id: int, status: int) -> None:
         (order_item_id,),
     ) or []
 
-    if not rows:
+    if not item_rows:
         return
 
-    row = rows[0]
+    row = item_rows[0]
     buyer_user_id = row.get("buyer_user_id")
-    order_id = row.get("order_id")
     order_reference = row.get("order_reference") or ""
-    sub_reference = row.get("sub_reference") or order_reference
+    suborder_id = row.get("suborder_id")
     product_name = row.get("product_name") or "Product"
+
+    order_id = None
+    sub_reference = order_reference
+
+    if suborder_id:
+        suborder_rows = executeGet(
+            """
+            SELECT order_id, reference
+            FROM order_suborders
+            WHERE suborder_id = %s
+            LIMIT 1
+            """,
+            (suborder_id,),
+        ) or []
+        if suborder_rows:
+            suborder_row = suborder_rows[0]
+            order_id = suborder_row.get("order_id")
+            sub_reference = suborder_row.get("reference") or sub_reference
+
+    if not order_id and buyer_user_id and order_reference:
+        order_rows = executeGet(
+            """
+            SELECT order_id
+            FROM orders
+            WHERE user_id = %s AND reference = %s
+            ORDER BY order_id DESC
+            LIMIT 1
+            """,
+            (buyer_user_id, order_reference),
+        ) or []
+        if order_rows:
+            order_id = order_rows[0].get("order_id")
 
     title, fallback_message = ORDER_ITEM_STATUS_META[status]
 
@@ -89,4 +118,4 @@ def notify_buyer_order_item_status(order_item_id: int, status: int) -> None:
     else:
         message = fallback_message
 
-    create_notification(int(buyer_user_id), int(order_id), title, message, "order")
+    create_notification(int(buyer_user_id), int(order_id) if order_id else None, title, message, "order")
