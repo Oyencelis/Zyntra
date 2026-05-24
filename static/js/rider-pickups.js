@@ -8,6 +8,12 @@
   function createPickupCard(data, scope) {
     const isAvailable = scope === 'available';
     const actions = [];
+    const pickupLocation = escapeHtml(data.pickup_location || data.seller_location || 'Pickup location unavailable');
+    const dropoffLocation = escapeHtml(data.dropoff_location || 'Drop-off location unavailable');
+    const updatedLabel = escapeHtml(data.updated_at_label || 'Date unavailable');
+    const commissionLabel = escapeHtml(data.commission_label || 'Queued commission');
+    const pickupTotalText = formatCurrency(data.pickup_total);
+    const commissionText = formatCurrency(data.display_commission);
 
     if (isAvailable) {
       const orderRef = data.order_reference || data.sub_reference || '';
@@ -42,7 +48,13 @@
             <h6 class="mb-1">Order ${data.order_reference || data.sub_reference}</h6>
             <p class="mb-1 small text-muted">Seller: ${escapeHtml(data.seller_store || 'Seller')}</p>
             <p class="mb-1 small">Drop-off: ${escapeHtml(data.buyer_name || 'Buyer')} ${data.buyer_phone ? `&middot; ${data.buyer_phone}` : ''}</p>
-            <p class="mb-1 small text-primary fw-semibold">${escapeHtml(data.commission_label || 'Projected commission')}: ${formatCurrency(data.display_commission)}</p>
+            <p class="mb-1 small text-muted"><strong>Pickup:</strong> ${pickupLocation}</p>
+            <p class="mb-1 small text-muted"><strong>Drop-off location:</strong> ${dropoffLocation}</p>
+            <div class="d-flex flex-wrap gap-3 small mb-2">
+              <span class="text-dark fw-semibold">Pickup Total: ${pickupTotalText}</span>
+              <span class="text-primary fw-semibold">${commissionLabel}: ${commissionText}</span>
+            </div>
+            <p class="mb-1 small text-muted"><strong>Updated:</strong> ${updatedLabel}</p>
             <div>${statusBadge}</div>
           </div>
           <div class="d-flex flex-column gap-2">

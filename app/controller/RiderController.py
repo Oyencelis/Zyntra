@@ -1,10 +1,11 @@
 # pyrefly: ignore [missing-import]
+from datetime import datetime
 from flask import render_template, request, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
 from helpers.delivery_media import save_compressed_proof
 from helpers.wallet_finance import credit_rider_commission_for_suborder, rider_earnings_snapshot, calculate_rider_commission_amount
-from controller.HomeController import get_user_address_details, build_product_image_url
+from controller.HomeController import get_user_address_details, build_product_image_url, resolve_location_name
 
 
 def _ensure_rider_auth():
@@ -30,6 +31,30 @@ def riderPickupDashboard():
     )
 
 
+def _format_location(*, floor_unit=None, street=None, barangay=None, city=None, province=None, region=None):
+    region_display = resolve_location_name(region, 'region.json', 'region_code', 'region_name') or region
+    province_display = resolve_location_name(province, 'province.json', 'province_code', 'province_name') or province
+    city_display = resolve_location_name(city, 'city.json', 'city_code', 'city_name') or city
+    barangay_display = resolve_location_name(barangay, 'barangay.json', 'brgy_code', 'brgy_name') or barangay
+
+    return ", ".join(
+        filter(None, [floor_unit, street, barangay_display, city_display, province_display, region_display])
+    )
+
+
+def _format_datetime_label(value):
+    if not value:
+        return None
+
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            return value
+
+    return value.strftime('%B %d, %Y at %I:%M %p')
+
+
 def _pickup_query(scope):
     base_query = """
         SELECT
@@ -39,6 +64,8 @@ def _pickup_query(scope):
             os.status,
             os.shipping_fee,
             os.subtotal,
+            os.tax_amount,
+            os.total_amount,
             os.pickup_status,
             os.pickup_rider_id,
             os.pickup_claimed_at,
@@ -53,9 +80,17 @@ def _pickup_query(scope):
             seller.firstname AS seller_firstname,
             seller.lastname AS seller_lastname,
             sd.store_name,
+            sd.region AS seller_region,
             sd.city AS seller_city,
             sd.province AS seller_province,
+            sd.barangay AS seller_barangay,
             sd.street AS seller_street,
+            ba.floor_unit_number AS buyer_floor_unit_number,
+            ba.region AS buyer_region,
+            ba.province AS buyer_province,
+            ba.city_municipality AS buyer_city_municipality,
+            ba.barangay AS buyer_barangay,
+            ba.street AS buyer_street,
             (
                 SELECT wl.amount
                 FROM wallet_ledger wl
@@ -70,6 +105,19 @@ def _pickup_query(scope):
         LEFT JOIN users buyer ON o.user_id = buyer.user_id
         INNER JOIN users seller ON os.seller_id = seller.user_id
         LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
+        LEFT JOIN LATERAL (
+            SELECT
+                a.floor_unit_number,
+                a.region,
+                a.province,
+                a.city_municipality,
+                a.barangay,
+                a.street
+            FROM addresses a
+            WHERE a.user_id = buyer.user_id
+            ORDER BY a.updated_at DESC, a.address_id DESC
+            LIMIT 1
+        ) ba ON TRUE
     """
 
     conditions = []
@@ -99,12 +147,29 @@ def _serialize_pickup(row):
     actual_commission = row.get('actual_commission')
     display_commission = float(actual_commission) if actual_commission is not None else projected_commission
     commission_label = 'Credited commission' if actual_commission is not None else ('Projected commission' if pickup_state in (2, 3) else 'Queued commission')
+    pickup_location = _format_location(
+        street=row.get('seller_street'),
+        barangay=row.get('seller_barangay'),
+        city=row.get('seller_city'),
+        province=row.get('seller_province'),
+        region=row.get('seller_region'),
+    )
+    dropoff_location = _format_location(
+        floor_unit=row.get('buyer_floor_unit_number'),
+        street=row.get('buyer_street'),
+        barangay=row.get('buyer_barangay'),
+        city=row.get('buyer_city_municipality'),
+        province=row.get('buyer_province'),
+        region=row.get('buyer_region'),
+    )
     return {
         "suborder_id": row.get('suborder_id'),
         "order_id": row.get('order_id'),
         "order_reference": row.get('order_reference'),
         "sub_reference": row.get('sub_reference'),
         "order_created_at": row.get('order_created_at'),
+        "updated_at": row.get('updated_at'),
+        "updated_at_label": _format_datetime_label(row.get('updated_at')),
         "status": row.get('status'),
         "pickup_status": pickup_state,
         "pickup_rider_id": row.get('pickup_rider_id'),
@@ -112,10 +177,12 @@ def _serialize_pickup(row):
         "pickup_completed_at": row.get('pickup_completed_at'),
         "seller_name": seller_name or row.get('store_name') or 'Seller',
         "seller_store": row.get('store_name') or seller_name or 'Seller',
-        "seller_location": ", ".join(filter(None, [row.get('seller_street'), row.get('seller_city'), row.get('seller_province')])),
+        "seller_location": pickup_location,
+        "pickup_location": pickup_location,
         "buyer_id": row.get('buyer_id'),
         "buyer_name": buyer_name or 'Buyer',
         "buyer_phone": row.get('buyer_phone'),
+        "dropoff_location": dropoff_location,
         "shipping_fee": shipping_fee,
         "subtotal": subtotal,
         "convenience_fee": convenience_fee,
@@ -315,9 +382,17 @@ def _fetch_pickup_detail(suborder_id):
             seller.firstname AS seller_firstname,
             seller.lastname AS seller_lastname,
             sd.store_name,
+            sd.region AS seller_region,
             sd.city AS seller_city,
             sd.province AS seller_province,
+            sd.barangay AS seller_barangay,
             sd.street AS seller_street,
+            ba.floor_unit_number AS buyer_floor_unit_number,
+            ba.region AS buyer_region,
+            ba.province AS buyer_province,
+            ba.city_municipality AS buyer_city_municipality,
+            ba.barangay AS buyer_barangay,
+            ba.street AS buyer_street,
             (
                 SELECT wl.amount
                 FROM wallet_ledger wl
@@ -332,6 +407,19 @@ def _fetch_pickup_detail(suborder_id):
         LEFT JOIN users buyer ON o.user_id = buyer.user_id
         INNER JOIN users seller ON os.seller_id = seller.user_id
         LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
+        LEFT JOIN LATERAL (
+            SELECT
+                a.floor_unit_number,
+                a.region,
+                a.province,
+                a.city_municipality,
+                a.barangay,
+                a.street
+            FROM addresses a
+            WHERE a.user_id = buyer.user_id
+            ORDER BY a.updated_at DESC, a.address_id DESC
+            LIMIT 1
+        ) ba ON TRUE
         WHERE os.suborder_id = %s
     """
 
