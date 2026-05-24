@@ -213,7 +213,7 @@ def _build_seller_breakdown_cards(aggregates):
 def _get_rider_transactions(user_id):
     query = """
         SELECT 
-            os.reference, os.status, os.pickup_status, os.shipping_fee, os.subtotal, os.updated_at, os.suborder_id,
+            os.reference, os.status, os.pickup_status, os.shipping_fee, os.tax_amount, os.updated_at, os.suborder_id,
             (SELECT amount FROM wallet_ledger wl WHERE wl.user_id = %s AND wl.wallet_role = 'rider' AND wl.entry_kind = 'rider_commission_delivery' AND wl.reference_id = os.suborder_id LIMIT 1) AS actual_commission
         FROM order_suborders os
         WHERE os.pickup_rider_id = %s
@@ -229,7 +229,7 @@ def _get_rider_transactions(user_id):
             commission = float(actual_commission)
             label = 'Credited commission'
         else:
-            commission = calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))
+            commission = calculate_rider_commission_amount(row.get('shipping_fee'), row.get('tax_amount'))
             label = 'Projected commission' if pickup_status in (2, 3) else 'Queued commission'
             
         transactions.append({

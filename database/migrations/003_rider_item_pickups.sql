@@ -159,7 +159,13 @@ AS $$
         END,
         2
       ),
-      ROUND(COALESCE(t.line_total, 0), 2)
+      ROUND(
+        CASE
+          WHEN totals.active_line_total > 0 THEN COALESCE(t.suborder_tax_amount, 0) * COALESCE(t.line_total, 0) / totals.active_line_total
+          ELSE 0
+        END,
+        2
+      )
     ) AS commission_amount
   FROM target AS t
   CROSS JOIN totals;

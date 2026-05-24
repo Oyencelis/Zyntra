@@ -212,7 +212,7 @@ def _serialize_pickup(row):
     pickup_total = float(row.get('total_amount') or 0)
     if pickup_total <= 0:
         pickup_total = round(subtotal + shipping_fee + convenience_fee, 2)
-    projected_commission = calculate_rider_commission_amount(shipping_fee, subtotal)
+    projected_commission = calculate_rider_commission_amount(shipping_fee, convenience_fee)
     actual_commission = row.get('actual_commission')
     display_commission = float(actual_commission) if actual_commission is not None else projected_commission
     commission_label = 'Credited commission' if actual_commission is not None else ('Projected commission' if pickup_state in (2, 3) else 'Queued commission')

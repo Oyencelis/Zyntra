@@ -46,10 +46,12 @@ def available_balance(user_id: int, wallet_role: str) -> Decimal:
     return ledger_balance(user_id, wallet_role) - pending_withdrawal_total(user_id, wallet_role)
 
 
-def calculate_rider_commission_amount(shipping_fee, subtotal) -> float:
+def calculate_rider_commission_amount(shipping_fee, convenience_fee) -> float:
     shipping = float(shipping_fee or 0)
+    convenience = float(convenience_fee or 0)
     ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
-    return round(max(0.0, shipping * ship_pct), 2)
+    convenience_pct = get_float_setting("rider_commission_pct_of_convenience", 25.0) / 100.0
+    return round(max(0.0, (shipping * ship_pct) + (convenience * convenience_pct)), 2)
 
 
 def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
@@ -68,7 +70,8 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
                     ELSE NULL
                 END AS pickup_rider_id,
                 ROUND(
-                    COALESCE(money.shipping_share, 0) * %s,
+                    (COALESCE(money.shipping_share, 0) * %s)
+                    + (COALESCE(money.tax_share, 0) * %s),
                     2
                 ) AS commission_amount
             FROM order_items oi
@@ -86,7 +89,11 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
         WHERE pickup_rider_id = %s
           AND pickup_status IN (2, 3, 4)
         """,
-        (get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0, user_id),
+        (
+            get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0,
+            get_float_setting("rider_commission_pct_of_convenience", 25.0) / 100.0,
+            user_id,
+        ),
     ) or []
     active = active_rows[0] if active_rows else {}
 
@@ -214,7 +221,7 @@ def credit_rider_commission_for_suborder(suborder_id: int) -> None:
         """
         SELECT os.pickup_rider_id AS rider_id,
                os.shipping_fee,
-               os.subtotal
+               os.tax_amount
         FROM order_suborders os
         WHERE os.suborder_id = %s
         LIMIT 1
@@ -226,20 +233,21 @@ def credit_rider_commission_for_suborder(suborder_id: int) -> None:
     rider_id = rows[0].get("rider_id")
     if not rider_id:
         return
-    amount = calculate_rider_commission_amount(rows[0].get("shipping_fee"), rows[0].get("subtotal"))
+    amount = calculate_rider_commission_amount(rows[0].get("shipping_fee"), rows[0].get("tax_amount"))
     if amount <= 0:
         return
     rid = int(rider_id)
     if _ledger_exists("rider_commission_delivery", suborder_id, rid):
         return
-    _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery", suborder_id, "Rider delivery commission and product share")
+    _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery", suborder_id, "Rider delivery commission and convenience fee share")
 
 
 def credit_rider_commission_for_item(order_item_id: int) -> None:
     rows = executeGet(
         """
         SELECT oi.pickup_rider_id AS rider_id,
-               money.shipping_share
+               money.shipping_share,
+               money.tax_share
         FROM order_items oi
         LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
         WHERE oi.order_items_id = %s
@@ -252,13 +260,13 @@ def credit_rider_commission_for_item(order_item_id: int) -> None:
     rider_id = rows[0].get("rider_id")
     if not rider_id:
         return
-    amount = calculate_rider_commission_amount(rows[0].get("shipping_share"), 0)
+    amount = calculate_rider_commission_amount(rows[0].get("shipping_share"), rows[0].get("tax_share"))
     if amount <= 0:
         return
     rid = int(rider_id)
     if _ledger_exists("rider_commission_delivery_item", order_item_id, rid):
         return
-    _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery_item", order_item_id, "Rider delivery commission and product share")
+    _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery_item", order_item_id, "Rider delivery commission and convenience fee share")
 
 
 def credit_seller_for_completed_suborder(suborder_id: int) -> None:

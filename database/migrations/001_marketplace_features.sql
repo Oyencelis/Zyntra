@@ -19,6 +19,7 @@ INSERT INTO platform_settings (setting_key, setting_value) VALUES
     ('shipping_same_region', '79'),
     ('shipping_cross_region', '99'),
     ('rider_commission_pct_of_shipping', '70'),
+    ('rider_commission_pct_of_convenience', '25'),
     ('distance_shipping_base', '39'),
     ('distance_shipping_per_km', '12'),
     ('distance_shipping_max', '250')

@@ -162,7 +162,13 @@ AS $$
         END,
         2
       ),
-      ROUND(COALESCE(t.line_total, 0), 2)
+      ROUND(
+        CASE
+          WHEN totals.active_line_total > 0 THEN COALESCE(t.suborder_tax_amount, 0) * COALESCE(t.line_total, 0) / totals.active_line_total
+          ELSE 0
+        END,
+        2
+      )
     ) AS commission_amount
   FROM target AS t
   CROSS JOIN totals;
@@ -2372,7 +2378,8 @@ SET search_path = public
 AS $$
   SELECT ROUND(
     GREATEST(
-      COALESCE(p_shipping_fee, 0) * public.marketplace_setting_number('rider_commission_pct_of_shipping', 70) / 100,
+      COALESCE(p_shipping_fee, 0) * public.marketplace_setting_number('rider_commission_pct_of_shipping', 70) / 100
+      + COALESCE(p_subtotal, 0) * public.marketplace_setting_number('rider_commission_pct_of_convenience', 25) / 100,
       0
     ),
     2

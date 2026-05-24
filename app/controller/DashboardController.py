@@ -442,7 +442,7 @@ def _build_rider_context(user_id):
             os.suborder_id,
             os.reference,
             os.shipping_fee,
-            os.subtotal,
+            os.tax_amount,
             os.pickup_status,
             os.updated_at,
             COALESCE(sd.store_name, 'Seller') AS store_name,
@@ -467,7 +467,7 @@ def _build_rider_context(user_id):
             os.suborder_id,
             os.reference,
             os.shipping_fee,
-            os.subtotal,
+            os.tax_amount,
             os.updated_at,
             COALESCE(sd.store_name, 'Seller') AS store_name
         FROM order_suborders os
@@ -550,7 +550,7 @@ def _build_rider_context(user_id):
             {
                 'reference': row.get('reference'),
                 'customer': row.get('store_name'),
-                'amount': _format_currency(row.get('actual_commission') if row.get('actual_commission') is not None else calculate_rider_commission_amount(row.get('shipping_fee'), row.get('subtotal'))),
+                'amount': _format_currency(row.get('actual_commission') if row.get('actual_commission') is not None else calculate_rider_commission_amount(row.get('shipping_fee'), row.get('tax_amount'))),
                 'status': _status_badge(row.get('pickup_status'), PICKUP_STATUS_BADGES),
                 'created_at': _format_datetime(row.get('updated_at')),
             } for row in assigned_suborders
@@ -564,7 +564,7 @@ def _build_rider_context(user_id):
             'items': [
                 {
                     'primary': pickup.get('store_name'),
-                    'secondary': _format_currency(calculate_rider_commission_amount(pickup.get('shipping_fee'), pickup.get('subtotal'))),
+                    'secondary': _format_currency(calculate_rider_commission_amount(pickup.get('shipping_fee'), pickup.get('tax_amount'))),
                     'meta': _format_datetime(pickup.get('updated_at'))
                 } for pickup in available_pickups
             ]
