@@ -78,7 +78,13 @@ def admin_withdrawal_decide():
     wid = request.form.get("withdrawal_id", type=int)
     action = (request.form.get("action") or "").lower()
     note = (request.form.get("admin_note") or "").strip()
-    if not wid or action not in ("approve", "reject"):
+    action_map = {
+        "approve": True,
+        "approved": True,
+        "reject": False,
+        "rejected": False,
+    }
+    if not wid or action not in action_map:
         return redirect(url_for("admin_withdrawals"))
-    finalize_withdrawal(wid, g.authenticated.get("user_id"), action == "approve", note)
+    finalize_withdrawal(wid, g.authenticated.get("user_id"), action_map[action], note)
     return redirect(url_for("admin_withdrawals"))
