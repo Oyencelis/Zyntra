@@ -4,6 +4,7 @@ from flask import render_template, request, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
 from helpers.delivery_media import save_compressed_proof
+from helpers.notification_helpers import notify_buyer_order_item_status
 from helpers.wallet_finance import credit_rider_commission_for_item, rider_earnings_snapshot, calculate_rider_commission_amount
 from controller.HomeController import get_user_address_details, build_product_image_url, resolve_location_name
 
@@ -377,6 +378,7 @@ def updatePickupStatus(order_item_id):
     _sync_pickup_suborder(detail.get('suborder_id'))
     if new_status == 4:
         credit_rider_commission_for_item(order_item_id)
+    notify_buyer_order_item_status(order_item_id, new_status)
 
     detail = _fetch_pickup_detail(order_item_id)
     return responseData("success", "Pickup status updated.", detail, 200)

@@ -45,6 +45,7 @@ from datetime import datetime, timedelta
 from flask import render_template, request, session, g, url_for, redirect
 from helpers.QueryHelpers import executeGet, executePost, changeStatus
 from helpers.HelperFunction import responseData, allowed_image_file, generate_random_filename, generate_random_string, init_app_locale
+from helpers.notification_helpers import notify_buyer_checkout_created, notify_buyer_order_item_status
 from helpers.SupabaseStorage import resolve_storage_url
 from helpers.marketplace_settings import get_float_setting
 from helpers.shipping_pricing import estimate_shipping_for_seller_group
@@ -1115,6 +1116,12 @@ def submitCheckout():
     buyer_last = g.authenticated.get('lastname', '') if g.authenticated else ''
     buyer_name = f"{buyer_first} {buyer_last}".strip() or "A buyer"
     create_order_notifications(order_id, reference, buyer_name, suborders_payload)
+    notify_buyer_checkout_created(
+        user_id,
+        order_id,
+        reference,
+        [item.get('product_name') or 'Product' for item in cart_items],
+    )
 
     response_payload = {
         "reference": reference,
@@ -1895,6 +1902,7 @@ def updateSuborderStatus():
         return item_update_result
 
     _sync_suborder_status_from_items(suborder_id)
+    notify_buyer_order_item_status(order_item_id, status)
 
     status_labels = {
         2: 'Shipped',
