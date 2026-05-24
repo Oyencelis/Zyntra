@@ -4,7 +4,7 @@ from flask import render_template, request, g
 from helpers.QueryHelpers import executeGet, executePost
 from helpers.HelperFunction import responseData
 from helpers.delivery_media import save_compressed_proof
-from helpers.wallet_finance import credit_rider_commission_for_suborder, rider_earnings_snapshot, calculate_rider_commission_amount
+from helpers.wallet_finance import credit_rider_commission_for_item, rider_earnings_snapshot, calculate_rider_commission_amount
 from controller.HomeController import get_user_address_details, build_product_image_url, resolve_location_name
 
 
@@ -55,22 +55,33 @@ def _format_datetime_label(value):
     return value.strftime('%B %d, %Y at %I:%M %p')
 
 
-def _pickup_query(scope):
-    base_query = """
+def _sync_pickup_suborder(suborder_id):
+    if not suborder_id:
+        return
+
+    executeGet("SELECT public.sync_suborder_status_from_items(%s)", (suborder_id,))
+
+
+def _pickup_base_query():
+    return """
         SELECT
+            oi.order_items_id AS order_item_id,
             os.suborder_id,
             os.order_id,
             os.reference AS sub_reference,
-            os.status,
-            os.shipping_fee,
-            os.subtotal,
-            os.tax_amount,
-            os.total_amount,
-            os.pickup_status,
-            os.pickup_rider_id,
-            os.pickup_claimed_at,
-            os.pickup_completed_at,
-            os.updated_at,
+            COALESCE(NULLIF(TRIM(COALESCE(oi.reference, '')), ''), CONCAT(COALESCE(os.reference, o.reference, 'ORD'), '-ITEM-', oi.order_items_id)) AS item_reference,
+            COALESCE(p.product_name, 'Unnamed product') AS product_name,
+            COALESCE(oi.quantity, 0) AS quantity,
+            oi.status,
+            pickup.resolved_pickup_status AS pickup_status,
+            pickup.resolved_pickup_rider_id AS pickup_rider_id,
+            pickup.resolved_pickup_claimed_at AS pickup_claimed_at,
+            pickup.resolved_pickup_completed_at AS pickup_completed_at,
+            GREATEST(
+                COALESCE(pickup.resolved_pickup_completed_at, '-infinity'::timestamp with time zone),
+                COALESCE(pickup.resolved_pickup_claimed_at, '-infinity'::timestamp with time zone),
+                COALESCE(os.updated_at, o.created_at, NOW())
+            ) AS updated_at,
             o.reference AS order_reference,
             o.created_at AS order_created_at,
             buyer.user_id AS buyer_id,
@@ -91,20 +102,73 @@ def _pickup_query(scope):
             ba.city_municipality AS buyer_city_municipality,
             ba.barangay AS buyer_barangay,
             ba.street AS buyer_street,
-            (
-                SELECT wl.amount
-                FROM wallet_ledger wl
-                WHERE wl.user_id = os.pickup_rider_id
-                  AND wl.wallet_role = 'rider'
-                  AND wl.entry_kind = 'rider_commission_delivery'
-                  AND wl.reference_id = os.suborder_id
-                LIMIT 1
-            ) AS actual_commission
-        FROM order_suborders os
+            COALESCE(money.line_total, 0) AS subtotal,
+            COALESCE(money.shipping_share, 0) AS shipping_fee,
+            COALESCE(money.tax_share, 0) AS tax_amount,
+            COALESCE(money.total_amount, 0) AS total_amount,
+            COALESCE(item_ledger.amount, legacy_ledger.amount) AS actual_commission
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
         INNER JOIN orders o ON os.order_id = o.order_id
         LEFT JOIN users buyer ON o.user_id = buyer.user_id
         INNER JOIN users seller ON os.seller_id = seller.user_id
         LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
+        LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT MIN(oi2.order_items_id) AS primary_item_id
+            FROM order_items oi2
+            WHERE oi2.suborder_id = oi.suborder_id
+              AND oi2.status NOT IN (5, 8)
+        ) primary_item ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT
+                CASE
+                    WHEN COALESCE(oi.pickup_status, 0) IN (2, 3, 4) THEN oi.pickup_status
+                    WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND os.pickup_rider_id IS NOT NULL AND oi.status IN (2, 3, 4, 6) THEN os.pickup_status
+                    ELSE public.order_item_pickup_status(oi.status, oi.pickup_status)
+                END AS resolved_pickup_status,
+                CASE
+                    WHEN oi.pickup_rider_id IS NOT NULL THEN oi.pickup_rider_id
+                    WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND oi.status IN (2, 3, 4, 6) THEN os.pickup_rider_id
+                    ELSE NULL
+                END AS resolved_pickup_rider_id,
+                COALESCE(
+                    oi.pickup_claimed_at,
+                    CASE
+                        WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND oi.status IN (2, 3, 4, 6) THEN os.pickup_claimed_at
+                        ELSE NULL
+                    END
+                ) AS resolved_pickup_claimed_at,
+                COALESCE(
+                    oi.pickup_completed_at,
+                    CASE
+                        WHEN COALESCE(os.pickup_status, 0) = 4 AND oi.status IN (4, 6) THEN os.pickup_completed_at
+                        ELSE NULL
+                    END
+                ) AS resolved_pickup_completed_at
+        ) pickup ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT wl.amount
+            FROM wallet_ledger wl
+            WHERE wl.user_id = pickup.resolved_pickup_rider_id
+              AND wl.wallet_role = 'rider'
+              AND wl.entry_kind = 'rider_commission_delivery_item'
+              AND wl.reference_id = oi.order_items_id
+            ORDER BY wl.ledger_id DESC
+            LIMIT 1
+        ) item_ledger ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT wl.amount
+            FROM wallet_ledger wl
+            WHERE oi.order_items_id = primary_item.primary_item_id
+              AND wl.user_id = pickup.resolved_pickup_rider_id
+              AND wl.wallet_role = 'rider'
+              AND wl.entry_kind = 'rider_commission_delivery'
+              AND wl.reference_id = os.suborder_id
+            ORDER BY wl.ledger_id DESC
+            LIMIT 1
+        ) legacy_ledger ON TRUE
         LEFT JOIN LATERAL (
             SELECT
                 a.floor_unit_number,
@@ -120,16 +184,20 @@ def _pickup_query(scope):
         ) ba ON TRUE
     """
 
+
+def _pickup_query(scope):
+    base_query = _pickup_base_query()
+
     conditions = []
     if scope == 'mine':
-        conditions.append("os.pickup_rider_id = %s")
-        conditions.append("os.pickup_status IN (2,3,4)")
+        conditions.append("pickup.resolved_pickup_rider_id = %s")
+        conditions.append("pickup.resolved_pickup_status IN (2,3,4)")
     else:
-        conditions.append("os.pickup_status = 1")
-        conditions.append("os.pickup_rider_id IS NULL")
+        conditions.append("pickup.resolved_pickup_status = 1")
+        conditions.append("pickup.resolved_pickup_rider_id IS NULL")
 
     where_clause = " WHERE " + " AND ".join(conditions)
-    order_clause = " ORDER BY os.updated_at DESC"
+    order_clause = " ORDER BY updated_at DESC, oi.order_items_id DESC"
     return base_query + where_clause + order_clause
 
 
@@ -163,10 +231,14 @@ def _serialize_pickup(row):
         region=row.get('buyer_region'),
     )
     return {
+        "order_item_id": row.get('order_item_id'),
         "suborder_id": row.get('suborder_id'),
         "order_id": row.get('order_id'),
         "order_reference": row.get('order_reference'),
         "sub_reference": row.get('sub_reference'),
+        "item_reference": row.get('item_reference'),
+        "product_name": row.get('product_name'),
+        "quantity": row.get('quantity'),
         "order_created_at": row.get('order_created_at'),
         "updated_at": row.get('updated_at'),
         "updated_at_label": _format_datetime_label(row.get('updated_at')),
@@ -213,34 +285,41 @@ def getRiderPickups():
     return responseData("success", "Pickups fetched.", pickups, 200)
 
 
-def claimPickupAssignment(suborder_id):
+def claimPickupAssignment(order_item_id):
     rider, error = _ensure_rider_auth()
     if error:
         return error
 
     claim_query = """
-        UPDATE order_suborders
+        UPDATE order_items
         SET pickup_rider_id = %s,
             pickup_status = 2,
             pickup_claimed_at = NOW(),
-            updated_at = NOW()
-        WHERE suborder_id = %s
-          AND pickup_status = 1
-          AND (pickup_rider_id IS NULL)
+            pickup_completed_at = NULL
+        WHERE order_items_id = %s
+          AND public.order_item_pickup_status(status, pickup_status) = 1
+          AND pickup_rider_id IS NULL
     """
 
-    result = executePost(claim_query, (rider['user_id'], suborder_id))
+    result = executePost(claim_query, (rider['user_id'], order_item_id))
     if isinstance(result, tuple):
         return result
 
     if (result or {}).get('rowcount', 0) == 0:
         return responseData("error", "This pickup has already been claimed.", "", 409)
 
-    detail = _fetch_pickup_detail(suborder_id)
+    suborder_rows = executeGet(
+        "SELECT suborder_id FROM order_items WHERE order_items_id = %s LIMIT 1",
+        (order_item_id,),
+    ) or []
+    if suborder_rows:
+        _sync_pickup_suborder(suborder_rows[0].get('suborder_id'))
+
+    detail = _fetch_pickup_detail(order_item_id)
     return responseData("success", "Pickup assigned to you.", detail, 200)
 
 
-def updatePickupStatus(suborder_id):
+def updatePickupStatus(order_item_id):
     rider, error = _ensure_rider_auth()
     if error:
         return error
@@ -249,7 +328,7 @@ def updatePickupStatus(suborder_id):
     if new_status not in (3, 4):
         return responseData("error", "Invalid status.", "", 400)
 
-    detail = _fetch_pickup_detail(suborder_id)
+    detail = _fetch_pickup_detail(order_item_id)
     if not detail:
         return responseData("error", "Pickup not found.", "", 404)
 
@@ -263,8 +342,8 @@ def updatePickupStatus(suborder_id):
 
     if new_status == 4:
         proof_rows = executeGet(
-            "SELECT COUNT(*) AS c FROM delivery_proofs WHERE suborder_id = %s",
-            (suborder_id,),
+            "SELECT COUNT(*) AS c FROM delivery_proofs WHERE order_item_id = %s",
+            (order_item_id,),
         ) or []
         proof_count = int(proof_rows[0].get("c") or 0) if proof_rows else 0
         if proof_count < 1:
@@ -275,7 +354,7 @@ def updatePickupStatus(suborder_id):
                 400,
             )
 
-    set_clauses = ["pickup_status = %s", "updated_at = NOW()"]
+    set_clauses = ["pickup_status = %s"]
     params = [new_status]
 
     if new_status == 4:
@@ -285,45 +364,30 @@ def updatePickupStatus(suborder_id):
         set_clauses.append("status = CASE WHEN status < 3 THEN 3 ELSE status END")
 
     update_query = f"""
-        UPDATE order_suborders
+        UPDATE order_items
         SET {', '.join(set_clauses)}
-        WHERE suborder_id = %s AND pickup_rider_id = %s
+        WHERE order_items_id = %s AND pickup_rider_id = %s
     """
 
-    params.extend([suborder_id, rider['user_id']])
+    params.extend([order_item_id, rider['user_id']])
     update_result = executePost(update_query, tuple(params))
     if isinstance(update_result, tuple):
         return update_result
 
-    # Keep item-level status aligned with the suborder status so buyer views reflect rider actions.
-    if new_status == 3:
-        # Move items to at least "Out for Delivery" (3), but do not downgrade items already further along.
-        item_update_query = """
-            UPDATE order_items
-            SET status = CASE WHEN status < 3 THEN 3 ELSE status END
-            WHERE suborder_id = %s
-        """
-        executePost(item_update_query, (suborder_id,))
-    elif new_status == 4:
-        # Mark all items in this suborder as Delivered (4) if not cancelled.
-        item_update_query = """
-            UPDATE order_items
-            SET status = 4
-            WHERE suborder_id = %s AND status <> 5
-        """
-        executePost(item_update_query, (suborder_id,))
-        credit_rider_commission_for_suborder(suborder_id)
+    _sync_pickup_suborder(detail.get('suborder_id'))
+    if new_status == 4:
+        credit_rider_commission_for_item(order_item_id)
 
-    detail = _fetch_pickup_detail(suborder_id)
+    detail = _fetch_pickup_detail(order_item_id)
     return responseData("success", "Pickup status updated.", detail, 200)
 
 
-def uploadDeliveryProof(suborder_id):
+def uploadDeliveryProof(order_item_id):
     rider, error = _ensure_rider_auth()
     if error:
         return error
 
-    detail = _fetch_pickup_detail(suborder_id)
+    detail = _fetch_pickup_detail(order_item_id)
     if not detail:
         return responseData("error", "Pickup not found.", "", 404)
 
@@ -347,95 +411,32 @@ def uploadDeliveryProof(suborder_id):
         lng_val = None
 
     insert_q = """
-        INSERT INTO delivery_proofs (suborder_id, rider_user_id, image_path, latitude, longitude)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO delivery_proofs (suborder_id, order_item_id, rider_user_id, image_path, latitude, longitude)
+        VALUES (%s, %s, %s, %s, %s, %s)
     """
-    ins = executePost(insert_q, (suborder_id, rider["user_id"], rel_path, lat_val, lng_val))
+    ins = executePost(insert_q, (detail.get('suborder_id'), order_item_id, rider["user_id"], rel_path, lat_val, lng_val))
     if isinstance(ins, tuple):
         return responseData("error", "Unable to save delivery proof.", "", 500)
 
     return responseData("success", "Delivery proof saved.", {"image_path": rel_path}, 200)
 
 
-def _fetch_pickup_detail(suborder_id):
-    detail_query = """
-        SELECT
-            os.suborder_id,
-            os.order_id,
-            os.reference AS sub_reference,
-            os.status,
-            os.shipping_fee,
-            os.subtotal,
-            os.tax_amount,
-            os.total_amount,
-            os.pickup_status,
-            os.pickup_rider_id,
-            os.pickup_claimed_at,
-            os.pickup_completed_at,
-            os.updated_at,
-            o.reference AS order_reference,
-            o.created_at AS order_created_at,
-            buyer.user_id AS buyer_id,
-            buyer.firstname AS buyer_firstname,
-            buyer.lastname AS buyer_lastname,
-            buyer.phone AS buyer_phone,
-            seller.firstname AS seller_firstname,
-            seller.lastname AS seller_lastname,
-            sd.store_name,
-            sd.region AS seller_region,
-            sd.city AS seller_city,
-            sd.province AS seller_province,
-            sd.barangay AS seller_barangay,
-            sd.street AS seller_street,
-            ba.floor_unit_number AS buyer_floor_unit_number,
-            ba.region AS buyer_region,
-            ba.province AS buyer_province,
-            ba.city_municipality AS buyer_city_municipality,
-            ba.barangay AS buyer_barangay,
-            ba.street AS buyer_street,
-            (
-                SELECT wl.amount
-                FROM wallet_ledger wl
-                WHERE wl.user_id = os.pickup_rider_id
-                  AND wl.wallet_role = 'rider'
-                  AND wl.entry_kind = 'rider_commission_delivery'
-                  AND wl.reference_id = os.suborder_id
-                LIMIT 1
-            ) AS actual_commission
-        FROM order_suborders os
-        INNER JOIN orders o ON os.order_id = o.order_id
-        LEFT JOIN users buyer ON o.user_id = buyer.user_id
-        INNER JOIN users seller ON os.seller_id = seller.user_id
-        LEFT JOIN seller_details sd ON sd.user_id = seller.user_id
-        LEFT JOIN LATERAL (
-            SELECT
-                a.floor_unit_number,
-                a.region,
-                a.province,
-                a.city_municipality,
-                a.barangay,
-                a.street
-            FROM addresses a
-            WHERE a.user_id = buyer.user_id
-            ORDER BY a.updated_at DESC, a.address_id DESC
-            LIMIT 1
-        ) ba ON TRUE
-        WHERE os.suborder_id = %s
-    """
+def _fetch_pickup_detail(order_item_id):
+    detail_query = _pickup_base_query() + " WHERE oi.order_items_id = %s ORDER BY updated_at DESC, oi.order_items_id DESC"
 
-    rows = executeGet(detail_query, (suborder_id,))
+    rows = executeGet(detail_query, (order_item_id,))
     if isinstance(rows, tuple) or not rows:
         return None
 
     return _serialize_pickup(rows[0])
 
 
-def getPickupDetail(suborder_id):
+def getPickupDetail(order_item_id):
     rider, error = _ensure_rider_auth()
     if error:
         return error
 
-    summary = _fetch_pickup_detail(suborder_id)
+    summary = _fetch_pickup_detail(order_item_id)
     if not summary:
         return responseData("error", "Pickup not found.", "", 404)
 
@@ -457,11 +458,11 @@ def getPickupDetail(suborder_id):
             ) AS product_image
         FROM order_items oi
         INNER JOIN products p ON oi.product_id = p.product_id
-        WHERE oi.suborder_id = %s
+        WHERE oi.order_items_id = %s
         ORDER BY oi.order_items_id ASC
     """
 
-    item_rows = executeGet(items_query, (suborder_id,))
+    item_rows = executeGet(items_query, (order_item_id,))
     if isinstance(item_rows, tuple):
         return item_rows
 
@@ -489,8 +490,8 @@ def getPickupDetail(suborder_id):
     payload['buyer_address'] = buyer_address
 
     proof_rows = executeGet(
-        "SELECT COUNT(*) AS c FROM delivery_proofs WHERE suborder_id = %s",
-        (suborder_id,),
+        "SELECT COUNT(*) AS c FROM delivery_proofs WHERE order_item_id = %s",
+        (order_item_id,),
     ) or []
     payload["delivery_proof_count"] = int(proof_rows[0].get("c") or 0) if proof_rows else 0
 

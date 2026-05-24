@@ -432,25 +432,25 @@ def setup_routes(app: Flask):
     def api_rider_pickups():
         return getRiderPickups()
 
-    @app.route('/api/rider/pickups/<int:suborder_id>/details', methods=['GET'])
+    @app.route('/api/rider/pickups/<int:order_item_id>/details', methods=['GET'])
     @login_required
-    def api_rider_pickup_detail(suborder_id):
-        return getPickupDetail(suborder_id)
+    def api_rider_pickup_detail(order_item_id):
+        return getPickupDetail(order_item_id)
 
-    @app.route('/api/rider/pickups/<int:suborder_id>/claim', methods=['POST'])
+    @app.route('/api/rider/pickups/<int:order_item_id>/claim', methods=['POST'])
     @login_required
-    def api_rider_claim_pickup(suborder_id):
-        return claimPickupAssignment(suborder_id)
+    def api_rider_claim_pickup(order_item_id):
+        return claimPickupAssignment(order_item_id)
 
-    @app.route('/api/rider/pickups/<int:suborder_id>/status', methods=['POST'])
+    @app.route('/api/rider/pickups/<int:order_item_id>/status', methods=['POST'])
     @login_required
-    def api_rider_update_status(suborder_id):
-        return updatePickupStatus(suborder_id)
+    def api_rider_update_status(order_item_id):
+        return updatePickupStatus(order_item_id)
 
-    @app.route('/api/rider/pickups/<int:suborder_id>/delivery-proof', methods=['POST'])
+    @app.route('/api/rider/pickups/<int:order_item_id>/delivery-proof', methods=['POST'])
     @login_required
-    def api_rider_delivery_proof(suborder_id):
-        return uploadDeliveryProof(suborder_id)
+    def api_rider_delivery_proof(order_item_id):
+        return uploadDeliveryProof(order_item_id)
 
     # Chat APIs
     @app.route('/api/chat/conversations', methods=['GET'])

@@ -57,17 +57,33 @@ def calculate_rider_commission_amount(shipping_fee, subtotal) -> float:
 def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
     active_rows = executeGet(
         """
+        WITH pickup_rows AS (
+            SELECT
+                CASE
+                    WHEN COALESCE(oi.pickup_status, 0) IN (2, 3, 4) THEN oi.pickup_status
+                    WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND os.pickup_rider_id IS NOT NULL AND oi.status IN (2, 3, 4, 6) THEN os.pickup_status
+                    ELSE public.order_item_pickup_status(oi.status, oi.pickup_status)
+                END AS pickup_status,
+                CASE
+                    WHEN oi.pickup_rider_id IS NOT NULL THEN oi.pickup_rider_id
+                    WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND oi.status IN (2, 3, 4, 6) THEN os.pickup_rider_id
+                    ELSE NULL
+                END AS pickup_rider_id,
+                COALESCE(money.commission_amount, 0) AS commission_amount
+            FROM order_items oi
+            INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+            LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
+        )
         SELECT
             COUNT(*) AS total_trips,
-            SUM(CASE WHEN pickup_status IN (2, 3) THEN shipping_fee ELSE 0 END) AS in_transit_shipping_fee,
-            SUM(CASE WHEN pickup_status IN (2, 3) THEN subtotal ELSE 0 END) AS in_transit_subtotal,
-            SUM(CASE WHEN pickup_status IN (0, 1) THEN shipping_fee ELSE 0 END) AS awaiting_shipping_fee,
-            SUM(CASE WHEN pickup_status IN (0, 1) THEN subtotal ELSE 0 END) AS awaiting_subtotal,
-            SUM(CASE WHEN pickup_status IN (2, 3) THEN 1 ELSE 0 END) AS in_transit_trips,
-            SUM(CASE WHEN pickup_status IN (0, 1) THEN 1 ELSE 0 END) AS awaiting_trips,
+            SUM(CASE WHEN pickup_status = 3 THEN commission_amount ELSE 0 END) AS in_transit_fee,
+            SUM(CASE WHEN pickup_status = 2 THEN commission_amount ELSE 0 END) AS awaiting_fee,
+            SUM(CASE WHEN pickup_status = 3 THEN 1 ELSE 0 END) AS in_transit_trips,
+            SUM(CASE WHEN pickup_status = 2 THEN 1 ELSE 0 END) AS awaiting_trips,
             SUM(CASE WHEN pickup_status = 4 THEN 1 ELSE 0 END) AS completed_trips
-        FROM order_suborders
+        FROM pickup_rows
         WHERE pickup_rider_id = %s
+          AND pickup_status IN (2, 3, 4)
         """,
         (user_id,),
     ) or []
@@ -77,20 +93,14 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
         """
         SELECT COALESCE(SUM(amount), 0) AS completed_fee
         FROM wallet_ledger
-        WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind = 'rider_commission_delivery'
+        WHERE user_id = %s AND wallet_role = 'rider' AND entry_kind IN ('rider_commission_delivery', 'rider_commission_delivery_item')
         """,
         (user_id,),
     ) or []
     completed_fee = float((completed_rows[0] if completed_rows else {}).get("completed_fee") or 0)
 
-    in_transit_fee = calculate_rider_commission_amount(
-        active.get("in_transit_shipping_fee"),
-        active.get("in_transit_subtotal"),
-    )
-    awaiting_fee = calculate_rider_commission_amount(
-        active.get("awaiting_shipping_fee"),
-        active.get("awaiting_subtotal"),
-    )
+    in_transit_fee = float(active.get("in_transit_fee") or 0)
+    awaiting_fee = float(active.get("awaiting_fee") or 0)
     active_fee = round(in_transit_fee + awaiting_fee, 2)
     total_fee = round(completed_fee + active_fee, 2)
     available = float(available_balance(user_id, "rider"))
@@ -158,6 +168,32 @@ def credit_rider_commission_for_suborder(suborder_id: int) -> None:
     if _ledger_exists("rider_commission_delivery", suborder_id, rid):
         return
     _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery", suborder_id, "Rider delivery commission and product share")
+
+
+def credit_rider_commission_for_item(order_item_id: int) -> None:
+    rows = executeGet(
+        """
+        SELECT oi.pickup_rider_id AS rider_id,
+               money.commission_amount
+        FROM order_items oi
+        LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
+        WHERE oi.order_items_id = %s
+        LIMIT 1
+        """,
+        (order_item_id,),
+    ) or []
+    if not rows:
+        return
+    rider_id = rows[0].get("rider_id")
+    if not rider_id:
+        return
+    amount = float(rows[0].get("commission_amount") or 0)
+    if amount <= 0:
+        return
+    rid = int(rider_id)
+    if _ledger_exists("rider_commission_delivery_item", order_item_id, rid):
+        return
+    _ledger_insert(rid, "rider", _d(amount), "rider_commission_delivery_item", order_item_id, "Rider delivery commission and product share")
 
 
 def credit_seller_for_completed_suborder(suborder_id: int) -> None:

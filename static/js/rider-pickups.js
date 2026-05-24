@@ -10,6 +10,7 @@
     const actions = [];
     const subRef = escapeHtml(data.sub_reference || data.order_reference || 'N/A');
     const orderRef = escapeHtml(data.order_reference || data.sub_reference || 'N/A');
+    const itemId = data.order_item_id;
     const pickupLocation = escapeHtml(data.pickup_location || data.seller_location || 'Pickup location unavailable');
     const dropoffLocation = escapeHtml(data.dropoff_location || 'Drop-off location unavailable');
     const updatedLabel = escapeHtml(data.updated_at_label || 'Date unavailable');
@@ -20,7 +21,7 @@
     if (isAvailable) {
       const orderRef = data.order_reference || data.sub_reference || '';
       actions.push(
-        `<button class="btn btn-sm btn-primary" data-action="claim" data-id="${data.suborder_id}"
+        `<button class="btn btn-sm btn-primary" data-action="claim" data-id="${itemId}"
             data-order-ref="${escapeHtml(orderRef)}"
             data-sub-ref="${escapeHtml(data.sub_reference || '')}"
             data-seller="${escapeHtml(data.seller_store || 'Seller')}"
@@ -35,7 +36,7 @@
       );
     } else {
       actions.push(
-        `<button class="btn btn-sm btn-outline-primary" data-action="show-detail" data-id="${data.suborder_id}">View</button>`
+        `<button class="btn btn-sm btn-outline-primary" data-action="show-detail" data-id="${itemId}">View</button>`
       );
     }
 
@@ -48,7 +49,7 @@
         : '<span class="badge bg-secondary">Awaiting update</span>'
     );
     return `
-      <div class="list-group-item" data-scope="${scope}" data-suborder-id="${data.suborder_id}">
+      <div class="list-group-item" data-scope="${scope}" data-suborder-id="${data.suborder_id}" data-order-item-id="${itemId}">
         <div class="d-flex justify-content-between align-items-start">
           <div>
             <h6 class="mb-1">Sub-order ${subRef}</h6>
@@ -100,14 +101,14 @@
   function attachActionHandlers(container) {
     container.querySelectorAll('[data-action="claim"]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const suborderId = btn.dataset.id;
-        if (!suborderId) return;
+        const orderItemId = btn.dataset.id;
+        if (!orderItemId) return;
 
         const modalEl = document.getElementById('riderClaimConfirmModal');
         if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) {
           // Fallback: no modal available, behave as before
           setButtonLoading(btn, true);
-          fetch(`${API_BASE}/${suborderId}/claim`, { method: 'POST' })
+          fetch(`${API_BASE}/${orderItemId}/claim`, { method: 'POST' })
             .then((res) => res.json())
             .then((data) => {
               if (data.status === 'success') {
@@ -122,7 +123,7 @@
         }
 
         // Populate modal with basic details
-        modalEl.querySelector('[data-claim="order-ref"]').textContent = btn.dataset.orderRef || btn.dataset.subRef || suborderId;
+        modalEl.querySelector('[data-claim="order-ref"]').textContent = btn.dataset.orderRef || btn.dataset.subRef || orderItemId;
         modalEl.querySelector('[data-claim="sub-ref"]').textContent = btn.dataset.subRef || '-';
         modalEl.querySelector('[data-claim="seller"]').textContent = btn.dataset.seller || 'Seller';
         modalEl.querySelector('[data-claim="buyer"]').textContent = btn.dataset.buyerName || 'Buyer';
@@ -165,7 +166,7 @@
           cleanup();
           bsModal.hide();
           setButtonLoading(btn, true);
-          fetch(`${API_BASE}/${suborderId}/claim`, { method: 'POST' })
+          fetch(`${API_BASE}/${orderItemId}/claim`, { method: 'POST' })
             .then((res) => res.json())
             .then((data) => {
               if (data.status === 'success') {
@@ -197,8 +198,8 @@
 
     container.querySelectorAll('[data-action="show-detail"]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const suborderId = btn.dataset.id;
-        if (!suborderId) return;
+        const orderItemId = btn.dataset.id;
+        if (!orderItemId) return;
 
         const modalEl = document.getElementById('riderAssignmentDetailModal');
         if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) {
@@ -217,7 +218,7 @@
         const bsModal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
         bsModal.show();
 
-        fetch(`${API_BASE}/${suborderId}/details`)
+        fetch(`${API_BASE}/${orderItemId}/details`)
           .then((res) => res.json())
           .then((data) => {
             if (data.status !== 'success' || !data.data) {
@@ -230,8 +231,8 @@
             if (bodyEl && modalEl.dataset.bodyTemplate) {
               bodyEl.innerHTML = modalEl.dataset.bodyTemplate;
             }
-            modalEl.dataset.suborderId = suborderId;
-            renderAssignmentDetail(modalEl, data.data, suborderId);
+            modalEl.dataset.orderItemId = orderItemId;
+            renderAssignmentDetail(modalEl, data.data, orderItemId);
           })
           .catch(() => {
             if (bodyEl) {
@@ -242,7 +243,7 @@
     });
   }
 
-  function renderAssignmentDetail(modalEl, detail, suborderId) {
+  function renderAssignmentDetail(modalEl, detail, orderItemId) {
     if (!modalEl) return;
 
     const orderRefEl = modalEl.querySelector('[data-detail="order-ref"]');
@@ -295,7 +296,7 @@
     if (proofFile) proofFile.value = '';
     if (proofSave) {
       proofSave.onclick = function () {
-        if (!suborderId) return;
+        if (!orderItemId) return;
         if (!proofFile || !proofFile.files || !proofFile.files[0]) {
           alert('Please choose a photo first.');
           return;
@@ -317,16 +318,16 @@
         }
         function postProof() {
           setButtonLoading(proofSave, true);
-          fetch(`/api/rider/pickups/${suborderId}/delivery-proof`, { method: 'POST', body: fd })
+          fetch(`/api/rider/pickups/${orderItemId}/delivery-proof`, { method: 'POST', body: fd })
             .then((r) => r.json())
             .then((data) => {
               if (data.status === 'success') {
                 alert('Proof saved.');
-                fetch(`${API_BASE}/${suborderId}/details`)
+                fetch(`${API_BASE}/${orderItemId}/details`)
                   .then((r) => r.json())
                   .then((d) => {
                     if (d.status === 'success' && d.data) {
-                      renderAssignmentDetail(modalEl, d.data, suborderId);
+                      renderAssignmentDetail(modalEl, d.data, orderItemId);
                     }
                   });
               } else {
@@ -366,7 +367,7 @@
       }
 
       btn.onclick = function () {
-        if (!suborderId) return;
+        if (!orderItemId) return;
         const targetStatus = parseInt(btn.dataset.status || '0', 10);
         if (targetStatus === 4) {
           const proofCount = parseInt(modalEl.dataset.proofCount || '0', 10);
@@ -378,7 +379,7 @@
         const formData = new FormData();
         formData.append('status', String(targetStatus));
         setButtonLoading(btn, true);
-        fetch(`${API_BASE}/${suborderId}/status`, { method: 'POST', body: formData })
+        fetch(`${API_BASE}/${orderItemId}/status`, { method: 'POST', body: formData })
           .then((res) => res.json())
           .then((data) => {
             if (data.status === 'success') {
