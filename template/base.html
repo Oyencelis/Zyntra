@@ -46,6 +46,25 @@
  
          {% block content %}{% endblock %}
      </main>
+
+     <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="notificationModalLabel" data-notification-modal-title>Notification</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted small mb-2" data-notification-modal-time></p>
+            <p class="mb-3" data-notification-modal-message></p>
+            <div class="alert alert-primary d-none" data-notification-modal-reference></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+     </div>
  
      {% include 'include/footer.html' %}
 
@@ -60,6 +79,8 @@
      
      <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js" integrity="sha512-b94Z6431JyXY14iSXwgzeZurHHRNkLt9d6bAHt7BZT38eqV+GyngIi/tVye4jBKPYQ2lBdRs0glww4fmpuLRwA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
      <script src="{{ url_for('static', filename='js/system-script.js') }}"></script>
+     <script src="{{ url_for('static', filename='js/live-updates.js') }}"></script>
+     <script src="{{ url_for('static', filename='js/notifications.js') }}"></script>
      <script src="{{ url_for('static', filename='js/wishlist.js') }}"></script>
      <script src="{{ url_for('static', filename='js/ph-selector.js') }}"></script>
 

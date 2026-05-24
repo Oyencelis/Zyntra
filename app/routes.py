@@ -126,17 +126,25 @@ def setup_routes(app: Flask):
                                 (c.buyer_id = %s AND cm.sender_id != %s)
                              OR (c.seller_id = %s AND cm.sender_id != %s)
                           )
-                    ) AS unread_count
+                    ) AS unread_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM notifications n
+                        WHERE n.user_id = %s
+                          AND n.is_read = 0
+                    ) AS notifications_unread_count
             """
-            header_counts = executeGet(cart_query, (user_id, user_id, user_id, user_id, user_id, user_id))
+            header_counts = executeGet(cart_query, (user_id, user_id, user_id, user_id, user_id, user_id, user_id))
             header_count = header_counts[0] if header_counts else {}
             g.cart_item_count = header_count.get('item_count', 0) or 0
             g.wishlist_count = header_count.get('wishlist_count', 0) or 0
             g.messages_unread_count = header_count.get('unread_count', 0) or 0
+            g.notifications_unread_count = header_count.get('notifications_unread_count', 0) or 0
         else:
             g.cart_item_count = 0
             g.wishlist_count = 0
             g.messages_unread_count = 0
+            g.notifications_unread_count = 0
 
 
     #HomeController

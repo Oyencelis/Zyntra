@@ -73,9 +73,26 @@
           {% endif %}
 
           {% if g.authenticated %}
-            <a class="zyn-cart-btn position-relative d-none d-lg-block" href="javascript:void(0)" title="Notifications">
-              <i class="bi bi-bell fs-5"></i>
-            </a>
+            <div class="dropdown d-none d-lg-block" data-notification-root>
+              <button class="zyn-cart-btn position-relative border-0 bg-transparent" type="button" data-bs-toggle="dropdown" data-notification-toggle aria-label="Notifications" title="Notifications">
+                <i class="bi bi-bell fs-5"></i>
+                <span class="zyn-cart-badge{% if not g.notifications_unread_count %} d-none{% endif %}" data-notification-count>{{ g.notifications_unread_count or '' }}</span>
+              </button>
+              <div class="dropdown-menu dropdown-menu-end dashboard-notification-menu p-0" data-notification-menu>
+                <div class="notification-header d-flex justify-content-between align-items-center">
+                  <div>
+                    <span class="fw-semibold d-block">Notifications</span>
+                    <small class="text-muted">Latest order updates</small>
+                  </div>
+                  <button class="btn btn-link btn-sm p-0" type="button" data-notification-markall>Mark all read</button>
+                </div>
+                <div class="notification-empty text-center text-muted" data-notification-empty>No new notifications</div>
+                <div class="notification-list" data-notification-list></div>
+                <div class="notification-footer">
+                  <small class="text-muted">You’ll get alerts for checkout activity and order updates.</small>
+                </div>
+              </div>
+            </div>
             <a class="zyn-cart-btn position-relative d-none d-lg-block" href="{{ url_for('wishlist_page') }}" title="Wishlist">
               <i class="bi bi-heart fs-5"></i>
               <span class="zyn-cart-badge{% if not g.wishlist_count %} d-none{% endif %}" data-wishlist-count>{{ g.wishlist_count or '' }}</span>
