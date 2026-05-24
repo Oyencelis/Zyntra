@@ -1177,6 +1177,7 @@ def get_order_items_by_reference(reference):
         SELECT
             oi.order_items_id,
             oi.product_id,
+            oi.suborder_id,
             oi.quantity,
             oi.status,
             oi.reference,
@@ -1186,6 +1187,7 @@ def get_order_items_by_reference(reference):
             p.price,
             p.user_id AS seller_id,
             sd.store_name,
+            os.reference AS sub_reference,
             os.shipping_fee AS shipping_fee_raw,
             COALESCE(
                 (
@@ -1230,6 +1232,8 @@ def get_order_items_by_reference(reference):
         formatted_items.append({
             'order_items_id': row.get('order_items_id'),
             'product_id': row.get('product_id'),
+            'suborder_id': row.get('suborder_id'),
+            'sub_reference': row.get('sub_reference') or reference,
             'product_name': row.get('product_name') or 'Product',
             'quantity': quantity,
             'price_raw': price,
@@ -1341,7 +1345,9 @@ def orderTrackingHub():
                 'order_created_at': summary.get('created_at'),
                 'estimated_delivery': summary.get('estimated_delivery'),
                 'shipping_label': fallback_shipping,
-                'payment_method': summary.get('payment_method') or '—'
+                'payment_method': summary.get('payment_method') or '—',
+                'order_item_id': None,
+                'tracking_url': url_for('order_tracking', reference=summary['reference'])
             }
             status_buckets.get(fallback_status, placed_orders).append(fallback_entry)
             continue
@@ -1362,6 +1368,7 @@ def orderTrackingHub():
             entry = {
                 'reference': summary['reference'],
                 'product_id': item.get('product_id'),
+                'order_item_id': item.get('order_items_id'),
                 'product_name': item.get('product_name', 'Product'),
                 'quantity': item.get('quantity', 1),
                 'formatted_total': item.get('formatted_total', '0.00'),
@@ -1373,7 +1380,8 @@ def orderTrackingHub():
                 'order_created_at': summary.get('created_at'),
                 'estimated_delivery': summary.get('estimated_delivery'),
                 'shipping_label': shipping_label,
-                'payment_method': summary.get('payment_method') or '—'
+                'payment_method': summary.get('payment_method') or '—',
+                'tracking_url': url_for('order_tracking', reference=summary['reference'], item_id=item.get('order_items_id'))
             }
 
             status_buckets.get(entry_status, placed_orders).append(entry)
@@ -1873,6 +1881,8 @@ def orderTracking(reference):
     if not user_id:
         return redirect(url_for('login_page'))
 
+    selected_item_id = request.args.get('item_id', type=int)
+
     orders_query = """
         SELECT o.*, u.firstname, u.lastname
         FROM orders o
@@ -1903,6 +1913,66 @@ def orderTracking(reference):
         active_status = next((status for status in status_sequence if item_groups.get(status)), 1)
     total_status_items = sum(status_counts.values())
     timeline_steps = build_timeline_steps(summary['status'])
+
+    selected_item = None
+    shipment_groups = []
+    grouped_shipments = {}
+    for item in items:
+        item_status = int(item.get('status') or 1)
+        group_key = item.get('suborder_id') or f"reference:{item.get('reference') or reference}"
+        shipment = grouped_shipments.get(group_key)
+        if shipment is None:
+            shipment = {
+                'group_key': group_key,
+                'suborder_id': item.get('suborder_id'),
+                'sub_reference': item.get('sub_reference') or reference,
+                'reference': item.get('reference') or reference,
+                'store_name': item.get('store_name') or 'Seller',
+                'seller_id': item.get('seller_id'),
+                'items': [],
+                'status_counts': {},
+            }
+            grouped_shipments[group_key] = shipment
+            shipment_groups.append(shipment)
+
+        item_payload = dict(item)
+        item_payload['is_selected'] = bool(selected_item_id and item.get('order_items_id') == selected_item_id)
+        if item_payload['is_selected']:
+            selected_item = item_payload
+        shipment['items'].append(item_payload)
+        shipment['status_counts'][item_status] = shipment['status_counts'].get(item_status, 0) + 1
+
+    status_labels = {
+        1: 'Order Placed',
+        2: 'Shipped',
+        3: 'Out for Delivery',
+        4: 'Delivered',
+        5: 'Cancelled',
+        6: 'Completed',
+        7: 'Accepted',
+        8: 'Rejected',
+    }
+
+    for shipment in shipment_groups:
+        shipment['items'].sort(key=lambda entry: (0 if entry.get('is_selected') else 1, entry.get('order_items_id') or 0))
+        shipment['status_summary'] = [
+            {
+                'status': status_id,
+                'label': status_labels.get(status_id, 'Processing'),
+                'count': count,
+            }
+            for status_id, count in sorted(shipment['status_counts'].items())
+            if count > 0
+        ]
+        shipment['has_selected_item'] = any(entry.get('is_selected') for entry in shipment['items'])
+
+    shipment_groups.sort(
+        key=lambda shipment: (
+            0 if shipment.get('has_selected_item') else 1,
+            shipment.get('sub_reference') or shipment.get('reference') or ''
+        )
+    )
+
     suborders = get_suborders_for_order(order_data.get('order_id'))
     if isinstance(suborders, tuple):
         suborders = []
@@ -1924,6 +1994,9 @@ def orderTracking(reference):
     # Determine primary seller for buyer<>seller chat (first seller in this order)
     primary_seller_id = None
     primary_seller_name = None
+    if selected_item and selected_item.get('seller_id'):
+        primary_seller_id = selected_item.get('seller_id')
+        primary_seller_name = selected_item.get('store_name') or selected_item.get('product_name') or 'Seller'
     for item in items or []:
         seller_id = item.get('seller_id')
         if seller_id and primary_seller_id is None:
@@ -1933,7 +2006,11 @@ def orderTracking(reference):
     # Determine rider chat target: first suborder that has an assigned rider and is at least shipped.
     # This allows buyer↔rider chat for Shipped, Out for Delivery, and Delivered shipments.
     rider_chat = None
-    for sub in suborders or []:
+    prioritized_suborders = list(suborders or [])
+    if selected_item and selected_item.get('suborder_id'):
+        prioritized_suborders.sort(key=lambda sub: 0 if sub.get('suborder_id') == selected_item.get('suborder_id') else 1)
+
+    for sub in prioritized_suborders:
         status = int(sub.get('status') or 1)
         if status >= 2 and status <= 4 and sub.get('rider_user_id'):
             rider_chat = {
@@ -1954,6 +2031,7 @@ def orderTracking(reference):
         order_summary=summary,
         order_items=items,
         suborders=suborders,
+        shipment_groups=shipment_groups,
         item_groups=item_groups,
         status_counts=status_counts,
         active_status=active_status,
@@ -1962,6 +2040,7 @@ def orderTracking(reference):
         shipping_address=formatted_address,
         user_address=user_address,
         can_cancel=summary['status'] == 1,
+        selected_item_id=selected_item_id,
         seller_chat_seller_id=primary_seller_id,
         seller_chat_seller_name=primary_seller_name,
         rider_chat=rider_chat

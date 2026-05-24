@@ -111,7 +111,7 @@
                             <span class="badge rounded-pill px-3 py-2 bg-primary-subtle text-primary">Order
                                 Placed</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                <a href="{{ item.tracking_url or url_for('order_tracking', reference=item.reference) }}"
                                     class="btn btn-primary rounded-pill px-4">Track Order</a>
                             </div>
                         </div>
@@ -163,7 +163,7 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-success-subtle text-success">Accepted</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                <a href="{{ item.tracking_url or url_for('order_tracking', reference=item.reference) }}"
                                     class="btn btn-outline-primary rounded-pill px-4">View Details</a>
                             </div>
                         </div>
@@ -312,7 +312,7 @@
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
                                 <button class="btn btn-success rounded-pill px-4"
                                     data-confirm-reference="{{ item.reference }}">Confirm Order</button>
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                <a href="{{ item.tracking_url or url_for('order_tracking', reference=item.reference) }}"
                                     class="btn btn-outline-primary rounded-pill px-4">View Details</a>
                             </div>
                         </div>
@@ -361,7 +361,7 @@
                         <div class="text-lg-end">
                             <span class="badge rounded-pill px-3 py-2 bg-info-subtle text-info">Shipped</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                <a href="{{ item.tracking_url or url_for('order_tracking', reference=item.reference) }}"
                                     class="btn btn-outline-primary rounded-pill px-4">Track Order</a>
                             </div>
                         </div>
@@ -410,7 +410,7 @@
                             <span class="badge rounded-pill px-3 py-2 bg-warning-subtle text-warning">Out for
                                 Delivery</span>
                             <div class="d-flex flex-column flex-lg-row gap-2 mt-3">
-                                <a href="{{ url_for('order_tracking', reference=item.reference) }}"
+                                <a href="{{ item.tracking_url or url_for('order_tracking', reference=item.reference) }}"
                                     class="btn btn-outline-primary rounded-pill px-4">Track Rider</a>
                             </div>
                         </div>

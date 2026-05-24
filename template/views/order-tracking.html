@@ -44,49 +44,73 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div>
-                            <p class="text-muted small mb-1">Products in this order</p>
-                            <h4 class="mb-0">Item status</h4>
+                            <p class="text-muted small mb-1">Shipments in this order</p>
+                            <h4 class="mb-0">Shipment and item status</h4>
                         </div>
                         <small class="text-muted">Updated {{ order_summary.created_at }}</small>
                     </div>
 
-                    {% if order_items %}
+                    {% if shipment_groups %}
                     <div class="vstack gap-3">
-                        {% for item in order_items %}
-                        {% set pill = status_map.get(item.status, ('badge rounded-pill bg-soft-secondary
-                        text-secondary', item.status_text)) %}
-                        <div class="product-track-card border rounded-4 p-3">
-                            <div class="d-flex flex-column flex-md-row gap-3">
-                                <div class="track-thumb rounded-4 overflow-hidden" style="width: 110px; height: 110px;">
-                                    <img src="{{ item.attachment if item.attachment else url_for('static', filename='images/no-image.jpg') }}"
-                                        alt="{{ item.product_name }}"
-                                        style="width: 100%; height: 100%; object-fit: cover;">
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between align-items-start gap-3">
-                                        <div>
-                                            <p class="text-muted small text-uppercase mb-1">Product</p>
-                                            <h5 class="mb-1">{{ item.product_name }}</h5>
-                                            <small class="text-muted">Sub-ref {{ item.sub_reference }}</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="{{ pill[0] }} mb-2 d-inline-block">{{ pill[1] }}</span>
-                                            {% if item.status == 1 %}
-                                            <button class="btn btn-sm btn-outline-danger" data-cancel-item
-                                                data-item-id="{{ item.order_items_id }}">
-                                                Cancel Item
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="d-flex flex-wrap gap-4 mt-3 text-muted small">
-                                        <span><i class="bi bi-shop"></i> {{ item.store_name }}</span>
-                                        <span><i class="bi bi-box"></i> Qty {{ item.quantity }}</span>
-                                        <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
-                                        <span><i class="bi bi-truck"></i> ETA {{ order_summary.estimated_delivery
-                                            }}</span>
+                        {% for shipment in shipment_groups %}
+                        <div class="border rounded-4 p-3 p-md-4{% if shipment.has_selected_item %} border-primary-subtle bg-primary bg-opacity-10{% endif %}">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
+                                <div>
+                                    <p class="text-muted small text-uppercase mb-1">Shipment</p>
+                                    <h5 class="mb-1">{{ shipment.sub_reference or shipment.reference }}</h5>
+                                    <div class="d-flex flex-wrap gap-3 text-muted small">
+                                        <span><i class="bi bi-shop"></i> {{ shipment.store_name }}</span>
+                                        <span><i class="bi bi-box-seam"></i> {{ shipment.items|length }} item{{ '' if shipment.items|length == 1 else 's' }}</span>
                                     </div>
                                 </div>
+                                <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+                                    {% for status_entry in shipment.status_summary %}
+                                    {% set shipment_pill = status_map.get(status_entry.status, ('badge rounded-pill bg-soft-secondary text-secondary', status_entry.label)) %}
+                                    <span class="{{ shipment_pill[0] }}">{{ status_entry.count }} {{ status_entry.label }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="vstack gap-3">
+                                {% for item in shipment.items %}
+                                {% set pill = status_map.get(item.status, ('badge rounded-pill bg-soft-secondary text-secondary', item.status_text)) %}
+                                <div class="product-track-card border rounded-4 p-3{% if item.is_selected %} border-primary shadow-sm{% endif %}"{% if item.is_selected %} id="selectedOrderItem"{% endif %}>
+                                    <div class="d-flex flex-column flex-md-row gap-3">
+                                        <div class="track-thumb rounded-4 overflow-hidden" style="width: 110px; height: 110px;">
+                                            <img src="{{ item.attachment if item.attachment else url_for('static', filename='images/no-image.jpg') }}"
+                                                alt="{{ item.product_name }}"
+                                                style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-start gap-3">
+                                                <div>
+                                                    <p class="text-muted small text-uppercase mb-1">Product</p>
+                                                    <h5 class="mb-1">{{ item.product_name }}</h5>
+                                                    <small class="text-muted">Shipment {{ shipment.sub_reference or shipment.reference }}</small>
+                                                    {% if item.is_selected %}
+                                                    <div class="small text-primary fw-semibold mt-1">Currently selected from your previous page</div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="{{ pill[0] }} mb-2 d-inline-block">{{ pill[1] }}</span>
+                                                    {% if item.status == 1 %}
+                                                    <button class="btn btn-sm btn-outline-danger" data-cancel-item
+                                                        data-item-id="{{ item.order_items_id }}">
+                                                        Cancel Item
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-4 mt-3 text-muted small">
+                                                <span><i class="bi bi-shop"></i> {{ item.store_name }}</span>
+                                                <span><i class="bi bi-box"></i> Qty {{ item.quantity }}</span>
+                                                <span><i class="bi bi-currency-dollar"></i> ₱{{ item.formatted_total }}</span>
+                                                <span><i class="bi bi-truck"></i> ETA {{ order_summary.estimated_delivery }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
                         {% endfor %}
@@ -282,6 +306,13 @@
 {% block script %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const selectedOrderItem = document.getElementById('selectedOrderItem');
+        if (selectedOrderItem) {
+            window.setTimeout(() => {
+                selectedOrderItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 150);
+        }
+
         document.querySelectorAll('[data-cancel-order]').forEach((btn) => {
             btn.addEventListener('click', function () {
                 const reference = this.getAttribute('data-reference');
