@@ -8,6 +8,8 @@
   function createPickupCard(data, scope) {
     const isAvailable = scope === 'available';
     const actions = [];
+    const subRef = escapeHtml(data.sub_reference || data.order_reference || 'N/A');
+    const orderRef = escapeHtml(data.order_reference || data.sub_reference || 'N/A');
     const pickupLocation = escapeHtml(data.pickup_location || data.seller_location || 'Pickup location unavailable');
     const dropoffLocation = escapeHtml(data.dropoff_location || 'Drop-off location unavailable');
     const updatedLabel = escapeHtml(data.updated_at_label || 'Date unavailable');
@@ -49,7 +51,8 @@
       <div class="list-group-item" data-scope="${scope}" data-suborder-id="${data.suborder_id}">
         <div class="d-flex justify-content-between align-items-start">
           <div>
-            <h6 class="mb-1">Order ${data.order_reference || data.sub_reference}</h6>
+            <h6 class="mb-1">Sub-order ${subRef}</h6>
+            <p class="mb-1 small text-muted">Order: ${orderRef}</p>
             <p class="mb-1 small text-muted">Seller: ${escapeHtml(data.seller_store || 'Seller')}</p>
             <p class="mb-1 small">Drop-off: ${escapeHtml(data.buyer_name || 'Buyer')} ${data.buyer_phone ? `&middot; ${data.buyer_phone}` : ''}</p>
             <p class="mb-1 small text-muted"><strong>Pickup:</strong> ${pickupLocation}</p>
@@ -133,9 +136,24 @@
         const cancelBtn = modalEl.querySelector('[data-claim="cancel"]');
         const bsModal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
 
+        if (typeof modalEl.__claimCleanup === 'function') {
+          modalEl.__claimCleanup();
+        }
+
         function cleanup() {
-          if (confirmBtn) confirmBtn.removeEventListener('click', onConfirm);
-          if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+          if (confirmBtn && modalEl.__claimConfirmHandler) {
+            confirmBtn.removeEventListener('click', modalEl.__claimConfirmHandler);
+          }
+          if (cancelBtn && modalEl.__claimCancelHandler) {
+            cancelBtn.removeEventListener('click', modalEl.__claimCancelHandler);
+          }
+          if (modalEl.__claimHiddenHandler) {
+            modalEl.removeEventListener('hidden.bs.modal', modalEl.__claimHiddenHandler);
+          }
+          modalEl.__claimConfirmHandler = null;
+          modalEl.__claimCancelHandler = null;
+          modalEl.__claimHiddenHandler = null;
+          modalEl.__claimCleanup = null;
         }
 
         function onCancel() {
@@ -160,8 +178,18 @@
             .finally(() => setButtonLoading(btn, false));
         }
 
+        function onHidden() {
+          cleanup();
+        }
+
+        modalEl.__claimConfirmHandler = onConfirm;
+        modalEl.__claimCancelHandler = onCancel;
+        modalEl.__claimHiddenHandler = onHidden;
+        modalEl.__claimCleanup = cleanup;
+
         if (confirmBtn) confirmBtn.addEventListener('click', onConfirm);
         if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+        modalEl.addEventListener('hidden.bs.modal', onHidden);
 
         bsModal.show();
       });
