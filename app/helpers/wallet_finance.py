@@ -48,10 +48,8 @@ def available_balance(user_id: int, wallet_role: str) -> Decimal:
 
 def calculate_rider_commission_amount(shipping_fee, subtotal) -> float:
     shipping = float(shipping_fee or 0)
-    subtotal_amount = float(subtotal or 0)
     ship_pct = get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0
-    prod_pct = get_float_setting("rider_commission_pct_of_product", 5.0) / 100.0
-    return round(max(0.0, (shipping * ship_pct) + (subtotal_amount * prod_pct)), 2)
+    return round(max(0.0, shipping * ship_pct), 2)
 
 
 def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
@@ -69,7 +67,10 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
                     WHEN COALESCE(os.pickup_status, 0) IN (2, 3, 4) AND oi.status IN (2, 3, 4, 6) THEN os.pickup_rider_id
                     ELSE NULL
                 END AS pickup_rider_id,
-                COALESCE(money.commission_amount, 0) AS commission_amount
+                ROUND(
+                    COALESCE(money.shipping_share, 0) * %s,
+                    2
+                ) AS commission_amount
             FROM order_items oi
             INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
             LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
@@ -85,7 +86,7 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
         WHERE pickup_rider_id = %s
           AND pickup_status IN (2, 3, 4)
         """,
-        (user_id,),
+        (get_float_setting("rider_commission_pct_of_shipping", 70.0) / 100.0, user_id),
     ) or []
     active = active_rows[0] if active_rows else {}
 
@@ -238,7 +239,7 @@ def credit_rider_commission_for_item(order_item_id: int) -> None:
     rows = executeGet(
         """
         SELECT oi.pickup_rider_id AS rider_id,
-               money.commission_amount
+               money.shipping_share
         FROM order_items oi
         LEFT JOIN LATERAL public.order_item_pickup_financials(oi.suborder_id, oi.order_items_id) AS money ON TRUE
         WHERE oi.order_items_id = %s
@@ -251,7 +252,7 @@ def credit_rider_commission_for_item(order_item_id: int) -> None:
     rider_id = rows[0].get("rider_id")
     if not rider_id:
         return
-    amount = float(rows[0].get("commission_amount") or 0)
+    amount = calculate_rider_commission_amount(rows[0].get("shipping_share"), 0)
     if amount <= 0:
         return
     rid = int(rider_id)
