@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import render_template, g, redirect, url_for
 from helpers.QueryHelpers import executeGet
-from helpers.wallet_finance import rider_earnings_snapshot, calculate_rider_commission_amount
+from helpers.wallet_finance import rider_earnings_snapshot, seller_earnings_snapshot, calculate_rider_commission_amount
 
 ORDER_STATUS_BADGES = {
     1: ('Order Placed', 'bg-label-secondary'),
@@ -10,8 +10,8 @@ ORDER_STATUS_BADGES = {
     4: ('Delivered', 'bg-label-success'),
     5: ('Cancelled', 'bg-label-danger'),
     6: ('Completed', 'bg-label-success'),
-    7: ('Completed', 'bg-label-success'),
-    8: ('On Hold', 'bg-label-warning'),
+    7: ('Accepted', 'bg-label-primary'),
+    8: ('Rejected', 'bg-label-dark'),
 }
 
 PICKUP_STATUS_BADGES = {
@@ -237,20 +237,7 @@ def _build_seller_context(user_id):
         LIMIT 1
     """, (user_id,)) or [{}])[0]
 
-    aggregates = (executeGet("""
-        SELECT
-            COUNT(*) AS total_orders,
-            SUM(total_amount) AS total_revenue,
-            SUM(CASE WHEN status IN (4,6,7) THEN 1 ELSE 0 END) AS completed_orders,
-            SUM(CASE WHEN status IN (1,2,3) THEN 1 ELSE 0 END) AS processing_orders,
-            SUM(CASE WHEN status IN (5,8) THEN 1 ELSE 0 END) AS cancelled_orders,
-            SUM(CASE WHEN status IN (4,6,7) THEN total_amount ELSE 0 END) AS completed_revenue,
-            SUM(CASE WHEN status IN (4,6,7) THEN subtotal ELSE 0 END) AS completed_payout,
-            SUM(CASE WHEN status IN (1,2,3) THEN total_amount ELSE 0 END) AS processing_revenue,
-            SUM(CASE WHEN status IN (5,8) THEN total_amount ELSE 0 END) AS cancelled_revenue
-        FROM order_suborders
-        WHERE seller_id = %s
-    """, (user_id,)) or [{}])[0]
+    aggregates = seller_earnings_snapshot(user_id)
 
     products_snapshot = (executeGet("""
         SELECT 
@@ -270,22 +257,20 @@ def _build_seller_context(user_id):
 
     recent_orders = executeGet("""
         SELECT 
-            os.reference,
-            os.total_amount,
-            os.status,
+            COALESCE(oi.reference, os.reference) AS reference,
+            COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0) AS total_amount,
+            oi.status,
             os.updated_at,
             o.reference AS master_reference,
             CONCAT(COALESCE(u.firstname, ''), ' ', COALESCE(u.lastname, '')) AS buyer_name,
-            (
-                SELECT COALESCE(SUM(quantity), 0)
-                FROM order_items oi
-                WHERE oi.suborder_id = os.suborder_id
-            ) AS item_count
-        FROM order_suborders os
+            COALESCE(oi.quantity, 0) AS item_count
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
         JOIN orders o ON o.order_id = os.order_id
         LEFT JOIN users u ON o.user_id = u.user_id
         WHERE os.seller_id = %s
-        ORDER BY os.updated_at DESC
+        ORDER BY os.updated_at DESC, oi.order_items_id DESC
         LIMIT 6
     """, (user_id,)) or []
 
@@ -299,27 +284,27 @@ def _build_seller_context(user_id):
 
     stat_cards = [
         {
-            'label': 'Orders received',
+            'label': 'Items received',
             'value': f"{_safe_int(aggregates.get('total_orders')):,}",
-            'helper': 'All-time sub-orders',
+            'helper': 'All-time order items',
             'icon': 'bx bxs-package'
         },
         {
             'label': 'In progress',
             'value': f"{_safe_int(aggregates.get('processing_orders')):,}",
-            'helper': 'Awaiting fulfillment',
+            'helper': 'Items awaiting fulfillment or delivery',
             'icon': 'bx bxs-hourglass'
         },
         {
             'label': 'Completed',
             'value': f"{_safe_int(aggregates.get('completed_orders')):,}",
-            'helper': 'Delivered or settled',
+            'helper': 'Items confirmed by buyers',
             'icon': 'bx bxs-check-circle'
         },
         {
             'label': 'Gross revenue',
             'value': _format_currency(aggregates.get('total_revenue')),
-            'helper': 'Including shipping & tax',
+            'helper': 'Product line totals only',
             'icon': 'bx bxs-bar-chart-alt-2'
         },
     ]
@@ -347,11 +332,11 @@ def _build_seller_context(user_id):
     ]
 
     table = {
-        'title': 'Recent orders routed to you',
+        'title': 'Recent order items routed to you',
         'columns': [
-            {'key': 'reference', 'label': 'Sub-order'},
+            {'key': 'reference', 'label': 'Item reference'},
             {'key': 'customer', 'label': 'Buyer'},
-            {'key': 'items', 'label': 'Items'},
+            {'key': 'items', 'label': 'Qty'},
             {'key': 'amount', 'label': 'Amount'},
             {'key': 'status', 'label': 'Status'},
             {'key': 'created_at', 'label': 'Updated'},

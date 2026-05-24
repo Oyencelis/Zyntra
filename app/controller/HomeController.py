@@ -48,6 +48,7 @@ from helpers.HelperFunction import responseData, allowed_image_file, generate_ra
 from helpers.SupabaseStorage import resolve_storage_url
 from helpers.marketplace_settings import get_float_setting
 from helpers.shipping_pricing import estimate_shipping_for_seller_group
+from helpers.wallet_finance import credit_seller_for_completed_item
 from controller.UserController import getSellers
 from middleware.auth import login_required
 import json
@@ -1459,6 +1460,8 @@ def confirmOrder(reference):
     if not items:
         return responseData("error", "No delivered items to confirm for this order.", "", 400)
 
+    updated_item_ids = [int(item.get('order_items_id')) for item in items if item.get('order_items_id')]
+
     # Mark these items as Completed (6)
     update_items_query = """
         UPDATE order_items
@@ -1466,6 +1469,9 @@ def confirmOrder(reference):
         WHERE reference = %s AND status = 4
     """
     executePost(update_items_query, (reference,))
+
+    for order_item_id in updated_item_ids:
+        credit_seller_for_completed_item(order_item_id)
 
     # Optionally bump suborders and order status to 6 when all items are completed or cancelled
     # Update suborders whose items are all in (5=Cancelled, 6=Completed)

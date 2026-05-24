@@ -2815,6 +2815,7 @@ DECLARE
   v_reference text := trim(COALESCE(p_reference, ''));
   v_order_id integer;
   v_updated_count integer := 0;
+  v_updated_item_ids integer[] := ARRAY[]::integer[];
 BEGIN
   v_user_id := public.current_public_user_id();
   v_role_id := public.current_public_role_id();
@@ -2838,17 +2839,52 @@ BEGIN
     RAISE EXCEPTION 'Order not found.';
   END IF;
 
-  UPDATE public.order_items
-  SET status = 6
-  WHERE user_id = v_user_id
-    AND lower(COALESCE(reference, '')) = lower(v_reference)
-    AND status = 4;
-
-  GET DIAGNOSTICS v_updated_count = ROW_COUNT;
+  WITH updated_items AS (
+    UPDATE public.order_items
+    SET status = 6
+    WHERE user_id = v_user_id
+      AND lower(COALESCE(reference, '')) = lower(v_reference)
+      AND status = 4
+    RETURNING order_items_id
+  )
+  SELECT COALESCE(array_agg(order_items_id), ARRAY[]::integer[]), COUNT(*)
+  INTO v_updated_item_ids, v_updated_count
+  FROM updated_items;
 
   IF COALESCE(v_updated_count, 0) <= 0 THEN
     RAISE EXCEPTION 'No delivered items to confirm for this order.';
   END IF;
+
+  INSERT INTO public.wallet_ledger (user_id, wallet_role, amount, entry_kind, reference_id, note)
+  SELECT
+    os.seller_id,
+    'seller',
+    ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2),
+    'seller_cod_release_item',
+    oi.order_items_id,
+    'Seller balance from completed order item'
+  FROM public.order_items AS oi
+  INNER JOIN public.order_suborders AS os ON os.suborder_id = oi.suborder_id
+  LEFT JOIN public.products AS p ON p.product_id = oi.product_id
+  WHERE oi.order_items_id = ANY(v_updated_item_ids)
+    AND COALESCE(os.seller_id, 0) > 0
+    AND ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2) > 0
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.wallet_ledger AS wl
+      WHERE wl.user_id = os.seller_id
+        AND wl.wallet_role = 'seller'
+        AND wl.entry_kind = 'seller_cod_release_item'
+        AND wl.reference_id = oi.order_items_id
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.wallet_ledger AS wl
+      WHERE wl.user_id = os.seller_id
+        AND wl.wallet_role = 'seller'
+        AND wl.entry_kind = 'seller_cod_release'
+        AND wl.reference_id = oi.suborder_id
+    );
 
   UPDATE public.order_suborders AS os
   SET status = 6

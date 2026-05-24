@@ -2,7 +2,7 @@ from datetime import datetime
 # pyrefly: ignore [missing-import]
 from flask import render_template, g, redirect, url_for
 from helpers.QueryHelpers import executeGet
-from helpers.wallet_finance import available_balance, pending_withdrawal_total, rider_earnings_snapshot, calculate_rider_commission_amount
+from helpers.wallet_finance import available_balance, pending_withdrawal_total, rider_earnings_snapshot, seller_earnings_snapshot, calculate_rider_commission_amount
 
 ORDER_STATUS_LABELS = {
     1: "Order Placed",
@@ -111,50 +111,7 @@ def _get_rider_aggregates(user_id):
 
 
 def _get_seller_aggregates(user_id):
-    query = """
-        SELECT
-            COUNT(*) AS total_orders,
-            SUM(total_amount) AS total_revenue,
-            SUM(CASE WHEN status IN (4, 6, 7) THEN total_amount ELSE 0 END) AS completed_revenue,
-            SUM(CASE WHEN status IN (4, 6, 7) THEN subtotal ELSE 0 END) AS completed_payout,
-            SUM(CASE WHEN status IN (1, 2, 3) THEN total_amount ELSE 0 END) AS processing_revenue,
-            SUM(CASE WHEN status IN (5, 8) THEN total_amount ELSE 0 END) AS cancelled_revenue,
-            SUM(CASE WHEN status IN (4, 6, 7) THEN 1 ELSE 0 END) AS completed_orders,
-            SUM(CASE WHEN status IN (1, 2, 3) THEN 1 ELSE 0 END) AS processing_orders,
-            SUM(CASE WHEN status IN (5, 8) THEN 1 ELSE 0 END) AS cancelled_orders
-        FROM order_suborders
-        WHERE seller_id = %s
-    """
-    rows = executeGet(query, (user_id,)) or []
-    row = rows[0] if rows else {}
-    total_orders = _safe_int(row.get('total_orders'))
-    completed_orders = _safe_int(row.get('completed_orders'))
-    processing_orders = _safe_int(row.get('processing_orders'))
-    cancelled_orders = _safe_int(row.get('cancelled_orders'))
-    processed_count = completed_orders + processing_orders + cancelled_orders
-    remaining_orders = max(total_orders - processed_count, 0)
-
-    total_revenue = _safe_number(row.get('total_revenue'))
-    completed_revenue = _safe_number(row.get('completed_revenue'))
-    completed_payout = _safe_number(row.get('completed_payout'))
-    processing_revenue = _safe_number(row.get('processing_revenue'))
-    cancelled_revenue = _safe_number(row.get('cancelled_revenue'))
-    accounted_revenue = completed_revenue + processing_revenue + cancelled_revenue
-    remaining_revenue = max(total_revenue - accounted_revenue, 0.0)
-
-    return {
-        'total_orders': total_orders,
-        'completed_orders': completed_orders,
-        'processing_orders': processing_orders,
-        'cancelled_orders': cancelled_orders,
-        'remaining_orders': remaining_orders,
-        'total_revenue': total_revenue,
-        'completed_revenue': completed_revenue,
-        'completed_payout': completed_payout,
-        'processing_revenue': processing_revenue,
-        'cancelled_revenue': cancelled_revenue,
-        'remaining_revenue': remaining_revenue,
-    }
+    return seller_earnings_snapshot(user_id)
 
 
 def _build_rider_summary_cards(aggregates):
@@ -185,24 +142,24 @@ def _build_rider_summary_cards(aggregates):
 def _build_seller_summary_cards(aggregates):
     return [
         {
-            'label': 'Orders Received',
+            'label': 'Items Received',
             'value': f"{aggregates.get('total_orders', 0):,}",
-            'helper': 'Sub-orders routed to your store'
+            'helper': 'Order items routed to your store'
         },
         {
-            'label': 'Completed Orders',
+            'label': 'Completed Items',
             'value': f"{aggregates.get('completed_orders', 0):,}",
-            'helper': 'Released or settled orders'
+            'helper': 'Buyer-confirmed completed items'
         },
         {
-            'label': 'Orders in Progress',
+            'label': 'Items in Progress',
             'value': f"{aggregates.get('processing_orders', 0):,}",
-            'helper': 'Awaiting fulfillment or delivery'
+            'helper': 'Items awaiting fulfillment or delivery'
         },
         {
             'label': 'Gross Sales',
             'value': _format_currency(aggregates.get('total_revenue')),
-            'helper': 'Including shipping and tax components'
+            'helper': 'Product line totals only'
         }
     ]
 
@@ -235,19 +192,19 @@ def _build_seller_breakdown_cards(aggregates):
         {
             'label': 'Ready for release',
             'amount': _format_currency(aggregates.get('completed_payout')),
-            'caption': f"{aggregates.get('completed_orders', 0):,} orders completed",
+            'caption': f"{aggregates.get('completed_orders', 0):,} items completed",
             'badge_class': 'bg-label-success'
         },
         {
             'label': 'Processing balance',
             'amount': _format_currency(aggregates.get('processing_revenue')),
-            'caption': f"{aggregates.get('processing_orders', 0):,} orders in queue",
+            'caption': f"{aggregates.get('processing_orders', 0):,} items in queue",
             'badge_class': 'bg-label-info'
         },
         {
             'label': 'Cancelled value',
             'amount': _format_currency(aggregates.get('cancelled_revenue')),
-            'caption': f"{aggregates.get('cancelled_orders', 0):,} orders cancelled",
+            'caption': f"{aggregates.get('cancelled_orders', 0):,} items cancelled",
             'badge_class': 'bg-label-danger'
         }
     ]
@@ -288,10 +245,16 @@ def _get_rider_transactions(user_id):
 
 def _get_seller_transactions(user_id):
     query = """
-        SELECT reference, status, total_amount, updated_at
-        FROM order_suborders
-        WHERE seller_id = %s
-        ORDER BY updated_at DESC
+        SELECT
+            COALESCE(oi.reference, os.reference) AS reference,
+            oi.status,
+            COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0) AS line_total,
+            os.updated_at
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
+        WHERE os.seller_id = %s
+        ORDER BY os.updated_at DESC, oi.order_items_id DESC
         LIMIT 10
     """
     rows = executeGet(query, (user_id,)) or []
@@ -300,8 +263,8 @@ def _get_seller_transactions(user_id):
         status = row.get('status') or 1
         transactions.append({
             'reference': row.get('reference'),
-            'label': 'Order',
-            'amount': _format_currency(row.get('total_amount')),
+            'label': 'Order item',
+            'amount': _format_currency(row.get('line_total')),
             'status_text': ORDER_STATUS_LABELS.get(status, 'Processing'),
             'badge_class': ORDER_BADGE_CLASSES.get(status, 'bg-label-secondary'),
             'timestamp': _format_datetime(row.get('updated_at')),

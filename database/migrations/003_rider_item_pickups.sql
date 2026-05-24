@@ -32,10 +32,45 @@ SET pickup_status = CASE
 FROM public.order_suborders AS os
 WHERE os.suborder_id = oi.suborder_id;
 
+INSERT INTO public.wallet_ledger (user_id, wallet_role, amount, entry_kind, reference_id, note)
+SELECT
+  os.seller_id,
+  'seller',
+  ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2),
+  'seller_cod_release_item',
+  oi.order_items_id,
+  'Seller balance from completed order item'
+FROM public.order_items AS oi
+INNER JOIN public.order_suborders AS os ON os.suborder_id = oi.suborder_id
+LEFT JOIN public.products AS p ON p.product_id = oi.product_id
+WHERE oi.status = 6
+  AND COALESCE(os.seller_id, 0) > 0
+  AND ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2) > 0
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.wallet_ledger AS wl
+    WHERE wl.user_id = os.seller_id
+      AND wl.wallet_role = 'seller'
+      AND wl.entry_kind = 'seller_cod_release_item'
+      AND wl.reference_id = oi.order_items_id
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.wallet_ledger AS wl
+    WHERE wl.user_id = os.seller_id
+      AND wl.wallet_role = 'seller'
+      AND wl.entry_kind = 'seller_cod_release'
+      AND wl.reference_id = oi.suborder_id
+  );
+
 DROP FUNCTION IF EXISTS public.rider_get_pickup_detail(integer);
 DROP FUNCTION IF EXISTS public.rider_claim_pickup_assignment(integer);
 DROP FUNCTION IF EXISTS public.rider_save_delivery_proof(integer, text, double precision, double precision);
 DROP FUNCTION IF EXISTS public.rider_update_pickup_status(integer, integer);
+DROP FUNCTION IF EXISTS public.rider_get_pickups(text);
+DROP FUNCTION IF EXISTS public.rider_dashboard_snapshot();
+DROP FUNCTION IF EXISTS public.rider_earnings_snapshot();
+DROP FUNCTION IF EXISTS public.rider_pickup_item_feed(text);
 
 CREATE OR REPLACE FUNCTION public.order_item_pickup_status(p_item_status integer, p_pickup_status integer)
 RETURNS integer
@@ -253,6 +288,7 @@ RETURNS TABLE(
   buyer_id integer,
   buyer_name text,
   buyer_phone text,
+  dropoff_location text,
   subtotal numeric,
   shipping_fee numeric,
   tax_amount numeric,
@@ -300,6 +336,7 @@ AS $$
     buyer.user_id AS buyer_id,
     COALESCE(NULLIF(trim(concat_ws(' ', buyer.firstname, buyer.lastname)), ''), 'Buyer') AS buyer_name,
     COALESCE(buyer.phone, '') AS buyer_phone,
+    concat_ws(', ', NULLIF(buyer_address.floor_unit_number, ''), NULLIF(buyer_address.street, ''), NULLIF(buyer_address.barangay, ''), NULLIF(buyer_address.city_municipality, ''), NULLIF(buyer_address.province, ''), NULLIF(buyer_address.region, ''), NULLIF(buyer_address.other_notes, '')) AS dropoff_location,
     COALESCE(money.line_total, 0) AS subtotal,
     COALESCE(money.shipping_share, 0) AS shipping_fee,
     COALESCE(money.tax_share, 0) AS tax_amount,
@@ -318,6 +355,13 @@ AS $$
   INNER JOIN public.order_suborders AS os ON os.suborder_id = oi.suborder_id
   INNER JOIN public.orders AS o ON o.order_id = os.order_id
   LEFT JOIN public.users AS buyer ON buyer.user_id = o.user_id
+  LEFT JOIN LATERAL (
+    SELECT a.floor_unit_number, a.street, a.barangay, a.city_municipality, a.province, a.region, a.other_notes
+    FROM public.addresses AS a
+    WHERE a.user_id = o.user_id
+    ORDER BY a.updated_at DESC NULLS LAST, a.address_id DESC
+    LIMIT 1
+  ) AS buyer_address ON TRUE
   INNER JOIN public.users AS seller ON seller.user_id = os.seller_id
   LEFT JOIN public.seller_details AS sd ON sd.user_id = os.seller_id
   LEFT JOIN public.products AS p ON p.product_id = oi.product_id
@@ -669,6 +713,7 @@ AS $$
         'buyer_id', r.buyer_id,
         'buyer_name', r.buyer_name,
         'buyer_phone', r.buyer_phone,
+        'dropoff_location', r.dropoff_location,
         'subtotal', r.subtotal,
         'shipping_fee', r.shipping_fee,
         'tax_amount', r.tax_amount,
@@ -754,6 +799,7 @@ BEGIN
     FROM public.order_items AS oi
     LEFT JOIN public.products AS p ON p.product_id = oi.product_id
     WHERE oi.suborder_id = v_summary.suborder_id
+      AND oi.order_items_id = p_order_item_id
   ) AS item_rows;
 
   SELECT concat_ws(
@@ -806,6 +852,7 @@ BEGIN
     'buyer_id', v_summary.buyer_id,
     'buyer_name', v_summary.buyer_name,
     'buyer_phone', v_summary.buyer_phone,
+    'dropoff_location', COALESCE(v_summary.dropoff_location, v_buyer_address),
     'subtotal', v_summary.subtotal,
     'shipping_fee', v_summary.shipping_fee,
     'tax_amount', v_summary.tax_amount,
@@ -1268,3 +1315,118 @@ GRANT EXECUTE ON FUNCTION public.rider_update_pickup_status(integer, integer) TO
 GRANT EXECUTE ON FUNCTION public.rider_dashboard_snapshot() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.rider_earnings_snapshot() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.live_state_snapshot() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.buyer_confirm_order(p_reference text)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id integer;
+  v_role_id integer;
+  v_reference text := trim(COALESCE(p_reference, ''));
+  v_order_id integer;
+  v_updated_count integer := 0;
+  v_updated_item_ids integer[] := ARRAY[]::integer[];
+BEGIN
+  v_user_id := public.current_public_user_id();
+  v_role_id := public.current_public_role_id();
+
+  IF v_user_id IS NULL OR v_user_id <= 0 OR v_role_id <> 2 THEN
+    RAISE EXCEPTION 'Buyer access required.';
+  END IF;
+
+  IF v_reference = '' THEN
+    RAISE EXCEPTION 'Order reference is required.';
+  END IF;
+
+  SELECT o.order_id
+  INTO v_order_id
+  FROM public.orders AS o
+  WHERE lower(COALESCE(o.reference, '')) = lower(v_reference)
+    AND o.user_id = v_user_id
+  LIMIT 1;
+
+  IF v_order_id IS NULL THEN
+    RAISE EXCEPTION 'Order not found.';
+  END IF;
+
+  WITH updated_items AS (
+    UPDATE public.order_items
+    SET status = 6
+    WHERE user_id = v_user_id
+      AND lower(COALESCE(reference, '')) = lower(v_reference)
+      AND status = 4
+    RETURNING order_items_id
+  )
+  SELECT COALESCE(array_agg(order_items_id), ARRAY[]::integer[]), COUNT(*)
+  INTO v_updated_item_ids, v_updated_count
+  FROM updated_items;
+
+  IF COALESCE(v_updated_count, 0) <= 0 THEN
+    RAISE EXCEPTION 'No delivered items to confirm for this order.';
+  END IF;
+
+  INSERT INTO public.wallet_ledger (user_id, wallet_role, amount, entry_kind, reference_id, note)
+  SELECT
+    os.seller_id,
+    'seller',
+    ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2),
+    'seller_cod_release_item',
+    oi.order_items_id,
+    'Seller balance from completed order item'
+  FROM public.order_items AS oi
+  INNER JOIN public.order_suborders AS os ON os.suborder_id = oi.suborder_id
+  LEFT JOIN public.products AS p ON p.product_id = oi.product_id
+  WHERE oi.order_items_id = ANY(v_updated_item_ids)
+    AND COALESCE(os.seller_id, 0) > 0
+    AND ROUND(COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0), 2) > 0
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.wallet_ledger AS wl
+      WHERE wl.user_id = os.seller_id
+        AND wl.wallet_role = 'seller'
+        AND wl.entry_kind = 'seller_cod_release_item'
+        AND wl.reference_id = oi.order_items_id
+    )
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.wallet_ledger AS wl
+      WHERE wl.user_id = os.seller_id
+        AND wl.wallet_role = 'seller'
+        AND wl.entry_kind = 'seller_cod_release'
+        AND wl.reference_id = oi.suborder_id
+    );
+
+  UPDATE public.order_suborders AS os
+  SET status = 6
+  WHERE os.order_id = v_order_id
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.order_items AS oi
+      WHERE oi.suborder_id = os.suborder_id
+        AND oi.status NOT IN (5, 6)
+    );
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.order_items AS oi
+    WHERE oi.user_id = v_user_id
+      AND lower(COALESCE(oi.reference, '')) = lower(v_reference)
+      AND oi.status NOT IN (5, 6)
+  ) THEN
+    UPDATE public.orders
+    SET status = 6
+    WHERE order_id = v_order_id;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'reference', v_reference,
+    'order_id', v_order_id,
+    'updated_items', v_updated_count
+  );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.buyer_confirm_order(text) TO authenticated;

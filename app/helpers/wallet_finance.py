@@ -121,6 +121,70 @@ def rider_earnings_snapshot(user_id: int) -> dict[str, float | int]:
     }
 
 
+def seller_earnings_snapshot(user_id: int) -> dict[str, float | int]:
+    rows = executeGet(
+        """
+        WITH item_values AS (
+            SELECT
+                oi.order_items_id,
+                oi.status,
+                COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0) AS line_total
+            FROM order_items oi
+            INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+            LEFT JOIN products p ON p.product_id = oi.product_id
+            WHERE os.seller_id = %s
+        )
+        SELECT
+            COUNT(*) AS total_orders,
+            SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) AS completed_orders,
+            SUM(CASE WHEN status NOT IN (5, 6, 8) THEN 1 ELSE 0 END) AS processing_orders,
+            SUM(CASE WHEN status IN (5, 8) THEN 1 ELSE 0 END) AS cancelled_orders,
+            COALESCE(SUM(line_total), 0) AS total_revenue,
+            COALESCE(SUM(CASE WHEN status = 6 THEN line_total ELSE 0 END), 0) AS completed_revenue,
+            COALESCE(SUM(CASE WHEN status NOT IN (5, 6, 8) THEN line_total ELSE 0 END), 0) AS processing_revenue,
+            COALESCE(SUM(CASE WHEN status IN (5, 8) THEN line_total ELSE 0 END), 0) AS cancelled_revenue
+        FROM item_values
+        """,
+        (user_id,),
+    ) or []
+    row = rows[0] if rows else {}
+
+    released_balance = float(ledger_balance(user_id, "seller"))
+    pending = float(pending_withdrawal_total(user_id, "seller"))
+    available = float(available_balance(user_id, "seller"))
+
+    total_orders = int(row.get("total_orders") or 0)
+    completed_orders = int(row.get("completed_orders") or 0)
+    processing_orders = int(row.get("processing_orders") or 0)
+    cancelled_orders = int(row.get("cancelled_orders") or 0)
+    processed_count = completed_orders + processing_orders + cancelled_orders
+    remaining_orders = max(total_orders - processed_count, 0)
+
+    total_revenue = float(row.get("total_revenue") or 0)
+    completed_revenue = float(row.get("completed_revenue") or 0)
+    processing_revenue = float(row.get("processing_revenue") or 0)
+    cancelled_revenue = float(row.get("cancelled_revenue") or 0)
+    accounted_revenue = completed_revenue + processing_revenue + cancelled_revenue
+    remaining_revenue = max(total_revenue - accounted_revenue, 0.0)
+
+    return {
+        "total_orders": total_orders,
+        "completed_orders": completed_orders,
+        "processing_orders": processing_orders,
+        "cancelled_orders": cancelled_orders,
+        "remaining_orders": remaining_orders,
+        "total_revenue": total_revenue,
+        "completed_revenue": completed_revenue,
+        "completed_payout": max(released_balance, 0.0),
+        "processing_revenue": processing_revenue,
+        "cancelled_revenue": cancelled_revenue,
+        "remaining_revenue": remaining_revenue,
+        "available_balance": available,
+        "pending_withdrawals": pending,
+        "ledger_balance": released_balance,
+    }
+
+
 def _ledger_exists(entry_kind: str, reference_id: int | None, user_id: int) -> bool:
     rows = executeGet(
         """
@@ -223,6 +287,42 @@ def credit_seller_for_completed_suborder(suborder_id: int) -> None:
     if amount <= 0:
         return
     _ledger_insert(sid, "seller", _d(amount), "seller_cod_release", suborder_id, "Seller balance from completed sub-order")
+
+
+def credit_seller_for_completed_item(order_item_id: int) -> None:
+    rows = executeGet(
+        """
+        SELECT
+            os.seller_id,
+            oi.suborder_id,
+            oi.status,
+            COALESCE(p.price, 0) * GREATEST(COALESCE(oi.quantity, 0), 0) AS line_total
+        FROM order_items oi
+        INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
+        LEFT JOIN products p ON p.product_id = oi.product_id
+        WHERE oi.order_items_id = %s
+        LIMIT 1
+        """,
+        (order_item_id,),
+    ) or []
+    if not rows:
+        return
+    status = int(rows[0].get("status") or 0)
+    if status != 6:
+        return
+    seller_id = rows[0].get("seller_id")
+    if not seller_id:
+        return
+    sid = int(seller_id)
+    suborder_id = rows[0].get("suborder_id")
+    if _ledger_exists("seller_cod_release_item", order_item_id, sid):
+        return
+    if suborder_id and _ledger_exists("seller_cod_release", suborder_id, sid):
+        return
+    amount = round(max(0.0, float(rows[0].get("line_total") or 0)), 2)
+    if amount <= 0:
+        return
+    _ledger_insert(sid, "seller", _d(amount), "seller_cod_release_item", order_item_id, "Seller balance from completed order item")
 
 
 def ensure_seller_credits_for_order(order_id: int):
