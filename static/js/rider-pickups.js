@@ -112,7 +112,7 @@
             .then((res) => res.json())
             .then((data) => {
               if (data.status === 'success') {
-                refreshLists();
+                handleClaimSuccess();
               } else {
                 alert(data.message || 'Unable to claim pickup.');
               }
@@ -170,7 +170,7 @@
             .then((res) => res.json())
             .then((data) => {
               if (data.status === 'success') {
-                refreshLists();
+                handleClaimSuccess();
               } else {
                 alert(data.message || 'Unable to claim pickup.');
               }
@@ -468,6 +468,26 @@
     }
   }
 
+  function focusAssignmentsCard() {
+    const assignmentsCard = document.getElementById('riderAssignmentsCard');
+    if (!assignmentsCard) return;
+
+    assignmentsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.setTimeout(() => {
+      assignmentsCard.focus({ preventScroll: true });
+    }, 250);
+  }
+
+  function handleClaimSuccess() {
+    refreshLists()
+      .then(() => {
+        focusAssignmentsCard();
+      })
+      .catch(() => {
+        focusAssignmentsCard();
+      });
+  }
+
   function renderPickupList(scope, pickups) {
     const listEl = document.querySelector(`[data-pickup-list="${scope}"]`);
     const countEl = document.querySelector(`[data-rider-count="${scope}"]`);
@@ -501,14 +521,16 @@
   };
 
   function refreshLists() {
-    Promise.all([fetchPickupScope('available'), fetchPickupScope('mine')])
+    return Promise.all([fetchPickupScope('available'), fetchPickupScope('mine')])
       .then(([available, mine]) => {
         renderPickupList('available', available);
         renderPickupList('mine', mine);
+        return { available, mine };
       })
       .catch((err) => {
         console.error(err);
         alert('Unable to load rider pickups at the moment.');
+        throw err;
       });
   }
 
