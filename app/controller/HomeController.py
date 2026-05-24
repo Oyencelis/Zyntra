@@ -1029,7 +1029,8 @@ def submitCheckout():
         return responseData("error", "Unable to allocate items to sellers.", "", 200)
 
     suborders_payload = []
-    for index, (seller_id, items) in enumerate(seller_groups.items(), start=1):
+    suborder_counter = 1
+    for seller_id, items in seller_groups.items():
         if not seller_id or not items:
             continue
 
@@ -1041,37 +1042,61 @@ def submitCheckout():
 
         group_shipping_fee = float((shipping_by_seller.get(seller_id) or {}).get('shipping_fee') or 0)
         group_tax_amount = (group_subtotal + group_shipping_fee) * 0.01
-        group_total_amount = group_subtotal + group_shipping_fee + group_tax_amount
+        item_allocations = []
+        remaining_shipping_fee = round(group_shipping_fee, 2)
+        remaining_tax_amount = round(group_tax_amount, 2)
 
-        sub_reference = f"{reference}-{index:02d}"
-        insert_suborder_query = """
-            INSERT INTO order_suborders
-                (order_id, seller_id, reference, status, subtotal, shipping_fee, tax_amount, total_amount)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        suborder_result = executePost(
-            insert_suborder_query,
-            (
-                order_id,
-                seller_id,
-                sub_reference,
-                1,
-                f"{group_subtotal:.2f}",
-                f"{group_shipping_fee:.2f}",
-                f"{group_tax_amount:.2f}",
-                f"{group_total_amount:.2f}"
+        for item_index, cart_item in enumerate(items, start=1):
+            price = float(cart_item.get('price', 0) or 0)
+            quantity = int(cart_item.get('quantity', 0) or 0)
+            item_subtotal = round(price * quantity, 2)
+
+            if item_index == len(items):
+                item_shipping_fee = remaining_shipping_fee
+                item_tax_amount = remaining_tax_amount
+            else:
+                share_ratio = (item_subtotal / group_subtotal) if group_subtotal > 0 else (1 / len(items))
+                item_shipping_fee = round(group_shipping_fee * share_ratio, 2)
+                item_tax_amount = round(group_tax_amount * share_ratio, 2)
+                remaining_shipping_fee = round(remaining_shipping_fee - item_shipping_fee, 2)
+                remaining_tax_amount = round(remaining_tax_amount - item_tax_amount, 2)
+
+            item_allocations.append({
+                'cart_item': cart_item,
+                'subtotal': item_subtotal,
+                'shipping_fee': item_shipping_fee,
+                'tax_amount': item_tax_amount,
+                'total_amount': round(item_subtotal + item_shipping_fee + item_tax_amount, 2),
+            })
+
+        for allocation in item_allocations:
+            cart_item = allocation['cart_item']
+            sub_reference = f"{reference}-{suborder_counter:02d}"
+            suborder_counter += 1
+
+            insert_suborder_query = """
+                INSERT INTO order_suborders
+                    (order_id, seller_id, reference, status, subtotal, shipping_fee, tax_amount, total_amount)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            suborder_result = executePost(
+                insert_suborder_query,
+                (
+                    order_id,
+                    seller_id,
+                    sub_reference,
+                    1,
+                    f"{allocation['subtotal']:.2f}",
+                    f"{allocation['shipping_fee']:.2f}",
+                    f"{allocation['tax_amount']:.2f}",
+                    f"{allocation['total_amount']:.2f}"
+                )
             )
-        )
 
-        if not suborder_result or not suborder_result.get('last_inserted_id'):
-            return responseData("error", "Unable to create seller sub-orders.", "", 200)
+            if not suborder_result or not suborder_result.get('last_inserted_id'):
+                return responseData("error", "Unable to create seller sub-orders.", "", 200)
 
-        suborder_id = suborder_result.get('last_inserted_id')
-        item_names = []
-        for cart_item in items:
-            item_quantity = int(cart_item.get('quantity', 0) or 0)
-            product_id = cart_item.get('product_id')
-
+            suborder_id = suborder_result.get('last_inserted_id')
             update_item_query = """
                 UPDATE order_items
                 SET status = 1, reference = %s, suborder_id = %s
@@ -1079,13 +1104,11 @@ def submitCheckout():
             """
             executePost(update_item_query, (reference, suborder_id, cart_item.get('order_items_id')))
 
-            item_names.append(cart_item.get('product_name') or 'Product')
-
-        suborders_payload.append({
-            'seller_id': seller_id,
-            'sub_reference': sub_reference,
-            'item_names': item_names
-        })
+            suborders_payload.append({
+                'seller_id': seller_id,
+                'sub_reference': sub_reference,
+                'item_names': [cart_item.get('product_name') or 'Product']
+            })
 
     buyer_first = g.authenticated.get('firstname', '') if g.authenticated else ''
     buyer_last = g.authenticated.get('lastname', '') if g.authenticated else ''
