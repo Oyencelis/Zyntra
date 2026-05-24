@@ -53,26 +53,26 @@
                     {% if shipment_groups %}
                     <div class="vstack gap-3">
                         {% for shipment in shipment_groups %}
-                        <div class="border rounded-4 p-3 p-md-4{% if shipment.has_selected_item %} border-primary-subtle bg-primary bg-opacity-10{% endif %}">
+                        <div class="border rounded-4 p-3 p-md-4{% if shipment['has_selected_item'] %} border-primary-subtle bg-primary bg-opacity-10{% endif %}">
                             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-start gap-3 mb-3">
                                 <div>
                                     <p class="text-muted small text-uppercase mb-1">Shipment</p>
-                                    <h5 class="mb-1">{{ shipment.sub_reference or shipment.reference }}</h5>
+                                    <h5 class="mb-1">{{ shipment['sub_reference'] or shipment['reference'] }}</h5>
                                     <div class="d-flex flex-wrap gap-3 text-muted small">
-                                        <span><i class="bi bi-shop"></i> {{ shipment.store_name }}</span>
-                                        <span><i class="bi bi-box-seam"></i> {{ shipment.items|length }} item{{ '' if shipment.items|length == 1 else 's' }}</span>
+                                        <span><i class="bi bi-shop"></i> {{ shipment['store_name'] }}</span>
+                                        <span><i class="bi bi-box-seam"></i> {{ shipment['items']|length }} item{{ '' if shipment['items']|length == 1 else 's' }}</span>
                                     </div>
                                 </div>
                                 <div class="d-flex flex-wrap justify-content-lg-end gap-2">
-                                    {% for status_entry in shipment.status_summary %}
-                                    {% set shipment_pill = status_map.get(status_entry.status, ('badge rounded-pill bg-soft-secondary text-secondary', status_entry.label)) %}
-                                    <span class="{{ shipment_pill[0] }}">{{ status_entry.count }} {{ status_entry.label }}</span>
+                                    {% for status_entry in shipment['status_summary'] %}
+                                    {% set shipment_pill = status_map.get(status_entry['status'], ('badge rounded-pill bg-soft-secondary text-secondary', status_entry['label'])) %}
+                                    <span class="{{ shipment_pill[0] }}">{{ status_entry['count'] }} {{ status_entry['label'] }}</span>
                                     {% endfor %}
                                 </div>
                             </div>
 
                             <div class="vstack gap-3">
-                                {% for item in shipment.items %}
+                                {% for item in shipment['items'] %}
                                 {% set pill = status_map.get(item.status, ('badge rounded-pill bg-soft-secondary text-secondary', item.status_text)) %}
                                 <div class="product-track-card border rounded-4 p-3{% if item.is_selected %} border-primary shadow-sm{% endif %}"{% if item.is_selected %} id="selectedOrderItem"{% endif %}>
                                     <div class="d-flex flex-column flex-md-row gap-3">
@@ -86,7 +86,7 @@
                                                 <div>
                                                     <p class="text-muted small text-uppercase mb-1">Product</p>
                                                     <h5 class="mb-1">{{ item.product_name }}</h5>
-                                                    <small class="text-muted">Shipment {{ shipment.sub_reference or shipment.reference }}</small>
+                                                    <small class="text-muted">Shipment {{ shipment['sub_reference'] or shipment['reference'] }}</small>
                                                     {% if item.is_selected %}
                                                     <div class="small text-primary fw-semibold mt-1">Currently selected from your previous page</div>
                                                     {% endif %}
