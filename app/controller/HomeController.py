@@ -1872,7 +1872,9 @@ def updateSuborderStatus():
     ownership_query = """
         SELECT oi.order_items_id,
                oi.status,
-               oi.suborder_id
+               oi.suborder_id,
+               oi.product_id,
+               oi.quantity
         FROM order_items oi
         INNER JOIN order_suborders os ON os.suborder_id = oi.suborder_id
         WHERE oi.order_items_id = %s
@@ -1898,8 +1900,24 @@ def updateSuborderStatus():
         WHERE order_items_id = %s AND suborder_id = %s
     """
     item_update_result = executePost(update_items_query, (status, order_item_id, suborder_id))
-    if isinstance(item_update_result, tuple):
+    if not isinstance(item_update_result, dict) or 'rowcount' not in item_update_result:
         return item_update_result
+
+    if status == 8:
+        product_id = ownership[0].get('product_id')
+        quantity = int(ownership[0].get('quantity') or 0)
+        if product_id and quantity > 0:
+            restore_stock_result = executePost(
+                """
+                UPDATE products
+                SET qty = COALESCE(qty, 0) + %s,
+                    updated_at = NOW()
+                WHERE product_id = %s AND user_id = %s
+                """,
+                (quantity, product_id, seller_id),
+            )
+            if not isinstance(restore_stock_result, dict) or 'rowcount' not in restore_stock_result:
+                return restore_stock_result
 
     _sync_suborder_status_from_items(suborder_id)
     notify_buyer_order_item_status(order_item_id, status)
